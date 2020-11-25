@@ -24,7 +24,7 @@ This repository has been successfully tested with following configuration:
 conda create --name fs-fsdet
 conda activate fs-fsdet
 ```
-2.Install PyTorch, depending on your local CUDA version (e.g. PyTorch 1.6 for CUDA 10.1)
+2.Install PyTorch, depending on your local CUDA version (e.g. PyTorch 1.6 for CUDA 10.1). See PyTorch [actual version](https://pytorch.org/get-started/locally/) and [old versions](https://pytorch.org/get-started/previous-versions/).
 ``` bash
 conda install pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.1 -c pytorch
 ```
