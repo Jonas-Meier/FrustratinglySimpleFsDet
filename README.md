@@ -1,3 +1,5 @@
+[//]: # (This may be the most platform independent comment)
+
 # Few-Shot Object Detection (FsDet)
 
 FsDet contains the official few-shot object detection implementation of the ICML 2020 paper [Frustratingly Simple Few-Shot Object Detection](https://arxiv.org/abs/2003.06957).
@@ -8,7 +10,7 @@ Original [Repository](https://github.com/ucbdrive/few-shot-object-detection).
 
 ## Setup
 This repository has been successfully tested with following configuration:
-1. CUDA 10.1
+1. CUDA 10.1 (CUDA 10.0 and 10.2 should work as well)
 2. cuDNN 7.6.3 for CUDA 10.1
 3. gcc/g++ 7.5
 
@@ -22,10 +24,35 @@ This repository has been successfully tested with following configuration:
 conda create --name fs-fsdet
 conda activate fs-fsdet
 ```
+2.Install PyTorch, depending on your local CUDA version (e.g. PyTorch 1.6 for CUDA 10.1)
+``` bash
+conda install pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.1 -c pytorch
+```
+3. Install Detectron2 v0.2.1, depending on PyTorch and CUDA version (e.g. for PyTorch 1.6 and CUDA 10.1). See [detectron2 releases](https://github.com/facebookresearch/detectron2/releases) for pre-built linux binaries.
+``` bash
+python3 -m pip install detectron2==0.2.1 -f  https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.6/index.html
+```
+4. Install other requirements
+``` bash
+python3 -m pip install -r requirements.txt
+```
+
+## Dataset Preparation
+Exemplary dataset preparation for COCO. For datasets Pascal VOC and LVIS please refer to [Dataset Preparation](https://github.com/ucbdrive/few-shot-object-detection#data-preparation) of the original repository.
+
+Create symlinks of your COCO data to the `datasets` directory of the repository (`<FSDET_ROOT>/dataset/`). The expected dataset structure is:
+```
+├── coco
+│   ├── annotations
+│       ├── instances_train2014.json
+│       ├── instances_val2014.json
+│   ├── train2014
+│   ├── val2014
+```  
 
 
 
-## About the repository, lecacy notes
+## About the repository, legacy notes
 We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes. These are described in more detail in [Data Preparation](#data-preparation).
 
 We also provide benchmark results and pre-trained models for our two-stage fine-tuning approach (TFA). In TFA, we first train the entire object detector on the data-abundant base classes, and then only fine-tune the last layers of the detector on a small balanced training set. See [Models](#models) for our provided models and [Getting Started](#getting-started) for instructions on training and evaluation.
@@ -45,6 +72,7 @@ If you find this repository useful for your publications, please consider citing
 ```
 
 
+[//]: # (Old documentation below this comment! TODO: adjust an remove unnecessary parts!)
 
 
 
@@ -54,42 +82,6 @@ If you find this repository useful for your publications, please consider citing
 
 
 
-## Installation
-
-**Requirements**
-
-* Linux with Python >= 3.6
-* [PyTorch](https://pytorch.org/get-started/locally/) >= 1.4
-* [torchvision](https://github.com/pytorch/vision/) that matches the PyTorch installation
-* CUDA 10.0, 10.1, 10.2
-* GCC >= 4.9
-
-**Build FsDet**
-* Create a virtual environment.
-```angular2html
-python3 -m venv fsdet
-source fsdet/bin/activate
-```
-You can also use `conda` to create a new environment.
-```angular2html
-conda create --name fsdet
-conda activate fsdet
-```
-* Install Pytorch 1.6 with CUDA 10.2 
-```angular2html
-pip install torch torchvision
-```
-You can choose the Pytorch and CUDA version according to your machine.
-Just to make sure your Pytorch version matches the [prebuilt detectron2](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md#install-pre-built-detectron2-linux-only)
-* Install Detectron2 v0.2.1
-```angular2html
-python3 -m pip install detectron2 -f \
-  https://dl.fbaipublicfiles.com/detectron2/wheels/cu102/torch1.6/index.html
-```
-* Install other requirements. 
-```angular2html
-python3 -m pip install -r requirements.txt
-```
 
 ## Code Structure
 - **configs**: Configuration files
