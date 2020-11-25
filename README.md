@@ -12,7 +12,7 @@ Original [Repository](https://github.com/ucbdrive/few-shot-object-detection).
 This repository has been successfully tested with following configuration:
 1. CUDA 10.1(.243) (CUDA 10.0 and 10.2 should work as well)
 2. cuDNN 7.6.3 for CUDA 10.1
-3. gcc/g++ 7.5
+3. gcc/g++ 7.5 (anything >= 5.0 should work)
 
 ## Variable Denotation
 * We assume the repository to be located at `<FSDET_ROOT>` (e.g. `/home/<user>/workspace/frustratingly-simple-fsdet`)
