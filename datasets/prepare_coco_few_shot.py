@@ -6,7 +6,7 @@ import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seeds", type=int, nargs="+", default=[1, 10],
+    parser.add_argument("--seeds", type=int, nargs="+", default=[1, 10],  # TODO: range(1,10) = 1..9!!! 9 not 10 seeds
                         help="Range of seeds")
     args = parser.parse_args()
     return args
@@ -31,8 +31,10 @@ def generate_seeds(args):
         anno[a['category_id']].append(a)
 
     for i in range(args.seeds[0], args.seeds[1]):
+        print("Generating seed {}".format(i))
         random.seed(i)
         for c in ID2CLASS.keys():
+            print("Generating data for class {} with id {}".format(ID2CLASS[c],c))
             img_ids = {}
             for a in anno[c]:
                 if a['image_id'] in img_ids:
@@ -40,11 +42,16 @@ def generate_seeds(args):
                 else:
                     img_ids[a['image_id']] = [a]
 
-            sample_shots = []
-            sample_imgs = []
+            sample_shots = []  # annotations
+            sample_imgs = []  # images
             for shots in [1, 2, 3, 5, 10, 30]:
+                print("Generating {} shot data".format(shots))
                 while True:
-                    imgs = random.sample(list(img_ids.keys()), shots)
+                    imgs = random.sample(list(img_ids.keys()), shots)  # TODO: unnecessary to take 'shot' images
+                    # because they finally only need 'shots' annotations. They have an infinite loop and sample
+                    # 'shots' images because they never know how many "useful" annotations per class they will find
+                    # per image. Instead, they could just use an infinite loop and always sample one image at a time
+                    # until they have enough annotations. This code is confusing!
                     for img in imgs:
                         skip = False
                         for s in sample_shots:
@@ -53,14 +60,21 @@ def generate_seeds(args):
                                 break
                         if skip:
                             continue
-                        if len(img_ids[img]) + len(sample_shots) > shots:
+                        if len(img_ids[img]) + len(sample_shots) > shots:  # TODO: This condition may lead to following:
+                            # 1. For k=5 shots and if each image had exactly 2 annotations per class we finally only
+                            # have four annotations for that class -> probably too few annotations
+                            # 2. In contrast to other approaches, they allow for taking multiple annotations from the
+                            # same image (even more: they only want ALL annotations from an image (for a certain class)
+                            # or none at all) (as support data) -> unknown consequences
                             continue
-                        sample_shots.extend(img_ids[img])
-                        sample_imgs.append(id2img[img])
+                        sample_shots.extend(img_ids[img])  # add all annotations of image with id 'img' with class 'c'
+                        sample_imgs.append(id2img[img])  # add the image with id 'img'
+                        assert len(sample_imgs) <= len(sample_shots), "Error, got {} images but only {} annotations!".format(len(sample_imgs), len(sample_shots))
                         if len(sample_shots) == shots:
                             break
                     if len(sample_shots) == shots:
                         break
+                assert len(sample_shots) == shots, "Wanted {} shots, but only found {} annotations!".format(shots, len(sample_shots))
                 new_data = {
                     'info': data['info'],
                     'licenses': data['licenses'],
@@ -70,7 +84,8 @@ def generate_seeds(args):
                 save_path = get_save_path_seeds(data_path, ID2CLASS[c], shots, i)
                 new_data['categories'] = new_all_cats
                 with open(save_path, 'w') as f:
-                    json.dump(new_data, f)
+                    # json.dump(new_data, f)
+                    json.dump(new_data, f, indent=2)  # Easier to check files manually
 
 
 def get_save_path_seeds(path, cls, shots, seed):
