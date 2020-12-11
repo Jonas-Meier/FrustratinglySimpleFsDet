@@ -11,7 +11,7 @@ Original [Repository](https://github.com/ucbdrive/few-shot-object-detection).
 ## Setup
 This repository has been successfully tested with following configuration:
 1. CUDA 10.1(.243) (CUDA 10.0 and 10.2 should work as well)
-2. cuDNN 7.6.3 for CUDA 10.1
+2. cuDNN 7.6.3 or 7.6.4 for CUDA 10.1
 3. gcc/g++ 7.5 (anything >= 5.0 should work)
 
 ## Variable Denotation
