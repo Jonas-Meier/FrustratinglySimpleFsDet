@@ -73,6 +73,12 @@ You can either download few-shot seeds [here](http://dl.yf.io/fs-det/datasets/co
 python datasets/prepare_coco_few_shot.py
 ```
 
+## Training
+
+Note: You can also download the ImageNet pretrained [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every trainng you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
+
+
+
 ## About the repository, legacy notes
 We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes. These are described in more detail in [Data Preparation](#data-preparation).
 
