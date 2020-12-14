@@ -74,6 +74,7 @@ def generate_seeds(args):
                             break
                     if len(sample_shots) == shots:
                         break
+                # TODO: Probably convert assertion to a warning.
                 assert len(sample_shots) == shots, "Wanted {} shots, but only found {} annotations!".format(shots, len(sample_shots))
                 new_data = {
                     'info': data['info'],
