@@ -70,7 +70,8 @@ Download the [dataset split files](http://dl.yf.io/fs-det/datasets/cocosplit/dat
 
 You can either download few-shot seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/) and put them into `cocosplit` directory or create them yourself:
 ``` bash
-python datasets/prepare_coco_few_shot.py
+cd datasets/
+python prepare_coco_few_shot.py
 ```
 
 ## Training
