@@ -1,9 +1,26 @@
 from detectron2.config import CfgNode as CN
 from detectron2.config.defaults import _C
+import os
 
 # adding additional default values built on top of the default values in detectron2
 
 _CC = _C
+
+# Some dataset and class split specific patterns
+_CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+# Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
+_CC.DATA_DIR = CN({
+    "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
+    "isaid": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid')
+})
+
+_CC.DATA_SAVE_PATH_PATTERN = CN({
+    "coco": os.path.join(_CC.ROOT_DIR, 'datasets', "cocosplit", "cocosplit_{}"),
+    "isaid": os.path.join(_CC.ROOT_DIR, 'datasets', "isaidsplit", "isaidsplit_{}")
+})
+
+
+
 
 # FREEZE Parameters
 _CC.MODEL.BACKBONE.FREEZE = False
