@@ -23,7 +23,7 @@ _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
 _CC.MAX_SEED_VALUE = 9  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
 
-
+_CC.EVENT_WRITER_PERIOD = 100  # default: 20
 
 # FREEZE Parameters
 _CC.MODEL.BACKBONE.FREEZE = False

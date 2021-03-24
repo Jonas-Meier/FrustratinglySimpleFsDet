@@ -329,6 +329,7 @@ class DefaultTrainer(SimpleTrainer):
         )
         self.start_iter = 0
         self.max_iter = cfg.SOLVER.MAX_ITER
+        self.event_period = cfg.EVENT_WRITER_PERIOD
         self.cfg = cfg
 
         self.register_hooks(self.build_hooks())
@@ -402,7 +403,7 @@ class DefaultTrainer(SimpleTrainer):
 
         if comm.is_main_process():
             # run writers in the end, so that evaluation metrics are written
-            ret.append(hooks.PeriodicWriter(self.build_writers()))
+            ret.append(hooks.PeriodicWriter(self.build_writers(), period=self.event_period))
         return ret
 
     def build_writers(self):
