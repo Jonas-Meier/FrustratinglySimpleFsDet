@@ -36,6 +36,22 @@ python3 -m pip install detectron2==0.2.1 -f  https://dl.fbaipublicfiles.com/dete
 ``` bash
 python3 -m pip install -r requirements.txt
 ```
+## Code Structure
+- **configs**: Configuration files
+- **datasets**: Dataset files (see [Dataset Preparation](#dataset-preparation) for more details)
+- **fsdet**
+  - **checkpoint**: Checkpoint code.
+  - **config**: Configuration code and default configurations.
+  - **engine**: Contains training and evaluation loops and hooks.
+  - **layers**: Implementations of different layers used in models.
+  - **modeling**: Code for models, including backbones, proposal networks, and prediction heads.
+- **tools**
+  - **train_net.py**: Training script.
+  - **test_net.py**: Testing script.
+  - **ckpt_surgery.py**: Surgery on checkpoints.
+  - **run_experiments.py**: Running experiments across many seeds.
+  - **aggregate_seeds.py**: Aggregating results from many seeds.
+
 
 ## Dataset Preparation
 Exemplary dataset preparation for COCO. For datasets Pascal VOC and LVIS please refer to [Dataset Preparation](https://github.com/ucbdrive/few-shot-object-detection#data-preparation) of the original repository.
@@ -61,92 +77,42 @@ Create a directory `cocosplit` inside the `datasets` directory of the repository
 │   ├── datasetplit
 │       ├── trainvalno5k.json
 │       ├── 5k.json
-│   ├── seed{1..9}
-│       ├── 
 ```
 See [here](datasets/README.md#few-shot-datasets) for more information on few-shot datasets.
 
 Download the [dataset split files](http://dl.yf.io/fs-det/datasets/cocosplit/datasplit/) and put them into `datasetsplit` directory.
 
-You can either download few-shot seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/) and put them into `cocosplit` directory or create them yourself:
+Create few-shot data with 
 ``` bash
 cd datasets/
 python prepare_coco_few_shot.py
 ```
+or
+``` bash
+python3 -m datasets.prepare_coco_few_shot
+```
+Following arguments are accepted by `prepare_coco_few_shot.py`:
+* --dataset: dataset used (e.g. `coco`, `isaid`, etc.)
+* --class-split: class split into base classes and novel classes (e.g. `voc_nonvoc` for dataset coco)
+* --shots: list of shots
+* --seeds: range of seeds. Start and end are both inclusive!
+
+You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
 ## Training
 
 Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every trainng you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
 
+See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
+
+### Pre-trained Models
+Benchmark results and pretrained models are available [here](docs/MODEL_ZOO.md). More models and configs are available [here](fsdet/model_zoo/model_zoo.py)
 
 
-## About the repository, legacy notes
-We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes. These are described in more detail in [Data Preparation](#data-preparation).
-
-We also provide benchmark results and pre-trained models for our two-stage fine-tuning approach (TFA). In TFA, we first train the entire object detector on the data-abundant base classes, and then only fine-tune the last layers of the detector on a small balanced training set. See [Models](#models) for our provided models and [Getting Started](#getting-started) for instructions on training and evaluation.
-
-The code has been upgraded to detectron2 v0.2.1.  If you need the original released code, please checkout the release [v0.1](https://github.com/ucbdrive/few-shot-object-detection/tags) in the tag.
-
-
-Code Structure
-- **configs**: Configuration files
-- **datasets**: Dataset files (see [Data Preparation](#data-preparation) for more details)
-- **fsdet**
-  - **checkpoint**: Checkpoint code.
-  - **config**: Configuration code and default configurations.
-  - **engine**: Contains training and evaluation loops and hooks.
-  - **layers**: Implementations of different layers used in models.
-  - **modeling**: Code for models, including backbones, proposal networks, and prediction heads.
-- **tools**
-  - **train_net.py**: Training script.
-  - **test_net.py**: Testing script.
-  - **ckpt_surgery.py**: Surgery on checkpoints.
-  - **run_experiments.py**: Running experiments across many seeds.
-  - **aggregate_seeds.py**: Aggregating results from many seeds.
-
-If you find this repository useful for your publications, please consider citing our paper.
-
-```angular2html
-@article{wang2020few,
-    title={Frustratingly Simple Few-Shot Object Detection},
-    author={Wang, Xin and Huang, Thomas E. and  Darrell, Trevor and Gonzalez, Joseph E and Yu, Fisher}
-    booktitle = {International Conference on Machine Learning (ICML)},
-    month = {July},
-    year = {2020}
-}
-```
 
 
 [//]: # (Old documentation below this comment! TODO: adjust an remove unnecessary parts!)
 
-
-## Models
-We provide a set of benchmark results and pre-trained models available for download in [MODEL_ZOO.md](docs/MODEL_ZOO.md).
-
-
-## Getting Started
-
-### Inference Demo with Pre-trained Models
-
-1. Pick a model and its config file from
-  [model zoo](fsdet/model_zoo/model_zoo.py),
-  for example, `COCO-detection/faster_rcnn_R_101_FPN_ft_all_1shot.yaml`.
-2. We provide `demo.py` that is able to run builtin standard models. Run it with:
-```
-python3 -m demo.demo --config-file configs/COCO-detection/faster_rcnn_R_101_FPN_ft_all_1shot.yaml \
-  --input input1.jpg input2.jpg \
-  [--other-options]
-  --opts MODEL.WEIGHTS fsdet://coco/tfa_cos_1shot/model_final.pth
-```
-The configs are made for training, therefore we need to specify `MODEL.WEIGHTS` to a model from model zoo for evaluation.
-This command will run the inference and show visualizations in an OpenCV window.
-
-For details of the command line arguments, see `demo.py -h` or look at its source code
-to understand its behavior. Some common arguments are:
-* To run __on your webcam__, replace `--input files` with `--webcam`.
-* To run __on a video__, replace `--input files` with `--video-input video.mp4`.
-* To run __on cpu__, add `MODEL.DEVICE cpu` after `--opts`.
-* To save outputs to a directory (for images) or a file (for webcam or video), use `--output`.
 
 ### Training & Evaluation in Command Line
 
@@ -163,8 +129,6 @@ python3 -m tools.test_net --num-gpus 8 \
         --eval-only
 ```
 
-For more detailed instructions on the training procedure of TFA, see [TRAIN_INST.md](docs/TRAIN_INST.md).
-
 ### Multiple Runs
 
 For ease of training and evaluation over multiple runs, we provided several helpful scripts in `tools/`.
@@ -180,3 +144,20 @@ After training and evaluation, you can use `tools/aggregate_seeds.py` to aggrega
 python3 -m tools.aggregate_seeds --shots 3 --seeds 30 --split 1 \
         --print --plot
 ```
+
+## Legacy Notes
+We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes.
+
+We also provide benchmark results and pre-trained models for our two-stage fine-tuning approach (TFA). In TFA, we first train the entire object detector on the data-abundant base classes, and then only fine-tune the last layers of the detector on a small balanced training set.
+
+The code has been upgraded to detectron2 v0.2.1.  If you need the original released code, please checkout the release [v0.1](https://github.com/ucbdrive/few-shot-object-detection/tags) in the tag.
+
+If you find this repository useful for your publications, please consider citing our paper.
+```angular2html
+@article{wang2020few,
+    title={Frustratingly Simple Few-Shot Object Detection},
+    author={Wang, Xin and Huang, Thomas E. and  Darrell, Trevor and Gonzalez, Joseph E and Yu, Fisher}
+    booktitle = {International Conference on Machine Learning (ICML)},
+    month = {July},
+    year = {2020}
+}
