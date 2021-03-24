@@ -109,8 +109,6 @@ See the original documentation on the [TFA training procedure](docs/TRAIN_INST.m
 Benchmark results and pretrained models are available [here](docs/MODEL_ZOO.md). More models and configs are available [here](fsdet/model_zoo/model_zoo.py)
 
 
-
-
 [//]: # (Old documentation below this comment! TODO: adjust an remove unnecessary parts!)
 
 
