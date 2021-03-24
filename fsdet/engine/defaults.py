@@ -43,7 +43,7 @@ from detectron2.utils.events import (
 
 from detectron2.utils.logger import setup_logger
 
-
+# triggers fsdet.data.__init__.py which initiates dataset registration at fsdet.data.builtin.py
 from fsdet.data import *
 
 __all__ = [
