@@ -1,0 +1,17 @@
+_BASE_: "../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "pretrained/ImageNetPretrained/MSRA/R-50.pkl"  # "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: False
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 60
+DATASETS:
+  TRAIN: ('coco_voc_nonvoc_trainval_base',)  # coco_trainval_base
+  TEST: ('coco_voc_nonvoc_test_base',)  # coco_test_base
+SOLVER:
+  IMS_PER_BATCH: 16  # 16. TOTAL amount of images per batch across all machines. Images per GPU per batch = IMS_PER_BATCH / #GPUs
+  BASE_LR: 0.02  # 0.02 for a total batch size of 16
+  STEPS: (85000, 100000)  # reduce a bit, (60000, 80000) ?
+  MAX_ITER: 110000  # reduce a bit, 90000 ?
+OUTPUT_DIR: "checkpoints/coco/faster_rcnn/faster_rcnn_R_50_FPN_base"

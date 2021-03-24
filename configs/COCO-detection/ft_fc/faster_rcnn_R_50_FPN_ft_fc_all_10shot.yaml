@@ -1,0 +1,24 @@
+_BASE_: "../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "checkpoints/coco/faster_rcnn/faster_rcnn_R_50_FPN_all/model_reset_surgery.pth"   # "checkpoints/coco/faster_rcnn/faster_rcnn_R_50_FPN_ft_novel_10shot_combine/model_reset_combine.pth"
+  MASK_ON: False
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 80
+    FREEZE_FEAT: True
+  BACKBONE:
+    FREEZE: True
+  PROPOSAL_GENERATOR:
+    FREEZE: True
+DATASETS:
+  TRAIN: ('coco_voc_nonvoc_trainval_all_10shot_seed0',)  # coco_trainval_all_10shot
+  TEST: ('coco_test_all',)
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.001  # 0.001 for IMS_PER_BATCH=16
+  STEPS: (144000,)
+  MAX_ITER: 160000
+  CHECKPOINT_PERIOD: 10000
+  WARMUP_ITERS: 10
+OUTPUT_DIR: "checkpoints/coco/faster_rcnn/faster_rcnn_R_50_FPN_ft_fc_all_10shot_160k"
