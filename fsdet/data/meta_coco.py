@@ -12,7 +12,6 @@ from detectron2.structures import BoxMode
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
 """
 
-
 __all__ = ["register_meta_coco"]
 
 
@@ -34,16 +33,15 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
         1. This function does not read the image files.
            The results do not have the "image" field.
     """
+    # dataset_name = e.g.: "coco_{}_trainval_{}_{}shot_seed{}".format(class_split, prefix, shot, seed)
     is_shots = "shot" in dataset_name
     if is_shots:
         fileids = {}
-        split_dir = os.path.join("datasets", "cocosplit")
-        if "seed" in dataset_name:
-            shot = dataset_name.split("_")[-2].split("shot")[0]
-            seed = int(dataset_name.split("_seed")[-1])
-            split_dir = os.path.join(split_dir, "seed{}".format(seed))
-        else:
-            shot = dataset_name.split("_")[-1].split("shot")[0]
+        class_split = dataset_name.split("_trainval")[0].replace("coco_", "").strip()
+        split_dir = os.path.join("datasets", "cocosplit", "cocosplit_{}".format(class_split))
+        shot = dataset_name.split("_")[-2].split("shot")[0]  # TODO: .split("shot")[0] -> .replace("shot", "").strip() ?
+        seed = int(dataset_name.split("_seed")[-1])
+        split_dir = os.path.join(split_dir, "seed{}".format(seed))
         for idx, cls in enumerate(metadata["thing_classes"]):
             json_file = os.path.join(
                 split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls)
@@ -134,7 +132,7 @@ def register_meta_coco(name, metadata, imgdir, annofile):
         ]
         metadata["thing_classes"] = metadata["{}_classes".format(split)]
 
-    MetadataCatalog.get(name).set(
+    MetadataCatalog.get(name).set(  # TODO: probably also need to add class_split to MetadataCatalog?
         json_file=annofile,
         image_root=imgdir,
         evaluator_type="coco",

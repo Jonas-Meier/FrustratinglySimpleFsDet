@@ -3,6 +3,7 @@ import torch
 import argparse
 import os
 
+from class_splits import CLASS_SPLITS, COCO_CATS_NAME_TO_ID
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -29,10 +30,10 @@ def parse_args():
     parser.add_argument('--tar-name', type=str, default='model_reset',
                         help='Name of the new ckpt')
     # Dataset
-    parser.add_argument('--coco', action='store_true',
-                        help='For COCO models')
-    parser.add_argument('--lvis', action='store_true',
-                        help='For LVIS models')
+    parser.add_argument('--dataset', choices=['coco', 'voc', 'lvis'],
+                        required=True, help='dataset')
+    parser.add_argument('--class-split', dest='class_split',  required=True,
+                        help='Class split of the dataset into base classes and novel classes')
     args = parser.parse_args()
     return args
 
@@ -59,9 +60,9 @@ def ckpt_surgery(args):
             torch.nn.init.normal_(new_weight, 0, 0.01)
         else:
             new_weight = torch.zeros(tar_size)
-        if args.coco or args.lvis:
+        if args.dataset in ['coco', 'lvis']:
             for i, c in enumerate(BASE_CLASSES):
-                idx = i if args.coco else c
+                idx = i if args.dataset == 'coco' else c
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
@@ -94,9 +95,9 @@ def combine_ckpts(args):
             new_weight = torch.rand((tar_size, feat_size))
         else:
             new_weight = torch.zeros(tar_size)
-        if args.coco or args.lvis:
+        if args.dataset in ['coco', 'lvis']:
             for i, c in enumerate(BASE_CLASSES):
-                idx = i if args.coco else c
+                idx = i if args.dataset == 'coco' else c
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
@@ -106,7 +107,7 @@ def combine_ckpts(args):
             new_weight[:prev_cls] = pretrained_weight[:prev_cls]
 
         ckpt2_weight = ckpt2['model'][weight_name]
-        if args.coco or args.lvis:
+        if args.dataset in ['coco', 'lvis']:
             for i, c in enumerate(NOVEL_CLASSES):
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = ckpt2_weight[i]
@@ -180,25 +181,32 @@ def reset_ckpt(ckpt):
 
 
 if __name__ == '__main__':
+    #
     args = parse_args()
-
+    print("Called with args:")
+    print(args)
     # COCO
-    if args.coco:
+    if args.dataset == 'coco':
         # COCO
-        NOVEL_CLASSES = [
-            1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67,
-            72,
-        ]
-        BASE_CLASSES = [
-            8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35,
-            36, 37, 38, 39, 40, 41, 42, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54,
-            55, 56, 57, 58, 59, 60, 61, 65, 70, 73, 74, 75, 76, 77, 78, 79, 80,
-            81, 82, 84, 85, 86, 87, 88, 89, 90,
-        ]
+        # NOVEL_CLASSES = [
+        #     1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67,
+        #     72,
+        # ]
+        # BASE_CLASSES = [
+        #     8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35,
+        #     36, 37, 38, 39, 40, 41, 42, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+        #     55, 56, 57, 58, 59, 60, 61, 65, 70, 73, 74, 75, 76, 77, 78, 79, 80,
+        #     81, 82, 84, 85, 86, 87, 88, 89, 90,
+        # ]
+
+        # sort base classes and novel classes ids just in case!
+        NOVEL_CLASSES = sorted([COCO_CATS_NAME_TO_ID[name] for name in CLASS_SPLITS['coco'][args.class_split]['novel']])
+        BASE_CLASSES =  sorted([COCO_CATS_NAME_TO_ID[name] for name in CLASS_SPLITS['coco'][args.class_split]['base']])
         ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
         IDMAP = {v:i for i, v in enumerate(ALL_CLASSES)}
         TAR_SIZE = 80
-    elif args.lvis:
+        assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
+    elif args.dataset == 'lvis':
         # LVIS
         NOVEL_CLASSES = [
             0, 6, 9, 13, 14, 15, 20, 21, 30, 37, 38, 39, 41, 45, 48, 50, 51, 63,
@@ -242,9 +250,11 @@ if __name__ == '__main__':
         ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
         IDMAP = {v:i for i, v in enumerate(ALL_CLASSES)}
         TAR_SIZE = 1230
-    else:
+    elif args.dataset == 'voc':
         # VOC
         TAR_SIZE = 20
+    else:
+        raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
     if args.method == 'combine':
         combine_ckpts(args)

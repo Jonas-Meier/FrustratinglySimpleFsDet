@@ -25,6 +25,9 @@ from .meta_coco import register_meta_coco
 from .meta_lvis import register_meta_lvis
 from .meta_pascal_voc import register_meta_pascal_voc
 
+from class_splits import CLASS_SPLITS
+from fsdet.config.config import get_cfg
+
 # ==== Predefined datasets and splits for COCO ==========
 
 _PREDEFINED_SPLITS_COCO = {}
@@ -87,33 +90,49 @@ def register_all_coco(root="datasets"):
 
     # register meta datasets
     METASPLITS = [
-        (
-            "coco_trainval_all",
-            "coco/trainval2014",
-            "cocosplit/datasplit/trainvalno5k.json",
-        ),
-        (
-            "coco_trainval_base",
-            "coco/trainval2014",
-            "cocosplit/datasplit/trainvalno5k.json",
-        ),
+        ("coco_trainval_all", "coco/trainval2014", "cocosplit/datasplit/trainvalno5k.json"),
         ("coco_test_all", "coco/val2014", "cocosplit/datasplit/5k.json"),
-        ("coco_test_base", "coco/val2014", "cocosplit/datasplit/5k.json"),
-        ("coco_test_novel", "coco/val2014", "cocosplit/datasplit/5k.json"),
     ]
+    # Note: Since we allow for different class splits, we have to extend all patterns having "base" or "novel"-prefix
+    #  with the current class split. This is necessary because fsdet.data.meta_coco.py:register_meta_coco reads base or
+    #  novel ids, depending on the prefix
+    for class_split in CLASS_SPLITS['coco'].keys():
+        METASPLITS.append((
+            "coco_{}_trainval_base".format(class_split),
+            "coco/trainval2014",
+            "cocosplit/datasplit/trainvalno5k.json"
+        ))
+        for prefix in ["base", "novel"]:
+            METASPLITS.append((
+                "coco_{}_test_{}".format(class_split, prefix),
+                "coco/val2014",
+                "cocosplit/datasplit/5k.json"
+            ))
 
     # register small meta datasets for fine-tuning stage
-    for prefix in ["all", "novel"]:
-        for shot in [1, 2, 3, 5, 10, 30]:
-            for seed in range(10):
-                seed = "" if seed == 0 else "_seed{}".format(seed)
-                name = "coco_trainval_{}_{}shot{}".format(prefix, shot, seed)
-                METASPLITS.append((name, "coco/trainval2014", ""))
+    for class_split in CLASS_SPLITS['coco'].keys():
+        for prefix in ["all", "novel"]:
+            for shot in cfg.VALID_FEW_SHOTS:
+                for seed in range(cfg.MAX_SEED_VALUE + 1):  # maximum seed value is inclusive!
+                    # seed = "" if seed == 0 else "_seed{}".format(seed)
+                    name = "coco_{}_trainval_{}_{}shot_seed{}".format(class_split, prefix, shot, seed)
+                    METASPLITS.append((name, "coco/trainval2014", ""))  # TODO: why no annofile specified? -> probably because the anno file name contains class names!
 
     for name, imgdir, annofile in METASPLITS:
+        class_split = None
+        for cls_split in CLASS_SPLITS['coco'].keys():
+            if cls_split in name:
+                class_split = cls_split
+                break
+        # TODO: clarify if we need few-shot metadata for coco_trainval_all and coco_test_all datasets!!!
+        #  -> Probably yes, because we will probably use the colors as in coco_test_all for visualization.
+        #  If we then want different colors for base classes and novel classes, we probably should extend those datasets
+        #  with the current class splits as well!
+        metadata = _get_builtin_metadata('coco') if class_split is None else _get_builtin_metadata("coco_fewshot", class_split=class_split)
         register_meta_coco(
             name,
-            _get_builtin_metadata("coco_fewshot"),
+            # _get_builtin_metadata("coco_fewshot", class_split),
+            metadata,  # Just some metadata of the dataset
             os.path.join(root, imgdir),
             os.path.join(root, annofile),
         )
@@ -267,6 +286,7 @@ def register_all_pascal_voc(root="datasets"):
         MetadataCatalog.get(name).evaluator_type = "pascal_voc"
 
 
+cfg = get_cfg()
 # Register them all under "./datasets"
 register_all_coco()
 register_all_lvis()
