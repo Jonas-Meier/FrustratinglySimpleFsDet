@@ -7,10 +7,12 @@ MODEL:
   ROI_HEADS:
     NUM_CLASSES: 60
 DATASETS:
-  TRAIN: ('coco_trainval_base',)
-  TEST: ('coco_test_base',)
+  TRAIN: ('coco_voc_nonvoc_trainval_base',)
+  TEST: ('coco_voc_nonvoc_test_base',)
 SOLVER:
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 16  # 16. TOTAL amount of images per batch across all machines. Images per GPU per batch = IMS_PER_BATCH / #GPUs
+  BASE_LR: 0.02  # 0.02 for a total batch size of 16
   STEPS: (85000, 100000)
   MAX_ITER: 110000
+  CHECKPOINT_PERIOD: 10000  # default: 5000
 OUTPUT_DIR: "checkpoints/coco/faster_rcnn/faster_rcnn_R_101_FPN_base"
