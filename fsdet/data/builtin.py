@@ -21,7 +21,7 @@ from detectron2.data.datasets.pascal_voc import register_pascal_voc
 from detectron2.data.datasets.register_coco import register_coco_instances
 
 from .builtin_meta import _get_builtin_metadata
-from .meta_coco import register_meta_coco
+from .meta_coco import register_meta_cocolike, get_cocolike_metadata_names
 from .meta_lvis import register_meta_lvis
 from .meta_pascal_voc import register_meta_pascal_voc
 
@@ -75,64 +75,52 @@ _PREDEFINED_SPLITS_COCO["coco"] = {
 }
 
 
-def register_all_coco(root="datasets"):
-    # for dataset_name, splits_per_dataset in _PREDEFINED_SPLITS_COCO.items():
-    #     for key, (image_root, json_file) in splits_per_dataset.items():
-    #         # Assume pre-defined datasets live in `./datasets`.
-    #         register_coco_instances(
-    #             key,
-    #             _get_builtin_metadata(dataset_name),
-    #             os.path.join(root, json_file)
-    #             if "://" not in json_file
-    #             else json_file,
-    #             os.path.join(root, image_root),
-    #         )
+def register_all_coco():
+    train_name = 'trainval'
+    train_dir = "coco/trainval2014"
+    train_annos = "cocosplit/datasplit/trainvalno5k.json"
+    test_name = 'test'
+    test_dir = "coco/val2014"
+    test_annos = "cocosplit/datasplit/5k.json"
+    register_all_cocolike('coco', train_name, train_dir, train_annos, test_name, test_dir, test_annos)
 
+
+def register_all_cocolike(dataset, train_name, train_dir, train_annos, test_name, test_dir, test_annos, root="datasets"):
     # register meta datasets
-    METASPLITS = [
-        ("coco_trainval_all", "coco/trainval2014", "cocosplit/datasplit/trainvalno5k.json"),
-        ("coco_test_all", "coco/val2014", "cocosplit/datasplit/5k.json"),
-    ]
-    # Note: Since we allow for different class splits, we have to extend all patterns having "base" or "novel"-prefix
-    #  with the current class split. This is necessary because fsdet.data.meta_coco.py:register_meta_coco reads base or
-    #  novel ids, depending on the prefix
-    for class_split in CLASS_SPLITS['coco'].keys():
-        METASPLITS.append((
-            "coco_{}_trainval_base".format(class_split),
-            "coco/trainval2014",
-            "cocosplit/datasplit/trainvalno5k.json"
-        ))
-        for prefix in ["base", "novel"]:
-            METASPLITS.append((
-                "coco_{}_test_{}".format(class_split, prefix),
-                "coco/val2014",
-                "cocosplit/datasplit/5k.json"
-            ))
+    METASPLITS = []
+    cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
+    for name in cocolike_metadata_names.keys():
+        if 'shot' in name:
+            tmp_dir = train_dir
+            tmp_annos = ""  # TODO: why no annofile specified? -> probably because the anno file name contains class names!
+        elif train_name in name:
+            assert test_name not in name
+            assert 'shot' not in name
+            tmp_dir = train_dir
+            tmp_annos = train_annos
+        else:
+            assert test_name in name
+            assert 'shot' not in name
+            tmp_dir = test_dir
+            tmp_annos = test_annos
+        METASPLITS.append((name, tmp_dir, tmp_annos))
 
-    # register small meta datasets for fine-tuning stage
-    for class_split in CLASS_SPLITS['coco'].keys():
-        for prefix in ["all", "novel"]:
-            for shot in cfg.VALID_FEW_SHOTS:
-                for seed in range(cfg.MAX_SEED_VALUE + 1):  # maximum seed value is inclusive!
-                    # seed = "" if seed == 0 else "_seed{}".format(seed)
-                    name = "coco_{}_trainval_{}_{}shot_seed{}".format(class_split, prefix, shot, seed)
-                    METASPLITS.append((name, "coco/trainval2014", ""))  # TODO: why no annofile specified? -> probably because the anno file name contains class names!
-
+    # register all metasplits
     for name, imgdir, annofile in METASPLITS:
         class_split = None
-        for cls_split in CLASS_SPLITS['coco'].keys():
+        for cls_split in CLASS_SPLITS[dataset].keys():
             if cls_split in name:
                 class_split = cls_split
                 break
-        # TODO: clarify if we need few-shot metadata for coco_trainval_all and coco_test_all datasets!!!
-        #  -> Probably yes, because we will probably use the colors as in coco_test_all for visualization.
+        # TODO: clarify if we need few-shot metadata for *_trainval_all and *_test_all datasets!!!
+        #  -> Probably yes, because we will probably use the colors as in *_test_all for visualization.
         #  If we then want different colors for base classes and novel classes, we probably should extend those datasets
         #  with the current class splits as well!
-        metadata = _get_builtin_metadata('coco') if class_split is None else _get_builtin_metadata("coco_fewshot", class_split=class_split)
-        register_meta_coco(
-            name,
-            # _get_builtin_metadata("coco_fewshot", class_split),
-            metadata,  # Just some metadata of the dataset
+        metadata = _get_builtin_metadata(dataset) if class_split is None \
+            else _get_builtin_metadata("{}_fewshot".format(dataset), class_split=class_split)
+        register_meta_cocolike(
+            dataset, name,
+            metadata,  # Just some metadata of the dataset, e.g. the classes, colors, etc.
             os.path.join(root, imgdir),
             os.path.join(root, annofile),
         )

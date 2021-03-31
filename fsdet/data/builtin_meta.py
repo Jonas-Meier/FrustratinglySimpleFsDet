@@ -384,16 +384,16 @@ PASCAL_VOC_BASE_CATEGORIES = {
 #  for all categories, or two colors, one for base classes, one for novel classes!
 
 
-# TODO: generalize dataset, since here is nothing coco-specific!
-def _get_coco_instances_meta():
-    # thing_ids = [k["id"] for k in COCO_CATEGORIES if k["isthing"] == 1]
-    thing_ids = COCO_CATS_ID_TO_NAME.keys()
-    # thing_colors = [k["color"] for k in COCO_CATEGORIES if k["isthing"] == 1]
+def _get_cocolike_instances_meta(dataset):
+    # TODO: add a case for a new dataset here!
+    if dataset == 'coco':
+        cat_id_to_name = COCO_CATS_ID_TO_NAME
+    else:
+        raise ValueError("Error, dataset {} is not (yet) supported!".format(dataset))
+    thing_ids = cat_id_to_name.keys()
     thing_colors = [[255, 255, 0] for _ in thing_ids]
-    assert len(thing_ids) == 80, len(thing_ids)
-    # Mapping from the incontiguous COCO category id to an id in [0, 79]
+    # assert len(thing_ids) == 80, len(thing_ids)
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    # thing_classes = [k["name"] for k in COCO_CATEGORIES if k["isthing"] == 1]
     thing_classes = list(COCO_CATS_ID_TO_NAME.values())
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
@@ -403,21 +403,20 @@ def _get_coco_instances_meta():
     return ret
 
 
-# TODO: generalize dataset, since here is nothing coco-specific!
-def _get_coco_fewshot_instances_meta(class_split='voc_nonvoc'):
-    ret = _get_coco_instances_meta()
-    novel_categories = CLASS_SPLITS['coco'][class_split]['novel']
-    # novel_ids = [k["id"] for k in COCO_NOVEL_CATEGORIES if k["isthing"] == 1]
-    novel_ids = list(map(lambda c: COCO_CATS_NAME_TO_ID[c], novel_categories))
-    # novel_classes = [k["name"] for k in COCO_NOVEL_CATEGORIES if k["isthing"] == 1]
+def _get_cocolike_fewshot_instances_meta(dataset, class_split):
+    # TODO: add a case for a new dataset here!
+    if dataset == 'coco':
+        cat_name_to_id = COCO_CATS_NAME_TO_ID
+    else:
+        raise ValueError("Error, dataset {} is not (yet) supported!".format(dataset))
+    ret = _get_cocolike_instances_meta(dataset)
+    novel_categories = CLASS_SPLITS[dataset][class_split]['novel']
+    novel_ids = list(map(lambda c: cat_name_to_id[c], novel_categories))
     novel_classes = list(novel_categories)
     novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
-    # base_categories = [k for k in COCO_CATEGORIES if k["isthing"] == 1 and k["name"] not in novel_classes]
-    base_categories = list(CLASS_SPLITS['coco'][class_split]['base'])
-    # base_ids = [k["id"] for k in base_categories]
-    base_ids = list(map(lambda c: COCO_CATS_NAME_TO_ID[c], base_categories))
+    base_categories = list(CLASS_SPLITS[dataset][class_split]['base'])
+    base_ids = list(map(lambda c: cat_name_to_id[c], base_categories))
     base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
-    # base_classes = [k["name"] for k in base_categories]
     base_classes = base_categories
     ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
     ret["novel_classes"] = novel_classes
@@ -475,9 +474,9 @@ def _get_pascal_voc_fewshot_instances_meta():
 
 def _get_builtin_metadata(dataset_name, class_split=None):
     if dataset_name == "coco":
-        return _get_coco_instances_meta()
+        return _get_cocolike_instances_meta(dataset='coco')
     elif dataset_name == "coco_fewshot":
-        return _get_coco_fewshot_instances_meta(class_split=class_split)
+        return _get_cocolike_fewshot_instances_meta(dataset='coco', class_split=class_split)
     elif dataset_name == "lvis_v0.5":
         return _get_lvis_instances_meta_v0_5()
     elif dataset_name == "lvis_v0.5_fewshot":
