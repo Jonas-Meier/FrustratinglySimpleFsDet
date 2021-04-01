@@ -116,8 +116,19 @@ def register_all_cocolike(dataset, train_name, train_dir, train_annos, test_name
         #  -> Probably yes, because we will probably use the colors as in *_test_all for visualization.
         #  If we then want different colors for base classes and novel classes, we probably should extend those datasets
         #  with the current class splits as well!
-        metadata = _get_builtin_metadata(dataset) if class_split is None \
-            else _get_builtin_metadata("{}_fewshot".format(dataset), class_split=class_split)
+        if class_split is not None:
+            # Note: For all base- and novel-datasets we need the class split inside the dataset name because only this
+            #  way the base classes and novel classes are set correctly inside the 'metadata'.
+            # Note: The testing datasets have to have the '_base' or '_novel' and the class split as well because
+            #  since we limit the amount of classes while training we do also want to limit the amount of classes at
+            #  testing
+            assert '_base' in name or '_novel' in name
+            metadata = _get_builtin_metadata("{}_fewshot".format(dataset), class_split=class_split)
+        else:
+            # Note: If this dataset is no base dataset and no novel dataset, we don't need class splits and use the
+            #  whole dataset and all classes for training and testing
+            assert '_base' not in name and '_novel' not in name
+            metadata = _get_builtin_metadata(dataset)
         register_meta_cocolike(
             dataset, name,
             metadata,  # Just some metadata of the dataset, e.g. the classes, colors, etc.
