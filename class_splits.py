@@ -104,6 +104,8 @@ ISAID_CATS_ID_TO_NAME = {
     14: 'Roundabout',
     15: 'Helicopter'
 }
+# Inverse dict of iSAID category names to iSAID category IDs
+ISAID_CATS_NAME_TO_ID = {v: k for k, v in ISAID_CATS_ID_TO_NAME.items()}
 
 # Note: use lists for generating a collection implicitly! With tuples we could later run into problems while
 # iterating over them!
