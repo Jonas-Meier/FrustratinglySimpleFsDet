@@ -13,9 +13,9 @@ from fsdet.config import get_cfg
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="coco",
-                        help="Dataset, e.g. coco")
-    parser.add_argument("--class-split", type=str, default="voc_nonvoc", dest="class_split",
+    parser.add_argument("--dataset", type=str, choices=["coco"], required=True,
+                        help="Dataset name")
+    parser.add_argument("--class-split", type=str, required=True, dest="class_split",
                         help="Split of classes into base classes and novel classes")
     parser.add_argument("--shots", type=int, nargs="+", default=[1, 2, 3, 5, 10, 30],
                         help="Amount of annotations per class for fine tuning")
