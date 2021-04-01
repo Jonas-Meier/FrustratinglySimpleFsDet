@@ -50,6 +50,15 @@ def get_empty_ft_config():
             'RESNETS': {
                 'DEPTH': int
             },
+            'ANCHOR_GENERATOR': {
+                'SIZES': [[int]]
+            },
+            'RPN': {
+                'PRE_NMS_TOPK_TRAIN': int,
+                'PRE_NMS_TOPK_TEST': int,
+                'POST_NMS_TOPK_TRAIN': int,
+                'POST_NMS_TOPK_TEST': int
+            },
             'ROI_HEADS': {
                 'NUM_CLASSES': int,
                 'FREEZE_FEAT': bool
@@ -72,6 +81,9 @@ def get_empty_ft_config():
             'MAX_ITER': int,
             'CHECKPOINT_PERIOD': int,
             'WARMUP_ITERS': int
+        },
+        'INPUT': {
+            'MIN_SIZE_TRAIN': (int,)
         },
         'OUTPUT_DIR': str
     }
@@ -248,6 +260,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
             mode = 'all'
         split = temp_split = ''
         temp_mode = mode
+        train_split = 'trainval'
+        test_split = 'test'
         config_dir = 'configs/COCO-detection/cocosplit_{}'.format(args.class_split)
         ckpt_dir = 'checkpoints/coco_{}/faster_rcnn'.format(args.class_split)
         base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
@@ -268,7 +282,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
         mode = 'all{}'.format(args.split)
         temp_split = 'split1'
         temp_mode = 'all1'
-
+        train_split = 'trainval'
+        test_split = 'test'
         config_dir = 'configs/PascalVOC-detection'
         ckpt_dir = 'checkpoints/voc/faster_rcnn'
         base_cfg = '../../../Base-RCNN-FPN.yaml'
@@ -365,6 +380,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
     new_config['MODEL']['RESNETS']['DEPTH'] = args.layers
+    new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+    new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 2000  # Per FPN level. TODO: per batch or image?
+    new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000  # Per FPN level. TODO: per batch or image?
+    new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1000  # TODO: per batch or image?
+    new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     num_novel_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['novel'])
     num_all_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base']) + num_novel_classes
     new_config['MODEL']['ROI_HEADS'][
@@ -375,7 +395,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
     new_config['MODEL']['BACKBONE']['FREEZE'] = not args.unfreeze
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not args.unfreeze
     (train_data, test_data) = get_ft_dataset_names(args.dataset, args.class_split, mode, shot, seed,
-                                                   train_split='trainval', test_split='test')
+                                                   train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))
     new_config['DATASETS']['TEST'] = str((test_data,))
     new_config['SOLVER']['IMS_PER_BATCH'] = args.bs  # default: 16
@@ -385,6 +405,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
     new_config['SOLVER']['MAX_ITER'] = ITERS[shot][0]
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = ITERS[shot][2]  # ITERS[shot][0] // args.ckpt_freq
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
+    new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
 
     with open(config_save_file, 'w') as fp:

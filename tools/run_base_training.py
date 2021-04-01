@@ -34,6 +34,15 @@ def get_empty_base_config():
             'RESNETS': {
                 'DEPTH': int
             },
+            'ANCHOR_GENERATOR': {
+                'SIZES': [[int]]
+            },
+            'RPN': {
+                'PRE_NMS_TOPK_TRAIN': int,
+                'PRE_NMS_TOPK_TEST': int,
+                'POST_NMS_TOPK_TRAIN': int,
+                'POST_NMS_TOPK_TEST': int
+            },
             'ROI_HEADS': {
                 'NUM_CLASSES': int,
             }
@@ -49,6 +58,9 @@ def get_empty_base_config():
             'MAX_ITER': int,
             'CHECKPOINT_PERIOD': int,
             'WARMUP_ITERS': 1000  # default
+        },
+        'INPUT': {
+            'MIN_SIZE_TRAIN': (int,)
         },
         'OUTPUT_DIR': str
     }
@@ -112,13 +124,15 @@ def get_base_dataset_names(dataset, class_split, mode='base', train_split='train
     )
 
 
-def get_config(override_if_exists=False):
+def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' to True?
     if args.dataset == 'coco':
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
         mode = 'base'  # TODO: for base training with all classes, should the mode be 'base' as well?
         config_dir = 'configs/COCO-detection/cocosplit_{}'.format(args.class_split)
         ckpt_dir = 'checkpoints/coco_{}/faster_rcnn'.format(args.class_split)
         base_cfg = '../../Base-RCNN-FPN.yaml'  # adjust depth depending on 'config_dir'
+        train_split = 'trainval'
+        test_split = 'test'
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
@@ -141,14 +155,20 @@ def get_config(override_if_exists=False):
     print("Creating a new config file: {}".format(config_save_file))
 
     # Set all values in the empty config
+    # TODO: probably add dataset specific definitions!
     new_config = get_empty_base_config()  # get an empty config and fill it appropriately
     new_config['_BASE_'] = base_cfg
     new_config['MODEL']['WEIGHTS'] = pretrained
     new_config['MODEL']['RESNETS']['DEPTH'] = args.layers
+    new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+    new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 2000  # Per FPN level. TODO: per batch or image?
+    new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000  # Per FPN level. TODO: per batch or image?
+    new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1000  # TODO: per batch or image?
+    new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     num_base_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base'])
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = num_base_classes
     (train_data, test_data) = get_base_dataset_names(args.dataset, args.class_split, mode,
-                                                     train_split='trainval', test_split='test')
+                                                     train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))
     new_config['DATASETS']['TEST'] = str((test_data,))
     new_config['SOLVER']['IMS_PER_BATCH'] = args.bs  # default: 16
@@ -158,6 +178,7 @@ def get_config(override_if_exists=False):
     new_config['SOLVER']['MAX_ITER'] = ITERS[0]  # TODO: increase MAX_ITER if batch size is < 16?
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
+    new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
 
     # Save config and return it
