@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from subprocess import PIPE, STDOUT, Popen
 
 import yaml
@@ -105,9 +104,11 @@ def run_cmd(cmd):
 
 
 def get_base_dataset_names(dataset, class_split, mode='base', train_split='trainval', test_split='test'):
+    assert mode == 'base', 'Only support mode \'base\' currently!'
+    # TODO: think about hard-coding mode 'base' if we can rule out other possibilities
     return (
         '{}_{}_{}_{}'.format(dataset, class_split, train_split, mode),
-        '{}_{}_{}'.format(dataset, test_split, mode)  # TODO: need to add class split? or directly use *_test_all?
+        '{}_{}_{}_{}'.format(dataset, class_split, test_split, mode)
     )
 
 
@@ -154,7 +155,7 @@ def get_config(override_if_exists=False):
     lr_scale_factor = args.bs / 16
     new_config['SOLVER']['BASE_LR'] = args.lr if args.lr != -1 else 0.02 * lr_scale_factor
     new_config['SOLVER']['STEPS'] = str(ITERS[1])
-    new_config['SOLVER']['MAX_ITER'] = ITERS[0]
+    new_config['SOLVER']['MAX_ITER'] = ITERS[0]  # TODO: increase MAX_ITER if batch size is < 16?
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
