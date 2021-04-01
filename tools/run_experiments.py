@@ -151,20 +151,12 @@ def get_training_id(layers, mode, shots, fc=False, unfreeze=False, tfa=False, su
 
 
 def get_ft_dataset_names(dataset, class_split, mode, shot, seed, train_split='trainval', test_split='test'):
-    train_dataset_name = '{}_{}_{}_{}_{}shot_seed{}'.format(dataset, class_split, train_split, mode, shot, seed)
-    if mode == 'novel':
-        # Note: we here need the class split in the name because we don't want to evaluate on all classes but only the
-        # 'novel' classes of this 'class-split'
-        test_dataset_name = '{}_{}_{}_{}'.format(dataset, class_split, test_split, mode)
-    else:
-        # Note: we don't need the class split here because we're evaluating on all classes!
-        # TODO: probably also add the class split here, especially if we want to use different colors for base classes
-        #  and novel classes!
-        assert mode == 'all', 'Illegal mode: {}'.format(mode)
-        test_dataset_name = '{}_{}_{}'.format(dataset, test_split, mode)
+    # Note: For mode 'all' we evaluate on all classes and would, normally, not need the class split but since we allow
+    #  for using different colors for base classes and novel classes, we need the class split to load the correct
+    #  mapping of colors to classes
     return (
-        train_dataset_name,
-        test_dataset_name
+        '{}_{}_{}_{}_{}shot_seed{}'.format(dataset, class_split, train_split, mode, shot, seed),
+        '{}_{}_{}_{}'.format(dataset, class_split, test_split, mode)
     )
 
 

@@ -32,11 +32,13 @@ def get_cocolike_metadata_names(dataset='coco', train_name='trainval', test_name
         ret['{}_{}_all'.format(*args)] = args
     # register class-split dependent datasets (just needed to get the correct metadata!):
     #  base training datasets
-    #  testing datasets for base training and for fine tuning just the novel detector
+    #  testing datasets for base training, for fine tuning just the novel detector and for testing of
+    #   a complete fine-tuning. Last testing set is required to have class splits because this allows for
+    #   having different colors for different class splits
     for class_split in CLASS_SPLITS[dataset].keys():
         args = (dataset, class_split, train_name, 'base')
         ret['{}_{}_{}_{}'.format(*args)] = args
-        for prefix in ['base', 'novel']:
+        for prefix in ['base', 'novel', 'all']:
             args = (dataset, class_split, test_name, prefix)
             ret['{}_{}_{}_{}'.format(*args)] = args
     # register training datasets for fine tuning the whole detector
