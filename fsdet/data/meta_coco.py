@@ -169,7 +169,7 @@ def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):
         ]
         metadata["thing_classes"] = metadata["{}_classes".format(split)]
 
-    MetadataCatalog.get(name).set(  # TODO: probably also need to add class_split to MetadataCatalog?
+    MetadataCatalog.get(name).set(
         json_file=annofile,
         image_root=imgdir,
         evaluator_type="coco",

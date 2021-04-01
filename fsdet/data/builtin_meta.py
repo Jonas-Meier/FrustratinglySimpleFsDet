@@ -422,7 +422,7 @@ def _get_cocolike_fewshot_instances_meta(dataset, class_split):
     ret["novel_classes"] = novel_classes
     ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
     ret["base_classes"] = base_classes
-    # TODO: Probably useful to add an entry for 'class_split' to 'ret'?
+    ret["class_split"] = class_split
     # set a different color for novel classes
     colors = ret["thing_colors"]
     classes = ret["thing_classes"]
