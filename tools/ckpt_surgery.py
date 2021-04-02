@@ -3,7 +3,7 @@ import torch
 import argparse
 import os
 
-from class_splits import CLASS_SPLITS, COCO_CATS_NAME_TO_ID
+from class_splits import CLASS_SPLITS, get_ids_from_names
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -200,10 +200,10 @@ if __name__ == '__main__':
         # ]
 
         # sort base classes and novel classes ids just in case!
-        NOVEL_CLASSES = sorted([COCO_CATS_NAME_TO_ID[name] for name in CLASS_SPLITS['coco'][args.class_split]['novel']])
-        BASE_CLASSES =  sorted([COCO_CATS_NAME_TO_ID[name] for name in CLASS_SPLITS['coco'][args.class_split]['base']])
+        NOVEL_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+        BASE_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
         ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
-        IDMAP = {v:i for i, v in enumerate(ALL_CLASSES)}
+        IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
         TAR_SIZE = 80
         assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
     elif args.dataset == 'lvis':
