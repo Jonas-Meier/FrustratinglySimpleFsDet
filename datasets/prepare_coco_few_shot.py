@@ -112,14 +112,11 @@ def generate_seeds(args):
                 # TODO: Probably convert assertion to a warning.
                 assert len(sample_annos) == shots, "Wanted {} shots, but only found {} annotations!".format(shots, len(
                     sample_annos))
-                new_data = {
-                    'info': data['info'],
-                    'licenses': data['licenses'],
-                    'images': sample_imgs,
-                    'annotations': sample_annos,
-                }
-                save_path = get_save_path_seeds(data_path, cat_name, shots, i)
+                new_data = data.copy()
+                new_data['images'] = sample_imgs
+                new_data['annotations'] = sample_annos
                 new_data['categories'] = new_all_cats
+                save_path = get_save_path_seeds(data_path, cat_name, shots, i)
                 with open(save_path, 'w') as f:
                     # json.dump(new_data, f)
                     json.dump(new_data, f, indent=2)  # Easier to check files manually
