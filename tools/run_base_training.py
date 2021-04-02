@@ -5,6 +5,8 @@ from subprocess import PIPE, STDOUT, Popen
 import yaml
 
 from class_splits import CLASS_SPLITS
+from fsdet.config.config import get_cfg
+cfg = get_cfg()
 
 
 def parse_args():
@@ -72,22 +74,22 @@ def load_yaml_file(fname):
     return config
 
 
-def run_exp(cfg, configs):  # TODO: mor clear argument names: cfg and configs...???
+def run_exp(config_file, config):
     """
     Run training and evaluation scripts based on given config files.
     """
-    run_train(cfg, configs)
-    run_test(cfg, configs)
+    run_train(config_file, config)
+    run_test(config_file, config)
 
 
-def run_train(cfg, configs):
-    output_dir = configs['OUTPUT_DIR']
+def run_train(config_file, config):
+    output_dir = config['OUTPUT_DIR']
     model_path = os.path.join(args.root, output_dir, 'model_final.pth')
     if not os.path.exists(model_path):
         base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
         train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                     '--dist-url auto --num-gpus {} --config-file {} --resume'.\
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), cfg)
+            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
         # TODO:
         #  --dist-url: just for obtaining a deterministic port to identify orphan processes
         #  --resume: ??? Using resume or not results in fine-tuning starting from iteration 1
@@ -95,14 +97,14 @@ def run_train(cfg, configs):
         run_cmd(train_cmd)
 
 
-def run_test(cfg, configs):
-    output_dir = configs['OUTPUT_DIR']
+def run_test(config_file, config):
+    output_dir = config['OUTPUT_DIR']
     res_path = os.path.join(args.root, output_dir, 'inference', 'res_final.json')
     if not os.path.exists(res_path):
         base_cmd = 'python3 -m tools.test_net'  # 'python tools/test_net.py' or 'python3 -m tools.test_net'
         test_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                    '--dist-url auto --num-gpus {} --config-file {} --resume --eval-only'. \
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), cfg)
+            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
         run_cmd(test_cmd)
 
 
@@ -127,18 +129,23 @@ def get_base_dataset_names(dataset, class_split, mode='base', train_split='train
 def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' to True?
     if args.dataset == 'coco':
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
-        mode = 'base'  # TODO: for base training with all classes, should the mode be 'base' as well?
-        config_dir = 'configs/COCO-detection/cocosplit_{}'.format(args.class_split)
-        ckpt_dir = 'checkpoints/coco_{}/faster_rcnn'.format(args.class_split)
-        base_cfg = '../../Base-RCNN-FPN.yaml'  # adjust depth depending on 'config_dir'
-        train_split = 'trainval'
-        test_split = 'test'
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
+
+    mode = 'base'  # TODO: for base training with all classes, should the mode be 'base' as well?
+    config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
+    ckpt_dir = os.path.join(
+        cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
+        'faster_rcnn'
+    )
+    base_cfg = '../../Base-RCNN-FPN.yaml'  # adjust depth depending on 'config_dir'
+    train_split = cfg.TRAIN_SPLIT[args.dataset]
+    test_split = cfg.TEST_SPLIT[args.dataset]
 
     training_identifier = 'faster_rcnn_R_{}_FPN_{}'.format(args.layers, mode)
 
     # "detectron2://ImageNetPretrained/MSRA/R-50.pkl", "detectron2://ImageNetPretrained/MSRA/R-101.pkl"
+    # TODO: add possibility to use a pretrained detector (add an argument to argparse ... !)
     pretrained = 'pretrained/ImageNetPretrained/MSRA/R-{}.pkl'.format(args.layers)
     # Save dir for base training
     base_ckpt_save_dir = os.path.join(ckpt_dir, training_identifier)
@@ -201,9 +208,9 @@ def comma_sep(elements):
 
 
 def main():
-    cfg, configs = get_config(override_if_exists=args.override)
-    #run_exp(cfg, configs)
-    run_train(cfg, configs)
+    config_file, config = get_config(override_if_exists=args.override)
+    #run_exp(config_file, config)
+    run_train(config_file, config)
 
 
 if __name__ == '__main__':

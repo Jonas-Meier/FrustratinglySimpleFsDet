@@ -19,6 +19,50 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "isaid": os.path.join(_CC.ROOT_DIR, 'datasets', "isaidsplit", "isaidsplit_{}")
 })
 
+# relative to repository root
+_CC.CONFIG_DIR_PATTERN = CN({
+    "coco": os.path.join('configs', 'COCO-detection', "cocosplit_{}"),
+    "isaid": os.path.join('configs', 'iSAID-detection', "isaidsplit_{}")
+})
+
+# relative to repository root
+_CC.CONFIG_CKPT_DIR_PATTERN = CN({
+    "coco": os.path.join('checkpoints', 'coco_{}'),
+    "isaid": os.path.join('checkpoints', 'isaid_{}')
+})
+
+_CC.TRAIN_SPLIT = CN({
+    "coco": 'trainval',
+    "isaid": 'train'
+})
+
+_CC.TEST_SPLIT = CN({
+    "coco": 'test',
+    "isaid": 'test'
+})
+
+
+# following dirs and files: are relative to the repository root!
+_CC.TRAIN_IMG_DIR = CN({
+    "coco": os.path.join('datasets', 'coco', 'trainval2014'),
+    "isaid": os.path.join('datasets', 'isaid', 'images', 'train')
+})
+
+_CC.TEST_IMG_DIR = CN({
+    "coco": os.path.join('datasets', 'coco', 'val2014'),
+    "isaid": os.path.join('datasets', 'isaid', 'images', 'val')
+})
+
+_CC.TRAIN_ANNOS = CN({
+    "coco": os.path.join('datasets', 'cocosplit', 'datasplit', 'trainvalno5k.json'),
+    "isaid": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_train.json')
+})
+
+_CC.TEST_ANNOS = CN({
+    "coco": os.path.join('datasets', 'cocosplit', 'datasplit', '5k.json'),
+    "isaid": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json')
+})
+
 _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
 _CC.MAX_SEED_VALUE = 9  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!

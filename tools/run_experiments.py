@@ -4,6 +4,8 @@ import yaml
 from subprocess import PIPE, STDOUT, Popen
 
 from class_splits import CLASS_SPLITS
+from fsdet.config.config import get_cfg
+cfg = get_cfg()
 
 
 def parse_args():
@@ -104,22 +106,22 @@ def run_cmd(cmd):
         print(line)
 
 
-def run_exp(cfg, configs):  # TODO: mor clear argument names: cfg and configs...???
+def run_exp(config_file, config):
     """
     Run training and evaluation scripts based on given config files.
     """
-    run_train(cfg, configs)
-    run_test(cfg, configs)
+    run_train(config_file, config)
+    run_test(config_file, config)
 
 
-def run_train(cfg, configs):
-    output_dir = configs['OUTPUT_DIR']
+def run_train(config_file, config):
+    output_dir = config['OUTPUT_DIR']
     model_path = os.path.join(args.root, output_dir, 'model_final.pth')
     if not os.path.exists(model_path):
         base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
         train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                     '--dist-url auto --num-gpus {} --config-file {} --resume'.\
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), cfg)
+            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
         # TODO:
         #  --dist-url: just for obtaining a deterministic port to identify orphan processes
         #  --resume: ??? Using resume or not results in fine-tuning starting from iteration 1
@@ -127,14 +129,14 @@ def run_train(cfg, configs):
         run_cmd(train_cmd)
 
 
-def run_test(cfg, configs):
-    output_dir = configs['OUTPUT_DIR']
+def run_test(config_file, config):
+    output_dir = config['OUTPUT_DIR']
     res_path = os.path.join(args.root, output_dir, 'inference', 'res_final.json')
     if not os.path.exists(res_path):
         base_cmd = 'python3 -m tools.test_net'  # 'python tools/test_net.py' or 'python3 -m tools.test_net'
         test_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                    '--dist-url auto --num-gpus {} --config-file {} --resume --eval-only'. \
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), cfg)
+            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
         run_cmd(test_cmd)
 
 
@@ -260,10 +262,13 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
             mode = 'all'
         split = temp_split = ''
         temp_mode = mode
-        train_split = 'trainval'
-        test_split = 'test'
-        config_dir = 'configs/COCO-detection/cocosplit_{}'.format(args.class_split)
-        ckpt_dir = 'checkpoints/coco_{}/faster_rcnn'.format(args.class_split)
+        train_split = cfg.TRAIN_SPLIT[args.dataset]
+        test_split = cfg.TEST_SPLIT[args.dataset]
+        config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
+        ckpt_dir = os.path.join(
+            cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
+            'faster_rcnn'
+        )
         base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
     elif args.dataset == 'voc':
         # PASCAL VOC
@@ -362,22 +367,21 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
     new_config = get_empty_ft_config()  # get an empty config and fill it appropriately
     new_config['_BASE_'] = base_cfg
 
-    if args.dataset == 'coco':
-        if not os.path.exists(surgery_ckpt):
-            # surgery model does not exist, so we have to do a surgery!
-            run_ckpt_surgery(dataset='coco', class_split=args.class_split, method=surgery_method,
-                             src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir)
-            assert os.path.exists(surgery_ckpt)
-            print("Saved surgery checkpoint as: {}".format(surgery_ckpt))
-        new_config['MODEL']['WEIGHTS'] = train_weight
-    elif args.dataset == 'voc':
+    if args.dataset == 'voc':
         new_config['MODEL']['WEIGHTS'] = new_config['MODEL']['WEIGHTS'].replace('base1', 'base{}'.format(args.split))
         for dset in ['TRAIN', 'TEST']:
             new_config['DATASETS'][dset] = (
                 new_config['DATASETS'][dset][0].replace(temp_mode, 'all' + str(args.split))
                 ,)
-    else:
-        raise ValueError("Dataset {} is not supported!".format(args.dataset))
+
+    if not os.path.exists(surgery_ckpt):
+        # surgery model does not exist, so we have to do a surgery!
+        run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
+                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir)
+        assert os.path.exists(surgery_ckpt)
+        print("Saved surgery checkpoint as: {}".format(surgery_ckpt))
+    new_config['MODEL']['WEIGHTS'] = train_weight
+
 
     new_config['MODEL']['RESNETS']['DEPTH'] = args.layers
     new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
@@ -431,13 +435,13 @@ def main(args):
         for seed in range(args.seeds[0], args.seeds[1]):  # TODO: use second seed arg inclusive?
             print('Split: {}, Seed: {}, Shot: {}'.format(args.split, seed, shot))
             if args.tfa:
-                cfg, configs = get_config(seed, shot, surgery_method='remove', override_if_exists=args.override)
-                run_exp(cfg, configs)  # TODO: probably just run train(cfg, configs) because evaluation on novel fine-tune might be unnecessary!
-                cfg, configs = get_config(seed, shot, surgery_method='combine', override_if_exists=args.override)
-                run_exp(cfg, configs)
+                config_file, config = get_config(seed, shot, surgery_method='remove', override_if_exists=args.override)
+                run_exp(config_file, config)  # TODO: probably just run train(config_file, config) because evaluation on novel fine-tune might be unnecessary!
+                config_file, config = get_config(seed, shot, surgery_method='combine', override_if_exists=args.override)
+                run_exp(config_file, config)
             else:
-                cfg, configs = get_config(seed, shot, surgery_method='randinit', override_if_exists=args.override)
-                run_exp(cfg, configs)
+                config_file, config = get_config(seed, shot, surgery_method='randinit', override_if_exists=args.override)
+                run_exp(config_file, config)
 
 
 if __name__ == '__main__':

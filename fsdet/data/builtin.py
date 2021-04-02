@@ -76,16 +76,17 @@ _PREDEFINED_SPLITS_COCO["coco"] = {
 
 
 def register_all_coco():
-    train_name = 'trainval'
-    train_dir = "coco/trainval2014"
-    train_annos = "cocosplit/datasplit/trainvalno5k.json"
-    test_name = 'test'
-    test_dir = "coco/val2014"
-    test_annos = "cocosplit/datasplit/5k.json"
-    register_all_cocolike('coco', train_name, train_dir, train_annos, test_name, test_dir, test_annos)
+    register_all_cocolike('coco')
 
 
-def register_all_cocolike(dataset, train_name, train_dir, train_annos, test_name, test_dir, test_annos, root="datasets"):
+def register_all_cocolike(dataset):
+    # get the configs
+    train_name = cfg.TRAIN_SPLIT[dataset]
+    test_name = cfg.TEST_SPLIT[dataset]
+    train_dir = cfg.TRAIN_IMG_DIR[dataset]
+    test_dir = cfg.TEST_IMG_DIR[dataset]
+    train_annos = cfg.TRAIN_ANNOS[dataset]
+    test_annos = cfg.TEST_ANNOS[dataset]
     # register meta datasets
     METASPLITS = []
     cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
@@ -128,8 +129,8 @@ def register_all_cocolike(dataset, train_name, train_dir, train_annos, test_name
         register_meta_cocolike(
             dataset, name,
             metadata,  # Just some metadata of the dataset, e.g. the classes, colors, etc.
-            os.path.join(root, imgdir),
-            os.path.join(root, annofile),
+            imgdir,
+            annofile,
         )
 
 

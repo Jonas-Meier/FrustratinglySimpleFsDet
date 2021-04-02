@@ -25,11 +25,10 @@ def parse_args():
     return args
 
 
-def get_data_path():
+def get_data_path():  # get path to training data annotations
     # probably use cfg.DATA_DIR[args.dataset] if necessary
     if args.dataset == "coco":
-        # TODO: replace this hackish way to get the correct path!
-        return os.path.join(cfg.ROOT_DIR, "datasets", "cocosplit", "datasplit", "trainvalno5k.json")
+        return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS['coco'])
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
@@ -130,7 +129,8 @@ def generate_seeds(args):
 
 def get_save_path_seeds(path, cls, shots, seed):
     s = path.split('/')
-    prefix = 'full_box_{}shot_{}_trainval'.format(shots, cls)
+    train_name = cfg.TRAIN_SPLIT[args.dataset]
+    prefix = 'full_box_{}shot_{}_{}'.format(shots, cls, train_name)
     save_dir = os.path.join(cfg.DATA_SAVE_PATH_PATTERN[args.dataset].format(args.class_split), 'seed{}'.format(seed))
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, prefix + '.json')
