@@ -42,7 +42,7 @@ def get_cocolike_metadata_names(dataset='coco', train_name='trainval', test_name
             args = (dataset, class_split, test_name, prefix)
             ret['{}_{}_{}_{}'.format(*args)] = args
     # register training datasets for fine tuning the whole detector
-    for class_split in CLASS_SPLITS['coco'].keys():
+    for class_split in CLASS_SPLITS[dataset].keys():
         for prefix in ['all', 'novel']:
             for shot in cfg.VALID_FEW_SHOTS:
                 for seed in range(cfg.MAX_SEED_VALUE + 1):  # maximum seed value is inclusive!
@@ -70,12 +70,8 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
         1. This function does not read the image files.
            The results do not have the "image" field.
     """
-    # TODO: either take 'dataset' as argument or use dataset_name.split('_')[0] as dataset
-    if dataset == 'coco':
-        train_name = 'trainval'
-        test_name = 'test'
-    else:
-        raise ValueError("Dataset {} is not supported!".format(dataset))
+    train_name = cfg.TRAIN_SPLIT[dataset]
+    test_name = cfg.TEST_SPLIT[dataset]
     cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
     assert dataset_name in cocolike_metadata_names
     dataset_labels = cocolike_metadata_names[dataset_name]
