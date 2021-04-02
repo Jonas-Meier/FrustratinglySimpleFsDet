@@ -467,6 +467,10 @@ def _get_builtin_metadata(dataset_name, class_split=None):
         return _get_cocolike_instances_meta(dataset='coco')
     elif dataset_name == "coco_fewshot":
         return _get_cocolike_fewshot_instances_meta(dataset='coco', class_split=class_split)
+    elif dataset_name == 'isaid':
+        return _get_cocolike_instances_meta(dataset='isaid')
+    elif dataset_name == 'isaid_fewshot':
+        return _get_cocolike_fewshot_instances_meta(dataset='isaid', class_split=class_split)
     elif dataset_name == "lvis_v0.5":
         return _get_lvis_instances_meta_v0_5()
     elif dataset_name == "lvis_v0.5_fewshot":

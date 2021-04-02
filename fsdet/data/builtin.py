@@ -79,6 +79,10 @@ def register_all_coco():
     register_all_cocolike('coco')
 
 
+def register_all_isaid():
+    register_all_cocolike('isaid')
+
+
 def register_all_cocolike(dataset):
     # get the configs
     train_name = cfg.TRAIN_SPLIT[dataset]

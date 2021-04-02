@@ -5,6 +5,7 @@ import os
 
 from class_splits import CLASS_SPLITS, get_ids_from_names
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     # Paths
@@ -30,7 +31,7 @@ def parse_args():
     parser.add_argument('--tar-name', type=str, default='model_reset',
                         help='Name of the new ckpt')
     # Dataset
-    parser.add_argument('--dataset', choices=['coco', 'voc', 'lvis'],
+    parser.add_argument('--dataset', choices=['coco', 'voc', 'lvis', 'isaid'],
                         required=True, help='dataset')
     parser.add_argument('--class-split', dest='class_split',  required=True,
                         help='Class split of the dataset into base classes and novel classes')
@@ -205,6 +206,13 @@ if __name__ == '__main__':
         ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
         IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
         TAR_SIZE = 80
+        assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
+    elif args.dataset == 'isaid':
+        NOVEL_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+        BASE_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+        ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
+        IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
+        TAR_SIZE = 15
         assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
     elif args.dataset == 'lvis':
         # LVIS

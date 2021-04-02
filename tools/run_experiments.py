@@ -34,7 +34,7 @@ def parse_args():
     # TODO: add argument --eval-only which will just execute evaluations!
     #  -> How can we tell get_cfg that we just want the correct config without doing a surgery?
     # Dataset
-    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc'])
+    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
     parser.add_argument('--class-split', type=str, required=True)  # TODO: allow multiple class splits?
     # PASCAL arguments
     parser.add_argument('--split', '-s', type=int, default=1, help='Data split')
@@ -231,8 +231,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
         - '_TFA':   Non-TFA(===Fine-tuning on 'model_reset_combine.pth' weights)
     """
     assert surgery_method in ['randinit', 'remove', 'combine'], 'Wrong surgery method: {}'.format(surgery_method)
-    if args.dataset == 'coco':
-        # COCO
+    if args.dataset in ['coco', 'isaid']:  # TODO: for now, use the same configs as for coco. Maybe change later
+        # COCO, iSAID
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {
             1: (500, (10000,), 500),
@@ -382,7 +382,6 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
         print("Saved surgery checkpoint as: {}".format(surgery_ckpt))
     new_config['MODEL']['WEIGHTS'] = train_weight
 
-
     new_config['MODEL']['RESNETS']['DEPTH'] = args.layers
     new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
     new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 2000  # Per FPN level. TODO: per batch or image?
@@ -411,6 +410,13 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
+
+    if args.dataset == 'coco':
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
+    elif args.dataset == 'isaid':
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((608, 672, 736, 800, 864, 928, 992))  # 600, 700, 800, 900, 1000
 
     with open(config_save_file, 'w') as fp:
         yaml.dump(new_config, fp, sort_keys=False)  # TODO: 'sort_keys=False' requires pyyaml >= 5.1

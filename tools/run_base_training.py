@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.02, help='Learning rate. Set to -1 for automatic linear scaling')
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
-    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc'])
+    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
     parser.add_argument('--class-split', type=str, required=True)
     # parser.add_argument('--ckpt-freq', type=int, default=10, help='Frequency of saving checkpoints')
     parser.add_argument('--override', default=False, action='store_true')
@@ -127,7 +127,7 @@ def get_base_dataset_names(dataset, class_split, mode='base', train_split='train
 
 
 def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' to True?
-    if args.dataset == 'coco':
+    if args.dataset in ['coco', 'isaid']:  # TODO: probably later split both cases!
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
@@ -187,6 +187,13 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
+
+    if args.dataset == 'coco':
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
+    elif args.dataset == 'isaid':
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((608, 672, 736, 800, 864, 928, 992))  # 600, 700, 800, 900, 1000
 
     # Save config and return it
     with open(config_save_file, 'w') as fp:

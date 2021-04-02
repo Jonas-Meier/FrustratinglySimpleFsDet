@@ -13,7 +13,7 @@ from fsdet.config import get_cfg
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, choices=["coco"], required=True,
+    parser.add_argument("--dataset", type=str, choices=["coco", "isaid"], required=True,
                         help="Dataset name")
     parser.add_argument("--class-split", type=str, required=True, dest="class_split",
                         help="Split of classes into base classes and novel classes")
@@ -29,6 +29,8 @@ def get_data_path():  # get path to training data annotations
     # probably use cfg.DATA_DIR[args.dataset] if necessary
     if args.dataset == "coco":
         return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS['coco'])
+    elif args.dataset == "isaid":
+        return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS['isaid'])
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
