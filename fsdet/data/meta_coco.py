@@ -174,7 +174,7 @@ def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):
     MetadataCatalog.get(name).set(
         json_file=annofile,
         image_root=imgdir,
-        evaluator_type="coco",
+        evaluator_type=dataset,
         dirname="datasets/{}".format(dataset),
         **metadata,
     )

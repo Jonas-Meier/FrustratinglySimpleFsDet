@@ -148,6 +148,11 @@ _ISAID_EXPERIMENT3_NOVEL = ['Ground_Track_Field', 'Helicopter', 'Roundabout',
                             'Soccer_ball_field', 'basketball_court', 'baseball_diamond']  # order is from rare to common
 _ISAID_EXPERIMENT3_BASE = [i for i in ISAID_CATS_ID_TO_NAME.values() if i not in _ISAID_EXPERIMENT3_NOVEL]
 
+ALL_CLASSES = {
+    "coco": _COCO_ALL_NAMES,
+    "isaid": _ISAID_ALL_NAMES
+}
+
 # Note: We mainly use category names because both, indices and specific category IDs can be ambiguous and may not be
 # defined the same way, everywhere they are used. Sometimes, categories are stored inside dictionaries, which do not
 # preserve order, instead of lists that do preserve order, what makes the use of indices hard. Some IDs are not
@@ -203,6 +208,24 @@ CLASS_SPLITS["xview"] = {
 CLASS_SPLITS["vaid"] = {
 
 }
+
+
+def get_ids_from_names(dataset, class_names):
+    if dataset == 'coco':
+        return [COCO_CATS_NAME_TO_ID[c] for c in class_names]
+    elif dataset == 'isaid':
+        return [ISAID_CATS_NAME_TO_ID[c] for c in class_names]
+    else:
+        raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
+
+
+def get_names_from_ids(dataset, ids):
+    if dataset == 'coco':
+        return [COCO_CATS_ID_TO_NAME[i] for i in ids]
+    elif dataset == 'isaid':
+        return [ISAID_CATS_ID_TO_NAME[i] for i in ids]
+    else:
+        raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 
 
 def check_splits():

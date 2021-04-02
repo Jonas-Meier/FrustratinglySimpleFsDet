@@ -1,4 +1,4 @@
-from class_splits import CLASS_SPLITS, COCO_CATS_ID_TO_NAME, COCO_CATS_NAME_TO_ID
+from class_splits import CLASS_SPLITS, ALL_CLASSES, get_ids_from_names
 
 # All coco categories, together with their nice-looking visualization colors
 # It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
@@ -385,16 +385,11 @@ PASCAL_VOC_BASE_CATEGORIES = {
 
 
 def _get_cocolike_instances_meta(dataset):
-    # TODO: add a case for a new dataset here!
-    if dataset == 'coco':
-        cat_id_to_name = COCO_CATS_ID_TO_NAME
-    else:
-        raise ValueError("Error, dataset {} is not (yet) supported!".format(dataset))
-    thing_ids = cat_id_to_name.keys()
+    thing_ids = get_ids_from_names(dataset, ALL_CLASSES[dataset])
     thing_colors = [[255, 255, 0] for _ in thing_ids]
     # assert len(thing_ids) == 80, len(thing_ids)
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    thing_classes = list(COCO_CATS_ID_TO_NAME.values())
+    thing_classes = ALL_CLASSES[dataset]
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,
@@ -404,18 +399,13 @@ def _get_cocolike_instances_meta(dataset):
 
 
 def _get_cocolike_fewshot_instances_meta(dataset, class_split):
-    # TODO: add a case for a new dataset here!
-    if dataset == 'coco':
-        cat_name_to_id = COCO_CATS_NAME_TO_ID
-    else:
-        raise ValueError("Error, dataset {} is not (yet) supported!".format(dataset))
     ret = _get_cocolike_instances_meta(dataset)
     novel_categories = CLASS_SPLITS[dataset][class_split]['novel']
-    novel_ids = list(map(lambda c: cat_name_to_id[c], novel_categories))
+    novel_ids = sorted(get_ids_from_names(dataset, novel_categories))
     novel_classes = list(novel_categories)
     novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
     base_categories = list(CLASS_SPLITS[dataset][class_split]['base'])
-    base_ids = list(map(lambda c: cat_name_to_id[c], base_categories))
+    base_ids = sorted(get_ids_from_names(dataset, base_categories))
     base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
     base_classes = base_categories
     ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
