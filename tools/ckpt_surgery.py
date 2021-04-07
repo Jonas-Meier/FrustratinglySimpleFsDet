@@ -64,16 +64,16 @@ def ckpt_surgery(args):
             torch.nn.init.normal_(new_weight, 0, 0.01)
         else:
             new_weight = torch.zeros(tar_size)
-        if args.dataset in ['coco', 'lvis']:
+        if args.dataset == 'voc':
+            new_weight[:prev_cls] = pretrained_weight[:prev_cls]
+        else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
             for i, c in enumerate(BASE_CLASSES):
-                idx = i if args.dataset == 'coco' else c
+                idx = c if args.dataset == 'lvis' else i
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
                     new_weight[IDMAP[c]*4:(IDMAP[c]+1)*4] = \
                         pretrained_weight[idx*4:(idx+1)*4]
-        else:
-            new_weight[:prev_cls] = pretrained_weight[:prev_cls]
         if 'cls_score' in param_name:
             new_weight[-1] = pretrained_weight[-1]  # bg class
         ckpt['model'][weight_name] = new_weight
@@ -99,33 +99,33 @@ def combine_ckpts(args):
             new_weight = torch.rand((tar_size, feat_size))
         else:
             new_weight = torch.zeros(tar_size)
-        if args.dataset in ['coco', 'lvis']:
+        if args.dataset == 'voc':
+            new_weight[:prev_cls] = pretrained_weight[:prev_cls]
+        else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
             for i, c in enumerate(BASE_CLASSES):
-                idx = i if args.dataset == 'coco' else c
+                idx = c if args.dataset == 'lvis' else i
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
-                    new_weight[IDMAP[c]*4:(IDMAP[c]+1)*4] = \
-                        pretrained_weight[idx*4:(idx+1)*4]
-        else:
-            new_weight[:prev_cls] = pretrained_weight[:prev_cls]
-
+                    new_weight[IDMAP[c] * 4:(IDMAP[c] + 1) * 4] = \
+                        pretrained_weight[idx * 4:(idx + 1) * 4]
         ckpt2_weight = ckpt2['model'][weight_name]
-        if args.dataset in ['coco', 'lvis']:
-            for i, c in enumerate(NOVEL_CLASSES):
-                if 'cls_score' in param_name:
-                    new_weight[IDMAP[c]] = ckpt2_weight[i]
-                else:
-                    new_weight[IDMAP[c]*4:(IDMAP[c]+1)*4] = \
-                        ckpt2_weight[i*4:(i+1)*4]
-            if 'cls_score' in param_name:
-                new_weight[-1] = pretrained_weight[-1]
-        else:
+
+        if args.dataset == 'voc':
             if 'cls_score' in param_name:
                 new_weight[prev_cls:-1] = ckpt2_weight[:-1]
                 new_weight[-1] = pretrained_weight[-1]
             else:
                 new_weight[prev_cls:] = ckpt2_weight
+        else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
+            for i, c in enumerate(NOVEL_CLASSES):
+                if 'cls_score' in param_name:
+                    new_weight[IDMAP[c]] = ckpt2_weight[i]
+                else:
+                    new_weight[IDMAP[c] * 4:(IDMAP[c] + 1) * 4] = \
+                        ckpt2_weight[i * 4:(i + 1) * 4]
+            if 'cls_score' in param_name:
+                new_weight[-1] = pretrained_weight[-1]
         ckpt['model'][weight_name] = new_weight
 
     surgery_loop(args, surgery)
