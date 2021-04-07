@@ -10,25 +10,14 @@ cfg = get_cfg()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()  # TODO: rearrange elements. Move the elements that are most likely changed to the top!
-    parser.add_argument('--num-threads', type=int, default=1)
+    parser = argparse.ArgumentParser()
+    # Dataset settings
+    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
+    parser.add_argument('--class-split', type=str, required=True)  # TODO: allow multiple class splits?
+    # CPU and GPU settings
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
-    parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
-                        help='Shots to run experiments over')
-    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],  # TODO: add possibility to just pass a single seed!
-                        help='Range of seeds to run')
-    parser.add_argument('--root', type=str, default='./', help='Root of data')
-    parser.add_argument('--suffix', type=str, default='', help='Suffix of path')
-    parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
-    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
-    parser.add_argument('--ckpt-freq', type=int, default=10, # TODO: add an argument to enable or disable? (either fix amount of iterations or fix total amount of checkpoints)
-                        help='Frequency of saving checkpoints')
-    parser.add_argument('--override-config', default=False, action='store_true',
-                        help='Override config file if it already exists')
-    parser.add_argument('--override-surgery', default=False, action='store_true',
-                        help='Rerun surgery if the surgery checkpoint yet exists. '
-                             'Normally not necessary, but can be used while debugging to trigger the surgery every run')
-    # Model
+    parser.add_argument('--num-threads', type=int, default=1)
+    # Model settings
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
     parser.add_argument('--fc', action='store_true',  # TODO: probably change to string-argument 'classifier' which allows ['fc', 'cosine']
                         help='Model uses FC instead of cosine')
@@ -36,11 +25,26 @@ def parse_args():
                         help='Two-stage fine-tuning')
     parser.add_argument('--unfreeze', action='store_true',
                         help='Unfreeze feature extractor')
+    # Fine-Tuning settings
+    parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
+                        help='Shots to run experiments over')
+    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],  # TODO: add possibility to just pass a single seed!
+                        help='Range of seeds to run')
+    parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
+    # Workflow settings
+    parser.add_argument('--override-config', default=False, action='store_true',
+                        help='Override config file if it already exists')
+    parser.add_argument('--override-surgery', default=False, action='store_true',
+                        help='Rerun surgery if the surgery checkpoint yet exists. '
+                             'Normally not necessary, but can be used while debugging to trigger the surgery every run')
+    # Misc
+    parser.add_argument('--root', type=str, default='./', help='Root of data')
+    parser.add_argument('--suffix', type=str, default='', help='Suffix of path')
+    parser.add_argument('--ckpt-freq', type=int, default=10, # TODO: add an argument to enable or disable? (either fix amount of iterations or fix total amount of checkpoints)
+                        help='Frequency of saving checkpoints')
     # TODO: add argument --eval-only which will just execute evaluations!
     #  -> How can we tell get_cfg that we just want the correct config without doing a surgery?
-    # Dataset
-    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
-    parser.add_argument('--class-split', type=str, required=True)  # TODO: allow multiple class splits?
     # PASCAL arguments
     parser.add_argument('--split', '-s', type=int, default=1, help='Data split')
 

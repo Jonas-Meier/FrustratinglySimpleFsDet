@@ -11,18 +11,17 @@ cfg = get_cfg()
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--num-threads', type=int, default=1)
-    parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
-    parser.add_argument('--root', type=str, default='./', help='Root of data')
-    parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
-    parser.add_argument('--lr', type=float, default=0.02, help='Learning rate. Set to -1 for automatic linear scaling')
-    parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
     parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
     parser.add_argument('--class-split', type=str, required=True)
+    parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
+    parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
+    parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
+    parser.add_argument('--lr', type=float, default=0.02, help='Learning rate. Set to -1 for automatic linear scaling')
     # parser.add_argument('--ckpt-freq', type=int, default=10, help='Frequency of saving checkpoints')
     parser.add_argument('--override-config', default=False, action='store_true',
                         help='Override config file if it already exists')
+    parser.add_argument('--num-threads', type=int, default=1)
+    parser.add_argument('--root', type=str, default='./', help='Root of data')
 
     return parser.parse_args()
 
