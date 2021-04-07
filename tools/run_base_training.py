@@ -21,7 +21,8 @@ def parse_args():
     parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
     parser.add_argument('--class-split', type=str, required=True)
     # parser.add_argument('--ckpt-freq', type=int, default=10, help='Frequency of saving checkpoints')
-    parser.add_argument('--override', default=False, action='store_true')
+    parser.add_argument('--override-config', default=False, action='store_true',
+                        help='Override config file if it already exists')
 
     return parser.parse_args()
 
@@ -215,7 +216,7 @@ def comma_sep(elements):
 
 
 def main():
-    config_file, config = get_config(override_if_exists=args.override)
+    config_file, config = get_config(override_if_exists=args.override_config)
     #run_exp(config_file, config)
     run_train(config_file, config)
 
