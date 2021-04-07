@@ -1,3 +1,6 @@
+import numpy
+# Note: when calling this script from within another script, we need this numpy import before the torch
+# import, see: https://github.com/pytorch/pytorch/issues/37377
 import torch
 
 import argparse
