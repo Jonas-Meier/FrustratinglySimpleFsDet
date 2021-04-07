@@ -119,7 +119,7 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
         split_dir = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
         split_dir = os.path.join(split_dir, 'seed{}'.format(seed))
         for idx, cls in enumerate(metadata["thing_classes"]):
-            json_file = os.path.join(split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls))
+            json_file = os.path.join(split_dir, "full_box_{}shot_{}_{}.json".format(shot, cls, train_name))
             json_file = PathManager.get_local_path(json_file)
             with contextlib.redirect_stdout(io.StringIO()):
                 coco_api = COCO(json_file)
