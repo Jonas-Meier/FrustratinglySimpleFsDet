@@ -1,7 +1,8 @@
 import argparse
 import os
+
 import yaml
-from subprocess import PIPE, STDOUT, Popen
+from subprocess import PIPE, STDOUT, Popen, CalledProcessError, check_call, check_output, run
 
 from class_splits import CLASS_SPLITS
 from fsdet.config.config import get_cfg
@@ -9,23 +10,27 @@ cfg = get_cfg()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()  # TODO: rearrange elements. Move the elements that are most likely changed to the top!
     parser.add_argument('--num-threads', type=int, default=1)
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
     parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
                         help='Shots to run experiments over')
-    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],
+    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],  # TODO: add possibility to just pass a single seed!
                         help='Range of seeds to run')
     parser.add_argument('--root', type=str, default='./', help='Root of data')
     parser.add_argument('--suffix', type=str, default='', help='Suffix of path')
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
-    parser.add_argument('--ckpt-freq', type=int, default=10,
+    parser.add_argument('--ckpt-freq', type=int, default=10, # TODO: add an argument to enable or disable? (either fix amount of iterations or fix total amount of checkpoints)
                         help='Frequency of saving checkpoints')
-    parser.add_argument('--override', default=False, action='store_true')
+    parser.add_argument('--override-config', default=False, action='store_true',
+                        help='Override config file if it already exists')
+    parser.add_argument('--override-surgery', default=False, action='store_true',
+                        help='Rerun surgery if the surgery checkpoint yet exists. '
+                             'Normally not necessary, but can be used while debugging to trigger the surgery every run')
     # Model
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
-    parser.add_argument('--fc', action='store_true',
+    parser.add_argument('--fc', action='store_true',  # TODO: probably change to string-argument 'classifier' which allows ['fc', 'cosine']
                         help='Model uses FC instead of cosine')
     parser.add_argument('--tfa', action='store_true',
                         help='Two-stage fine-tuning')
@@ -98,12 +103,46 @@ def load_yaml_file(fname):
 
 
 def run_cmd(cmd):
-    p = Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True)
-    while True:
-        line = p.stdout.readline().decode('utf-8')
-        if not line:
-            break
-        print(line)
+    # Note: (see:  https://docs.python.org/3.8/library/subprocess.html#subprocess.run)
+    # - We don't want to do anything with stdout or stderr (for now), so we just use 'subprocess.run' without 'PIPE'
+    #   buffer
+    # - we use check=True to abort the whole program if any passed cmd fails (otherwise the commands would fail silently
+    #   which would impede debugging)
+    run(cmd, shell=True, check=True)
+
+    # Note: (see https://docs.python.org/3.8/library/subprocess.html#popen-constructor)
+    # - If we were interested into  processing stdout and stderr, we could use following code using subprocess.Popen.
+    #   We cannot use subprocess.run, because that method returns a 'CompletedProcess' instance, whereas
+    #   subprocess.Popen returns a Popen class instance representing an active process.
+    # - Note that, since we're using the PIPE buffer, we have to constantly pull the content of that buffer. Otherwise,
+    #   the program could block if too much output is generated! If the buffer is not full, it outpust all its content
+    #   as soon as the process is finished.
+    # - It's dangerous to use PIPE together with Popen.wait(). It could lead to a deadlock if the subprocess produces
+    #   enough output to fill the pipe buffer.
+
+    #   process = Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True)
+    #   since we redirect both, stdout and stderr into PIPE, we have to read it, otherwise it could block
+    #   for line in process.stdout:
+    #       print(line.decode('utf-8'))
+    #   process.stdout.close()
+    #   return_code = process.wait()
+    ##  We could also use
+    ##  with Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True) as proc:
+    ##      print(proc.stdout.read().decode())
+    ##  for a very compact version (see https://docs.python.org/3.8/library/subprocess.html#popen-constructor)
+    #   if return_code:
+    #       print("Error in cmd: {}".format(cmd)) exit(1)
+    print("Finished running the command!")
+
+
+# deprecated run command
+# def run_cmd(cmd):
+#    p = Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True)
+#    while True:
+#        line = p.stdout.readline().decode('utf-8')
+#        if not line:
+#            break
+#        print(line)
 
 
 def run_exp(config_file, config):
@@ -179,7 +218,7 @@ def get_ft_dataset_names(dataset, class_split, mode, shot, seed, train_split='tr
 #  automated inference?
 # TODO: probably think about adding '_cosine' to all cosine fine-tunings. This would be more clear instead of
 #  '' being cosine and 'fc' being fc!
-def get_config(seed, shot, surgery_method, override_if_exists=False):
+def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surgery=False):
     """
     For a given seed and shot, generate a config file based on a template
     config file that is used for training/evaluation.
@@ -356,11 +395,19 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
     # config_save_file = os.path.join(config_save_dir, prefix + '.yaml')
     config_save_file = os.path.join(config_save_dir, config_prefix + '.yaml')
 
+    if not os.path.exists(surgery_ckpt) or rerun_surgery:
+        # surgery model does not exist, so we have to do a surgery!
+        run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
+                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir)
+        assert os.path.exists(surgery_ckpt)
+        print("Finished creating surgery checkpoint {}".format(surgery_ckpt))
+    else:
+        print("Using already existent surgery checkpoint {}".format(surgery_ckpt))
+
     if os.path.exists(config_save_file) and not override_if_exists:
         # If the requested config already exists and we do not want to override it, make sure that the necessary
         #  surgery checkpoints exist and return it
-        assert os.path.exists(surgery_ckpt)  # if the config exists, the valid surgery checkpoint has to be existent!
-        print("Config already exists, returning the existing config...")
+        print("Config already exists, returning the existent config...")
         return config_save_file, load_yaml_file(config_save_file)
     print("Creating a new config file: {}".format(config_save_file))
     # Set all values in the empty config
@@ -374,12 +421,6 @@ def get_config(seed, shot, surgery_method, override_if_exists=False):
                 new_config['DATASETS'][dset][0].replace(temp_mode, 'all' + str(args.split))
                 ,)
 
-    if not os.path.exists(surgery_ckpt):
-        # surgery model does not exist, so we have to do a surgery!
-        run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
-                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir)
-        assert os.path.exists(surgery_ckpt)
-        print("Saved surgery checkpoint as: {}".format(surgery_ckpt))
     new_config['MODEL']['WEIGHTS'] = train_weight
 
     new_config['MODEL']['RESNETS']['DEPTH'] = args.layers
@@ -441,12 +482,18 @@ def main(args):
         for seed in range(args.seeds[0], args.seeds[1]):  # TODO: use second seed arg inclusive?
             print('Split: {}, Seed: {}, Shot: {}'.format(args.split, seed, shot))
             if args.tfa:
-                config_file, config = get_config(seed, shot, surgery_method='remove', override_if_exists=args.override)
+                config_file, config = get_config(seed, shot, surgery_method='remove',
+                                                 override_if_exists=args.override_config,
+                                                 rerun_surgery=args.override_surgery)
                 run_exp(config_file, config)  # TODO: probably just run train(config_file, config) because evaluation on novel fine-tune might be unnecessary!
-                config_file, config = get_config(seed, shot, surgery_method='combine', override_if_exists=args.override)
+                config_file, config = get_config(seed, shot, surgery_method='combine',
+                                                 override_if_exists=args.override_config,
+                                                 rerun_surgery=args.override_surgery)
                 run_exp(config_file, config)
             else:
-                config_file, config = get_config(seed, shot, surgery_method='randinit', override_if_exists=args.override)
+                config_file, config = get_config(seed, shot, surgery_method='randinit',
+                                                 override_if_exists=args.override_config,
+                                                 rerun_surgery=args.override_surgery)
                 run_exp(config_file, config)
 
 
