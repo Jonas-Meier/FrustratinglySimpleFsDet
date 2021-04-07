@@ -190,8 +190,10 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None):
         assert src2 is not None, 'Need a second source for surgery method \'combine\'!'
         src2_str = '--src2 {}'.format(src2)
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
-    command = '{} --dataset {} --class-split {} --method {} --src1 {} --save-dir {} {}'\
-        .format(base_command, dataset, class_split, method, src1, save_dir, src2_str)
+    command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
+              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {} {}'\
+        .format(args.num_threads, comma_sep(args.gpu_ids), base_command,
+                dataset, class_split, method, src1, save_dir, src2_str)
     run_cmd(command)
 
 
