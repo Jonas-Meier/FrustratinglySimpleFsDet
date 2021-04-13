@@ -211,8 +211,14 @@ class COCOEvaluator(DatasetEvaluator):
         Returns:
             a dict of {metric name: score}
         """
+        def log_info_and_write(file, str, mode):
+            with open(file, mode) as f:
+                f.write(str + '\n')
+            self._logger.info(str)
 
         metrics = ["AP", "AP50", "AP75", "APs", "APm", "APl"]
+
+        file_name = os.path.join(self._output_dir, "summary_results.txt")
 
         if coco_eval is None:
             self._logger.warn("No predictions from the model! Set scores to -1")
@@ -223,10 +229,8 @@ class COCOEvaluator(DatasetEvaluator):
             metric: float(coco_eval.stats[idx] * 100) \
                 for idx, metric in enumerate(metrics)
         }
-        self._logger.info(
-            "Evaluation results for {}: \n".format(iou_type) + \
-                create_small_table(results)
-        )
+        tmp_str = "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
+        log_info_and_write(file_name, tmp_str, mode='w')  # force override
 
         if class_names is None or len(class_names) <= 1:
             return results
@@ -257,7 +261,8 @@ class COCOEvaluator(DatasetEvaluator):
             headers=["category", "AP"] * (N_COLS // 2),
             numalign="left",
         )
-        self._logger.info("Per-category {} AP: \n".format(iou_type) + table)
+        tmp_str = "Per-category {} AP: \n".format(iou_type) + table
+        log_info_and_write(file_name, tmp_str, 'a')
 
         results.update({"AP-" + name: ap for name, ap in results_per_category})
         return results
