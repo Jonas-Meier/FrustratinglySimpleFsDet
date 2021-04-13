@@ -45,6 +45,13 @@ class COCOEvaluator(DatasetEvaluator):
         self._distributed = distributed
         self._output_dir = output_dir
         self._dataset_name = dataset_name
+        # save file names
+        # raw detections passed to this class
+        self._raw_predictions_file = os.path.join(self._output_dir, "instances_predictions.pth")
+        # coco detections used to build coco_eval object
+        self._coco_detections_file = os.path.join(self._output_dir, "coco_instances_results.json")
+        self._summary_file = os.path.join(self._output_dir, "summary_results.txt")
+        open(self._summary_file, 'w').close()  # create empty file, or delete content is existent
 
         self._cpu_device = torch.device("cpu")
         self._logger = logging.getLogger(__name__)
@@ -56,6 +63,7 @@ class COCOEvaluator(DatasetEvaluator):
 
             cache_path = convert_to_coco_json(dataset_name, output_dir)
             self._metadata.json_file = cache_path
+        # TODO: problematic when using class_split 'none_all'
         self._is_splits = "all" in dataset_name or "base" in dataset_name \
             or "novel" in dataset_name
         self._class_split = self._metadata.class_split
@@ -108,9 +116,7 @@ class COCOEvaluator(DatasetEvaluator):
 
         if self._output_dir:
             PathManager.mkdirs(self._output_dir)
-            file_path = os.path.join(
-                self._output_dir, "instances_predictions.pth")
-            with PathManager.open(file_path, "wb") as f:
+            with PathManager.open(self._raw_predictions_file, "wb") as f:
                 torch.save(self._predictions, f)
 
         self._results = OrderedDict()
@@ -137,9 +143,8 @@ class COCOEvaluator(DatasetEvaluator):
                 result["category_id"] = reverse_id_mapping[result["category_id"]]
 
         if self._output_dir:
-            file_path = os.path.join(self._output_dir, "coco_instances_results.json")
-            self._logger.info("Saving results to {}".format(file_path))
-            with PathManager.open(file_path, "w") as f:
+            self._logger.info("Saving results to {}".format(self._coco_detections_file))
+            with PathManager.open(self._coco_detections_file, "w") as f:
                 f.write(json.dumps(self._coco_results))
                 f.flush()
 
@@ -211,14 +216,12 @@ class COCOEvaluator(DatasetEvaluator):
         Returns:
             a dict of {metric name: score}
         """
-        def log_info_and_write(file, str, mode):
-            with open(file, mode) as f:
+        def log_info_and_append(file, str):
+            with open(file, 'a') as f:
                 f.write(str + '\n')
             self._logger.info(str)
 
         metrics = ["AP", "AP50", "AP75", "APs", "APm", "APl"]
-
-        file_name = os.path.join(self._output_dir, "summary_results.txt")
 
         if coco_eval is None:
             self._logger.warn("No predictions from the model! Set scores to -1")
@@ -230,7 +233,7 @@ class COCOEvaluator(DatasetEvaluator):
                 for idx, metric in enumerate(metrics)
         }
         tmp_str = "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
-        log_info_and_write(file_name, tmp_str, mode='w')  # force override
+        log_info_and_append(self._summary_file, tmp_str)
 
         if class_names is None or len(class_names) <= 1:
             return results
@@ -262,7 +265,7 @@ class COCOEvaluator(DatasetEvaluator):
             numalign="left",
         )
         tmp_str = "Per-category {} AP: \n".format(iou_type) + table
-        log_info_and_write(file_name, tmp_str, 'a')
+        log_info_and_append(self._summary_file, tmp_str)
 
         results.update({"AP-" + name: ap for name, ap in results_per_category})
         return results
