@@ -28,7 +28,7 @@ class COCOEvaluator(DatasetEvaluator):
     Evaluate instance detection outputs using COCO's metrics and APIs.
     """
 
-    def __init__(self, dataset_name, cfg, distributed, output_dir=None, dataset='coco'):
+    def __init__(self, dataset_name, cfg, distributed, output_dir=None, dataset='coco', file_suffix=""):
         """
         Args:
             dataset_name (str): name of the dataset to be evaluated.
@@ -47,10 +47,10 @@ class COCOEvaluator(DatasetEvaluator):
         self._dataset_name = dataset_name
         # save file names
         # raw detections passed to this class
-        self._raw_predictions_file = os.path.join(self._output_dir, "instances_predictions.pth")
+        self._raw_predictions_file = os.path.join(self._output_dir, "instances_predictions{}.pth".format(file_suffix))
         # coco detections used to build coco_eval object
-        self._coco_detections_file = os.path.join(self._output_dir, "coco_instances_results.json")
-        self._summary_file = os.path.join(self._output_dir, "summary_results.txt")
+        self._coco_detections_file = os.path.join(self._output_dir, "coco_instances_results{}.json".format(file_suffix))
+        self._summary_file = os.path.join(self._output_dir, "summary_results{}.txt".format(file_suffix))
         open(self._summary_file, 'w').close()  # create empty file, or delete content is existent
 
         self._cpu_device = torch.device("cpu")
@@ -222,7 +222,7 @@ class COCOEvaluator(DatasetEvaluator):
             self._logger.info(str)
 
         metrics = ["AP", "AP50", "AP75", "APs", "APm", "APl"]
-
+        # TODO: think about (also/just) returning per-class mAP@50? (or at least additionally save the mAP50 results)
         if coco_eval is None:
             self._logger.warn("No predictions from the model! Set scores to -1")
             return {metric: -1 for metric in metrics}
@@ -316,6 +316,8 @@ def _evaluate_predictions_on_coco(coco_gt, coco_results, iou_type, catIds=None):
         coco_eval.params.catIds = catIds
     coco_eval.evaluate()
     coco_eval.accumulate()
+    # TODO: probably redirect stdout to self._summary_file, in order to also get the output of coco_eval.summarize()
+    #  into the text file?
     coco_eval.summarize()
 
     return coco_eval

@@ -42,7 +42,7 @@ class Trainer(DefaultTrainer):
     """
 
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+    def build_evaluator(cls, cfg, dataset_name, output_folder=None, file_suffix=""):
         """
         Create evaluator(s) for a given dataset.
         This uses the special metadata "evaluator_type" associated with each builtin dataset.
@@ -55,11 +55,11 @@ class Trainer(DefaultTrainer):
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
         if evaluator_type == "coco":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco')
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco', file_suffix=file_suffix)
             )
         if evaluator_type == "isaid":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid')
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid', file_suffix=file_suffix)
             )
         if evaluator_type == "pascal_voc":
             return PascalVOCDetectionEvaluator(dataset_name)
@@ -88,10 +88,12 @@ class Tester:
         self.best_file = None
         self.all_res = {}
 
-    def test(self, ckpt):
-        self.check_pointer._load_model(self.check_pointer._load_file(ckpt))
-        print("evaluating checkpoint {}".format(ckpt))
-        res = Trainer.test(self.cfg, self.model)
+    def test(self, ckpt_file):
+        ckpt = self.check_pointer._load_file(ckpt_file)
+        iteration = ckpt["iteration"]  # TODO: probably need to first access the key "model"
+        self.check_pointer._load_model(ckpt)
+        print("evaluating checkpoint {}".format(ckpt_file))
+        res = Trainer.test(self.cfg, self.model, file_suffix="_iter_{}".format(iteration))
 
         if comm.is_main_process():
             verify_results(self.cfg, res)
@@ -101,12 +103,12 @@ class Tester:
                 and self.best_res["bbox"]["AP"] < res["bbox"]["AP"]
             ):
                 self.best_res = res
-                self.best_file = ckpt
+                self.best_file = ckpt_file
             print("best results from checkpoint {}".format(self.best_file))
             print(self.best_res)
             self.all_res["best_file"] = self.best_file
             self.all_res["best_res"] = self.best_res
-            self.all_res[ckpt] = res
+            self.all_res[ckpt_file] = res
             os.makedirs(
                 os.path.join(self.cfg.OUTPUT_DIR, "inference"), exist_ok=True
             )
@@ -145,10 +147,12 @@ def main(args):
             # load checkpoint at last iteration
             ckpt_file = cfg.MODEL.WEIGHTS
             resume = True
-        DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+        ckpt = DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             ckpt_file, resume=resume
         )
-        res = Trainer.test(cfg, model)
+        iteration = ckpt["iteration"]
+        res_file = "res_iter_{}.json".format(iteration)
+        res = Trainer.test(cfg, model, file_suffix="_iter_{}".format(iteration))
         if comm.is_main_process():
             verify_results(cfg, res)
             # save evaluation results in json
@@ -156,7 +160,7 @@ def main(args):
                 os.path.join(cfg.OUTPUT_DIR, "inference"), exist_ok=True
             )
             with open(
-                os.path.join(cfg.OUTPUT_DIR, "inference", "res_final.json"),
+                os.path.join(cfg.OUTPUT_DIR, "inference", res_file),
                 "w",
             ) as fp:
                 json.dump(res, fp)

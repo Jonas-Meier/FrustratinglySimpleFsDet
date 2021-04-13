@@ -505,7 +505,7 @@ class DefaultTrainer(SimpleTrainer):
         return build_detection_test_loader(cfg, dataset_name)
 
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name):
+    def build_evaluator(cls, cfg, dataset_name, output_folder=None, file_suffix=""):
         """
         Returns:
             DatasetEvaluator
@@ -518,7 +518,7 @@ class DefaultTrainer(SimpleTrainer):
         )
 
     @classmethod
-    def test(cls, cfg, model, evaluators=None):
+    def test(cls, cfg, model, evaluators=None, file_suffix=""):
         """
         Args:
             cfg (CfgNode):
@@ -547,7 +547,7 @@ class DefaultTrainer(SimpleTrainer):
                 evaluator = evaluators[idx]
             else:
                 try:
-                    evaluator = cls.build_evaluator(cfg, dataset_name)
+                    evaluator = cls.build_evaluator(cfg, dataset_name, file_suffix=file_suffix)
                 except NotImplementedError:
                     logger.warn(
                         "No evaluator found. Use `DefaultTrainer.test(evaluators=)`, "
