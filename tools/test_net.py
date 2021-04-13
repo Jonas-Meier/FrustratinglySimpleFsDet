@@ -177,7 +177,7 @@ def main(args):
                     # skip evaluation of checkpoints after end iteration
                     break
             tester.test(ckpt)
-        return best_res
+        return tester.best_res
     elif args.eval_during_train:
         tester = Tester(cfg)
         saved_checkpoint = None
