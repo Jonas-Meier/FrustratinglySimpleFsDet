@@ -127,8 +127,10 @@ def get_base_dataset_names(dataset, class_split, mode='base', train_split='train
 
 
 def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' to True?
-    if args.dataset in ['coco', 'isaid']:  # TODO: probably later split both cases!
+    if args.dataset == 'coco':
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
+    elif args.dataset == 'isaid':
+        ITERS = (60000, (25000, 40000))
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
@@ -193,7 +195,9 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset == 'isaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((608, 672, 736, 800, 864, 928, 992))  # 600, 700, 800, 900, 1000
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
 
     # Save config and return it
     with open(config_save_file, 'w') as fp:
