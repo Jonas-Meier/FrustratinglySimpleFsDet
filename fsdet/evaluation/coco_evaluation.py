@@ -44,6 +44,7 @@ class COCOEvaluator(DatasetEvaluator):
         """
         self._distributed = distributed
         self._output_dir = output_dir
+        os.makedirs(self._output_dir, exist_ok=True)  # just to be sure
         self._dataset_name = dataset_name
         # save file names
         # raw detections passed to this class
