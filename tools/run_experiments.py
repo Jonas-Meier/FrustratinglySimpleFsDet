@@ -276,8 +276,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         - '_TFA':   Non-TFA(===Fine-tuning on 'model_reset_combine.pth' weights)
     """
     assert surgery_method in ['randinit', 'remove', 'combine'], 'Wrong surgery method: {}'.format(surgery_method)
-    if args.dataset in ['coco', 'isaid']:  # TODO: for now, use the same configs as for coco. Maybe change later
-        # COCO, iSAID
+    if args.dataset == 'coco':  # only-coco configs
+        # COCO
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {
             1: (500, (10000,), 500),
@@ -295,26 +295,15 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             10: (160000, (144000,), 10000),  # 16000
             30: (240000, (216000,), 12000),  # 24000
         }  # To fine-tune entire classifier
-
-        if surgery_method == 'remove':  # fine-tuning only-novel classifier
-            ITERS = NOVEL_ITERS
-            mode = 'novel'
-            # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
-            #  create a default config for those cases in order for being able to read example configs to modify
-            assert not args.fc and not args.unfreeze
-        else:  # either combine only-novel fine-tuning with base training or directly fine-tune entire classifier
-            ITERS = ALL_ITERS
-            mode = 'all'
-        split = temp_split = ''
-        temp_mode = mode
-        train_split = cfg.TRAIN_SPLIT[args.dataset]
-        test_split = cfg.TEST_SPLIT[args.dataset]
-        config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
-        ckpt_dir = os.path.join(
-            cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
-            'faster_rcnn'
-        )
-        base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
+    elif args.dataset == 'isaid':  # only-isaid configs
+        # iSAID
+        # (max_iter, (<steps>), checkpoint_period)
+        NOVEL_ITERS = {}  # no values yet set, need to examine the behaviour of novel fine-tuning on iSAID dataset first
+        ALL_ITERS = {  # for now, we just support 10, 50 and 100 shot!
+            10: (200000, (1000000,)),
+            50: (200000, (1000000,)),
+            100: (200000, (1000000,))
+        }
     elif args.dataset == 'voc':
         # PASCAL VOC
         # Note: we could as well support all types of surgery here, but we do not intend to use PASCAL VOC dataset!
@@ -339,6 +328,28 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         base_cfg = '../../../Base-RCNN-FPN.yaml'
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
+
+    # Set some shared configs to save space
+    if args.dataset in ['coco', 'isaid']:  # TODO: to ease adding a new dataset, probably invert query 'args.dataset != 'voc''
+        if surgery_method == 'remove':  # fine-tuning only-novel classifier
+            ITERS = NOVEL_ITERS
+            mode = 'novel'
+            # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
+            #  create a default config for those cases in order for being able to read example configs to modify
+            assert not args.fc and not args.unfreeze
+        else:  # either combine only-novel fine-tuning with base training or directly fine-tune entire classifier
+            ITERS = ALL_ITERS
+            mode = 'all'
+        split = temp_split = ''
+        temp_mode = mode
+        train_split = cfg.TRAIN_SPLIT[args.dataset]
+        test_split = cfg.TEST_SPLIT[args.dataset]
+        config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
+        ckpt_dir = os.path.join(
+            cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
+            'faster_rcnn'
+        )
+        base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
 
     # Needed to exchange seed and shot in the example config
     seed_str = 'seed{}'.format(seed)  # also used as a directory name
