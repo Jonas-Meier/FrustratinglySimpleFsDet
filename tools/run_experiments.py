@@ -21,8 +21,6 @@ def parse_args():
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
     parser.add_argument('--classifier', default='fc', choices=['fc', 'cosine'],
                         help='Use regular fc classifier or cosine classifier')
-    #parser.add_argument('--fc', action='store_true',  # TODO: probably change to string-argument 'classifier' which allows ['fc', 'cosine']
-    #                    help='Model uses FC instead of cosine')
     parser.add_argument('--tfa', action='store_true',
                         help='Two-stage fine-tuning')
     parser.add_argument('--unfreeze', action='store_true',
