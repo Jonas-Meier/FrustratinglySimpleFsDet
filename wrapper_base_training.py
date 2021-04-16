@@ -9,7 +9,7 @@ def main():
     layers = 50  # 50, 101
     bs = 16
     lr = 0.02  # 0.02 for bs=16. Set to -1 for automatic linear scaling!
-    # override-config=True
+    override_config = True
     # --num-threads=1
     if dataset == "coco":
         class_split = coco_class_split
@@ -17,13 +17,14 @@ def main():
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_base_training(dataset, class_split, gpu_ids, layers, bs, lr)
+    run_base_training(dataset, class_split, gpu_ids, layers, bs, lr, override_config)
 
 
-def run_base_training(dataset, class_split, gpu_ids, layers, bs, lr=-1.0):
+def run_base_training(dataset, class_split, gpu_ids, layers, bs, lr=-1.0, override_config=False):
     base_cmd = "python3 -m tools.run_base_training"
-    cmd = "{} --dataset {} --class-split {} --gpu-ids {} --layers {} --bs {} --lr {}"\
-        .format(base_cmd, dataset, class_split, comma_sep(gpu_ids), layers, bs, lr)
+    override_config_str = ' --override-config' if override_config else ''
+    cmd = "{} --dataset {} --class-split {} --gpu-ids {} --layers {} --bs {} --lr {}{}"\
+        .format(base_cmd, dataset, class_split, comma_sep(gpu_ids), layers, bs, lr, override_config_str)
     os.system(cmd)
 
 
