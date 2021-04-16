@@ -19,8 +19,10 @@ def parse_args():
     parser.add_argument('--num-threads', type=int, default=1)
     # Model settings
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
-    parser.add_argument('--fc', action='store_true',  # TODO: probably change to string-argument 'classifier' which allows ['fc', 'cosine']
-                        help='Model uses FC instead of cosine')
+    parser.add_argument('--classifier', default='fc', choices=['fc', 'cosine'],
+                        help='Use regular fc classifier or cosine classifier')
+    #parser.add_argument('--fc', action='store_true',  # TODO: probably change to string-argument 'classifier' which allows ['fc', 'cosine']
+    #                    help='Model uses FC instead of cosine')
     parser.add_argument('--tfa', action='store_true',
                         help='Two-stage fine-tuning')
     parser.add_argument('--unfreeze', action='store_true',
@@ -198,16 +200,16 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None):
     run_cmd(command)
 
 
-def get_training_id(layers, mode, shots, fc=False, unfreeze=False, tfa=False, suffix=''):
+def get_training_id(layers, mode, shots, classifier, unfreeze=False, tfa=False, suffix=''):
     # A consistent string used
     #   - as directory name to save checkpoints
     #   - as name for configuration files
     pattern = 'faster_rcnn_R_{}_FPN_ft{}_{}{}{}{}{}'
-    fc_str = '_fc' if fc else ''
+    classifier_str = '_{}'.format(classifier)
     unfreeze_str = '_unfreeze' if unfreeze else ''
     tfa_str = '_TFA' if tfa else ''
     shot_str = '_{}shot'.format(shots)
-    return pattern.format(layers, fc_str, mode, shot_str, unfreeze_str, tfa_str, suffix)
+    return pattern.format(layers, classifier_str, mode, shot_str, unfreeze_str, tfa_str, suffix)
 
 
 def get_ft_dataset_names(dataset, class_split, mode, shot, seed, train_split='trainval', test_split='test'):
@@ -223,8 +225,6 @@ def get_ft_dataset_names(dataset, class_split, mode, shot, seed, train_split='tr
 # Returns fine-tuning configs. Assumes, that there already exist base-training configs!
 # TODO: probably split get_config and doing a surgery? (e.g. if we just want wo iterate over multiple configs to do
 #  automated inference?
-# TODO: probably think about adding '_cosine' to all cosine fine-tunings. This would be more clear instead of
-#  '' being cosine and 'fc' being fc!
 def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surgery=False):
     """
     For a given seed and shot, generate a config file based on a template
@@ -337,7 +337,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             mode = 'novel'
             # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
             #  create a default config for those cases in order for being able to read example configs to modify
-            assert not args.fc and not args.unfreeze
+            assert args.classifier is not 'fc' and not args.unfreeze
         else:  # either combine only-novel fine-tuning with base training or directly fine-tune entire classifier
             ITERS = ALL_ITERS
             mode = 'all'
@@ -356,11 +356,10 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     seed_str = 'seed{}'.format(seed)  # also used as a directory name
     shot_str = '{}shot'.format(shot)
     # Needed to create appropriate sub directories for the config files
-    fc_str = '_fc' if args.fc else ''
-    cosine_str = '_cosine' if not args.fc else ''
+    classifier_str = '_{}'.format(args.classifier)
     unfreeze_str = '_unfreeze' if args.unfreeze else ''
     # sub-directories 'ft_cosine', 'ft_cosine_unfreeze', 'ft_fc', 'ft_(only_)novel' to indicate the type of fine-tuning
-    sub_dir_str = 'ft_only_novel' if surgery_method == 'remove' else 'ft' + fc_str + cosine_str + unfreeze_str
+    sub_dir_str = 'ft_only_novel' if surgery_method == 'remove' else 'ft' + classifier_str + unfreeze_str
 
     # Set paths depending on surgery method...
     base_ckpt = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_base'.format(args.layers), 'model_final.pth')
@@ -370,17 +369,17 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         surgery_ckpt_name = 'model_reset_surgery.pth'
         novel_ft_ckpt = None
         surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_all'.format(args.layers))
-        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, fc=args.fc,
+        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, classifier=args.classifier,
                                               unfreeze=args.unfreeze, tfa=False, suffix=args.suffix)
     elif surgery_method == 'remove':
         # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
         #  create a default config for those cases in order for being able to read example configs to modify
-        assert not args.fc and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
+        assert args.classifier is not 'fc' and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
         surgery_ckpt_name = 'model_reset_remove.pth'
         novel_ft_ckpt = None
         surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_novel'.format(args.layers))
         # Note: we currently have args.tfa set, but we do not yet need it in our directory name
-        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, fc=False,
+        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, classifier='cosine',
                                               unfreeze=False, tfa=False, suffix=args.suffix)
     else:
         assert surgery_method == 'combine', surgery_method
@@ -389,7 +388,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         # Note: we hard-code the mode to 'novel' because in this phase our actual mode is 'all' but we have to read the
         #  checkpoint of earlier novel fine-tuning whose mode was 'novel'
         novel_ft_ckpt = os.path.join(train_ckpt_base_dir,
-                                     get_training_id(layers=args.layers, mode='novel', shots=shot, fc=False,
+                                     get_training_id(layers=args.layers, mode='novel', shots=shot, classifier='cosine',
                                                      unfreeze=False, tfa=False, suffix=args.suffix),
                                      'model_final.pth')
         assert os.path.exists(novel_ft_ckpt), 'Novel weights do not exist!'
@@ -399,7 +398,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         surgery_ckpt_save_dir = os.path.join(ckpt_dir,
                                              seed_str,
                                              'faster_rcnn_R_{}_FPN_novel_{}_combine'.format(args.layers, shot_str))
-        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, fc=args.fc,
+        training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, classifier=args.classifier,
                                               unfreeze=args.unfreeze, tfa=True, suffix=args.suffix)
 
     train_weight = surgery_ckpt = os.path.join(surgery_ckpt_save_dir, surgery_ckpt_name)
