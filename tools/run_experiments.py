@@ -28,8 +28,9 @@ def parse_args():
     # Fine-Tuning settings
     parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
                         help='Shots to run experiments over')
-    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],  # TODO: add possibility to just pass a single seed!
-                        help='Range of seeds to run')
+    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],
+                        help='Range of seeds to run. Just a single seed or two seeds representing a range with 2nd '
+                             'argument being inclusive as well!')
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
     # Workflow settings
@@ -495,8 +496,13 @@ def comma_sep(elements):
 
 
 def main(args):
+    if len(args.seeds) == 1:
+        seeds = [args.seeds[0]]
+    else:
+        assert len(args.seeds) == 2
+        seeds = range(args.seeds[0], args.seeds[1] + 1)
     for shot in args.shots:
-        for seed in range(args.seeds[0], args.seeds[1]):  # TODO: use second seed arg inclusive?
+        for seed in seeds:
             print('Split: {}, Seed: {}, Shot: {}'.format(args.split, seed, shot))
             if args.tfa:
                 config_file, config = get_config(seed, shot, surgery_method='remove',

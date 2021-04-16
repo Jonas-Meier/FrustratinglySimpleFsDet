@@ -20,7 +20,8 @@ def parse_args():
     parser.add_argument("--shots", type=int, nargs="+", default=[1, 2, 3, 5, 10, 30],
                         help="Amount of annotations per class for fine tuning")
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 9],
-                        help="Range of seeds. Start and end are both inclusive!")
+                        help="Range of seeds to run. Just a single seed or two seeds representing a range with 2nd "
+                             "argument being inclusive as well!")
     args = parser.parse_args()
     return args
 
@@ -67,7 +68,11 @@ def generate_seeds(args):
         cat_name = coco_cat_id_to_name[anno['category_id']]
         cat_name_to_annos[cat_name].append(anno)
 
-    seeds = range(args.seeds[0], args.seeds[1] + 1)  # we use start and end inclusively!
+    if len(args.seeds) == 1:
+        seeds = [args.seeds[0]]
+    else:
+        assert len(args.seeds) == 2
+        seeds = range(args.seeds[0], args.seeds[1] + 1)
     for i in seeds:
         print("Generating seed {}".format(i))
         random.seed(i)
