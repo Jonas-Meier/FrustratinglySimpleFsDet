@@ -83,7 +83,16 @@ def generate_seeds(args):
             sample_annos = []  # annotations
             sample_imgs = []  # images
             for shots in args.shots:
-                print("Generating {} shot data".format(shots))
+                if cat_name in base_classes:
+                    assert cat_name not in novel_classes
+                    target_shots = cfg.BASE_SHOT_MULTIPLIER * shots
+                    print("Generating {}x{} shot data for base class {}"
+                          .format(cfg.BASE_SHOT_MULTIPLIER, shots, cat_name))
+                else:
+                    assert cat_name in novel_classes
+                    target_shots = shots
+                    print("Generating {} shot data for novel class {}"
+                          .format(shots, cat_name))
                 img_ids = list(img_id_to_annos.keys())
                 random.shuffle(img_ids)  # TODO: probably use random.sample(img_ids, 1) in a loop?
                 # while True:
@@ -96,7 +105,7 @@ def generate_seeds(args):
                             break
                     if skip:
                         continue
-                    if len(img_id_to_annos[img_id]) + len(sample_annos) > shots:  # TODO: This condition may lead to following:
+                    if len(img_id_to_annos[img_id]) + len(sample_annos) > target_shots:  # TODO: This condition may lead to following:
                         # 1. For k=5 shots and if each image had exactly 2 annotations per class we finally only
                         # have four annotations for that class -> probably too few annotations
                         # 2. In contrast to other approaches, they allow for taking multiple annotations from the
@@ -107,15 +116,17 @@ def generate_seeds(args):
                     sample_imgs.append(id2img[img_id])  # add the image with id 'img_id'
                     assert len(sample_imgs) <= len(sample_annos), \
                         "Error, got {} images but only {} annotations!".format(len(sample_imgs), len(sample_annos))
-                    if len(sample_annos) == shots:
+                    if len(sample_annos) == target_shots:
                         break
                 # TODO: Probably convert assertion to a warning.
-                assert len(sample_annos) == shots, "Wanted {} shots, but only found {} annotations!".format(shots, len(
-                    sample_annos))
+                assert len(sample_annos) == target_shots, "Wanted {} shots, but only found {} annotations!"\
+                    .format(target_shots, len(sample_annos))
                 new_data = data.copy()
                 new_data['images'] = sample_imgs
                 new_data['annotations'] = sample_annos
                 new_data['categories'] = new_all_cats
+                # Note: even if we sample more annotations for base classes we use the original 'shots' in the file
+                # name for clarity!
                 save_path = get_save_path_seeds(data_path, cat_name, shots, i)
                 with open(save_path, 'w') as f:
                     # json.dump(new_data, f)

@@ -67,6 +67,13 @@ _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
 _CC.MAX_SEED_VALUE = 9  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
 
+# For fine-tuning, sample 'BASE_SHOT_MULTIPLIER' x 'shots' shots for base classes
+# used by data preparation and annotation reading
+_CC.BASE_SHOT_MULTIPLIER = 5  # default: 1
+# For fine-tuning, oversample novel classes
+# Just used in annotation reading
+_CC.NOVEL_OVERSAMPLING_FACTOR = 5  # default: 1
+
 _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 
 # FREEZE Parameters

@@ -127,11 +127,14 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
             imgs = coco_api.loadImgs(img_ids)
             anns = [coco_api.imgToAnns[img_id] for img_id in img_ids]
             fileids[idx] = list(zip(imgs, anns))
-        for _, fileids_ in fileids.items():
+        ind_to_id = {v: k for k, v in id_map.items()}  # inverse map of index back to id
+        base_id_to_ind = metadata["base_dataset_id_to_contiguous_id"]
+        novel_id_to_ind = metadata["novel_dataset_id_to_contiguous_id"]
+        for idx, fileids_ in fileids.items():
             dicts = []
             for (img_dict, anno_dict_list) in fileids_:
                 for anno in anno_dict_list:
-                    record = {}
+                    record = {}  # each record represents an image, not an annotation!
                     record["file_name"] = os.path.join(
                         image_root, img_dict["file_name"]
                     )
@@ -146,10 +149,35 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
 
                     obj["bbox_mode"] = BoxMode.XYWH_ABS
                     obj["category_id"] = id_map[obj["category_id"]]
+                    # for fine-tuning add each image multiple times with just one annotation each time
                     record["annotations"] = [obj]
                     dicts.append(record)
-            if len(dicts) > int(shot):
-                dicts = np.random.choice(dicts, int(shot), replace=False)
+            # Note: we cannot directly use {base|novel}_id_to_ind.values() because both use indices starting from
+            #  zero. We have to transform the index (within all classes) back to the class-id and then may use this
+            #  unique class-id to identify the class as either base class or novel class
+            class_id = ind_to_id[idx]
+            base_class_ids = base_id_to_ind.keys()
+            novel_class_ids = novel_id_to_ind.keys()
+            if prefix == 'all':   # no need for adding more novel class annotations for only-novel fine-tuning
+                if class_id in base_class_ids:  # we have a base class
+                    assert class_id not in novel_class_ids
+                    # Nothing to do, the 'base_shot_multiplier * shot' annotations have already been added to 'dicts'
+                    target_shots = cfg.BASE_SHOT_MULTIPLIER * shot
+                else:  # we have a novel class
+                    assert class_id in novel_class_ids
+                    # over-sample the elements in the 'dicts'-list to ensure a more balanced training set for
+                    #  fine-tuning, since we allow to sample more than K shots for base classes. This should work just
+                    #  straightforward because the elements (images with annotations) in 'dataset_dicts' are used right
+                    #  away, no post-processing is done. The elements are randomized and then batched. Therefore, it
+                    #  does not matter if we have duplicates in this list!
+                    dicts = cfg.NOVEL_OVERSAMPLING_FACTOR * dicts  # Not the fastest solution, but single dicts are generally small
+                    target_shots = cfg.NOVEL_OVERSAMPLING_FACTOR * shot
+                if len(dicts) > int(target_shots):
+                    dicts = np.random.choice(dicts, int(target_shots), replace=False)
+            else:
+                assert prefix == 'novel'  # prefix == 'base' and 'shot' in dataset_name is illegal!
+                if len(dicts) > int(shot):
+                    dicts = np.random.choice(dicts, int(shot), replace=False)
             dataset_dicts.extend(dicts)
     return dataset_dicts
 
