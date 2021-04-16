@@ -472,7 +472,9 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset == 'isaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((608, 672, 736, 800, 864, 928, 992))  # 600, 700, 800, 900, 1000
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
 
     with open(config_save_file, 'w') as fp:
         yaml.dump(new_config, fp, sort_keys=False)  # TODO: 'sort_keys=False' requires pyyaml >= 5.1
