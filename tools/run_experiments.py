@@ -299,9 +299,9 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {}  # no values yet set, need to examine the behaviour of novel fine-tuning on iSAID dataset first
         ALL_ITERS = {  # for now, we just support 10, 50 and 100 shot!
-            10: (200000, (1000000,)),
-            50: (200000, (1000000,)),
-            100: (200000, (1000000,))
+            10: (200000, (1000000,), 10000),
+            50: (200000, (1000000,), 10000),
+            100: (200000, (1000000,), 10000)
         }
     elif args.dataset == 'voc':
         # PASCAL VOC
@@ -335,7 +335,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             mode = 'novel'
             # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
             #  create a default config for those cases in order for being able to read example configs to modify
-            assert args.classifier is not 'fc' and not args.unfreeze
+            assert args.classifier != 'fc' and not args.unfreeze
         else:  # either combine only-novel fine-tuning with base training or directly fine-tune entire classifier
             ITERS = ALL_ITERS
             mode = 'all'
@@ -372,7 +372,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     elif surgery_method == 'remove':
         # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
         #  create a default config for those cases in order for being able to read example configs to modify
-        assert args.classifier is not 'fc' and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
+        assert args.classifier !=  'fc' and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
         surgery_ckpt_name = 'model_reset_remove.pth'
         novel_ft_ckpt = None
         surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_novel'.format(args.layers))
