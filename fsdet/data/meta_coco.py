@@ -130,11 +130,33 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
         ind_to_id = {v: k for k, v in id_map.items()}  # inverse map of index back to id
         base_id_to_ind = metadata["base_dataset_id_to_contiguous_id"]
         novel_id_to_ind = metadata["novel_dataset_id_to_contiguous_id"]
+        assert cfg.FT_ANNOS_PER_IMAGE in ['one', 'all']
         for idx, fileids_ in fileids.items():
             dicts = []
             for (img_dict, anno_dict_list) in fileids_:
-                for anno in anno_dict_list:
-                    record = {}  # each record represents an image, not an annotation!
+                if cfg.FT_ANNOS_PER_IMAGE == 'one':
+                    for anno in anno_dict_list:
+                        record = {}  # each record represents an image, not an annotation!
+                        record["file_name"] = os.path.join(
+                            image_root, img_dict["file_name"]
+                        )
+                        record["height"] = img_dict["height"]
+                        record["width"] = img_dict["width"]
+                        image_id = record["image_id"] = img_dict["id"]
+
+                        assert anno["image_id"] == image_id
+                        assert anno.get("ignore", 0) == 0
+
+                        obj = {key: anno[key] for key in ann_keys if key in anno}
+
+                        obj["bbox_mode"] = BoxMode.XYWH_ABS
+                        obj["category_id"] = id_map[obj["category_id"]]
+                        # for fine-tuning add each image multiple times with just one annotation each time
+                        record["annotations"] = [obj]
+                        dicts.append(record)
+                else:
+                    assert cfg.FT_ANNOS_PER_IMAGE == 'all'
+                    record = {}
                     record["file_name"] = os.path.join(
                         image_root, img_dict["file_name"]
                     )
@@ -142,16 +164,19 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
                     record["width"] = img_dict["width"]
                     image_id = record["image_id"] = img_dict["id"]
 
-                    assert anno["image_id"] == image_id
-                    assert anno.get("ignore", 0) == 0
+                    objs = []
+                    for anno in anno_dict_list:
+                        assert anno["image_id"] == image_id
+                        assert anno.get("ignore", 0) == 0
 
-                    obj = {key: anno[key] for key in ann_keys if key in anno}
+                        obj = {key: anno[key] for key in ann_keys if key in anno}
 
-                    obj["bbox_mode"] = BoxMode.XYWH_ABS
-                    obj["category_id"] = id_map[obj["category_id"]]
-                    # for fine-tuning add each image multiple times with just one annotation each time
-                    record["annotations"] = [obj]
-                    dicts.append(record)
+                        obj["bbox_mode"] = BoxMode.XYWH_ABS
+                        if obj["category_id"] in id_map:
+                            obj["category_id"] = id_map[obj["category_id"]]
+                            objs.append(obj)
+                    record["annotations"] = objs
+                    dataset_dicts.append(record)
             # Note: we cannot directly use {base|novel}_id_to_ind.values() because both use indices starting from
             #  zero. We have to transform the index (within all classes) back to the class-id and then may use this
             #  unique class-id to identify the class as either base class or novel class

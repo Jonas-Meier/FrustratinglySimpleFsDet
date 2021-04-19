@@ -63,6 +63,11 @@ _CC.TEST_ANNOS = CN({
     "isaid": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json')
 })
 
+# How many annotations to use per image while fine-tuning:
+#  'all' uses all available annotations
+#  'one' duplicates images with mire than one annotation and only adds a single annotation per image instance
+_CC.FT_ANNOS_PER_IMAGE = 'all'  # 'all' or 'one'. Default: 'one'
+
 _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
 _CC.MAX_SEED_VALUE = 9  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
