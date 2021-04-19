@@ -14,7 +14,8 @@ def main():
     shots = [10]
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
     eval_mode = 'all'  # all, single, last
-    iteration = 10000  # normally, 10k steps. Note: it automatically subtracts 1 to fit the odd iteration in the checkpoint file names
+    # normally, 10k steps. Note: it automatically subtracts 1 to fit the odd iteration in the checkpoint file names
+    iterations = [10000]
     layers = 50  # 50, 101
     classifier = 'fc'  # fc, cosine
     tfa = False  # False: randinit surgery
@@ -25,13 +26,17 @@ def main():
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
+    if eval_mode != 'single':  # to prevent multiple execution of inference on all or the last checkpoint!
+        iterations = [-1]
     if phase == 1:
         mode = 'base'
         pattern = 'faster_rcnn_R_{}_FPN_{}.yaml'
-        config_file = os.path.join(
-            cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
-            pattern.format(layers, mode)
-        )
+        for iteration in iterations:
+            config_file = os.path.join(
+                cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
+                pattern.format(layers, mode)
+            )
+            run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
     else:
         assert phase == 2
         assert len(shots) > 0 and len(seeds) > 0
@@ -42,19 +47,20 @@ def main():
         tfa_str = '_TFA' if tfa else ''
         for shot in shots:
             for seed in seeds:
-                # TODO: Possible problems in future:
-                #  1. We hard-code mode 'all'
-                #  2. We don't use a suffix (as in 'run_experiments.py')
-                config_file = os.path.join(
-                    cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
-                    'seed{}'.format(seed),
-                    'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub directory
-                    pattern.format(layers, classifier_str, mode, '_{}'.format(shot), unfreeze_str, tfa_str, '')
-                )
-    run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
+                for iteration in iterations:
+                    # TODO: Possible problems in future:
+                    #  1. We hard-code mode 'all'
+                    #  2. We don't use a suffix (as in 'run_experiments.py')
+                    config_file = os.path.join(
+                        cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
+                        'seed{}'.format(seed),
+                        'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub directory
+                        pattern.format(layers, classifier_str, mode, '_{}'.format(shot), unfreeze_str, tfa_str, '')
+                    )
+                    run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
 
 
-def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration=5):
+def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration):
     assert eval_mode in ['all', 'single', 'last']
     if eval_mode == 'single':  # certain iteration
         eval_mode_str = "--eval-only --eval-iter {}".format(iteration)
