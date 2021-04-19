@@ -55,7 +55,7 @@ def main():
                         cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
                         'seed{}'.format(seed),
                         'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub directory
-                        pattern.format(layers, classifier_str, mode, '_{}'.format(shot), unfreeze_str, tfa_str, '')
+                        pattern.format(layers, classifier_str, mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
                     )
                     run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
 
