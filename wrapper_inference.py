@@ -8,8 +8,8 @@ def main():
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
     gpu_ids = [0]
-    num_threads = 2
-    phase = 1  # phase 1: base-training, phase 2: fine-tuning
+    num_threads = 1
+    phase = 2  # phase 1: base-training, phase 2: fine-tuning
     #bs = 16
     shots = [10]
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
