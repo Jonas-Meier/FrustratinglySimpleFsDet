@@ -193,7 +193,10 @@ def analyze_individual_category(k,
     dt.createIndex()
     # compute precision but ignore superclass confusion
     gt = copy.deepcopy(cocoGt)
-    child_catIds = gt.getCatIds(supNms=[nm['supercategory']])
+    if 'supercategory' in nm:
+        child_catIds = gt.getCatIds(supNms=[nm['supercategory']])
+    else:
+        child_catIds = []
     for idx, ann in enumerate(gt.dataset['annotations']):
         if ann['category_id'] in child_catIds and ann['category_id'] != catId:
             gt.dataset['annotations'][idx]['ignore'] = 1
