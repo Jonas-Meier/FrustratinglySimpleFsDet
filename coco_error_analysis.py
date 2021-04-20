@@ -1,4 +1,4 @@
-# Adapted from mmdetection repository: https://github.com/open-,,lab/mmdetection/blob/master/tools/analysis_tools/coco_error_analysis.py
+# Adapted from mmdetection repository: https://github.com/open-mmlab/mmdetection/blob/master/tools/analysis_tools/coco_error_analysis.py
 
 import copy
 import os
