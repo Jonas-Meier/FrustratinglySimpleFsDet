@@ -35,7 +35,7 @@ class Trainer(DefaultTrainer):
     """
 
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+    def build_evaluator(cls, cfg, dataset_name, output_folder=None, file_suffix=""):
         """
         Create evaluator(s) for a given dataset.
         This uses the special metadata "evaluator_type" associated with each builtin dataset.
@@ -48,11 +48,11 @@ class Trainer(DefaultTrainer):
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
         if evaluator_type == "coco":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco')
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco', file_suffix="")
             )
         if evaluator_type == "isaid":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid')
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid', file_suffix="")
             )
         if evaluator_type == "pascal_voc":
             return PascalVOCDetectionEvaluator(dataset_name)
