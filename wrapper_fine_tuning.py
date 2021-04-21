@@ -23,7 +23,7 @@ def main():
     unfreeze_roi_head = False
     # Override existing config, force re-creation of surgery checkpoint
     override_config = True
-    override_surgery = True
+    override_surgery = False
     if dataset == "coco":
         class_split = coco_class_split
     elif dataset == "isaid":
