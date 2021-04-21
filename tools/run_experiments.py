@@ -13,7 +13,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     # Dataset settings
     parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
-    parser.add_argument('--class-split', type=str, required=True)  # TODO: allow multiple class splits?
+    parser.add_argument('--class-split', type=str, required=True, dest='class_split')  # TODO: allow multiple class splits?
     # CPU and GPU settings
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
     parser.add_argument('--num-threads', type=int, default=1)
@@ -24,7 +24,13 @@ def parse_args():
     parser.add_argument('--tfa', action='store_true',
                         help='Two-stage fine-tuning')
     parser.add_argument('--unfreeze', action='store_true',
-                        help='Unfreeze feature extractor')
+                        help='Unfreeze feature extractor (backbone + proposal generator + roi-head)')
+    parser.add_argument('--unfreeze-backbone', action='store_true', dest='unfreeze_backbone',
+                        help='Unfreeze the backbone only')
+    parser.add_argument('--unfreeze-proposal-generator', action='store_true', dest='unfreeze_proposal_generator',
+                        help='Unfreeze the proposal generator (e.g. RPN) only')
+    parser.add_argument('--unfreeze-roi-head', action='store_true', dest='unfreeze_roi_head',
+                        help='Unfreeze roi-head (without classification and regression!) only')
     # Fine-Tuning settings
     parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
                         help='Shots to run experiments over')
@@ -198,6 +204,7 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None):
     run_cmd(command)
 
 
+# TODO: adjust id to different unfreeze strategies?
 def get_training_id(layers, mode, shots, classifier, unfreeze=False, tfa=False, suffix=''):
     # A consistent string used
     #   - as directory name to save checkpoints
@@ -372,7 +379,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     elif surgery_method == 'remove':
         # Note: it would normally be no problem to support fc or unfreeze in novel fine-tune but you would have to
         #  create a default config for those cases in order for being able to read example configs to modify
-        assert args.classifier !=  'fc' and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
+        assert args.classifier != 'fc' and not args.unfreeze, 'Do not support fc or unfreeze in novel fine-tune!'
         surgery_ckpt_name = 'model_reset_remove.pth'
         novel_ft_ckpt = None
         surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_novel'.format(args.layers))
@@ -446,13 +453,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     num_novel_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['novel'])
     num_all_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base']) + num_novel_classes
-    new_config['MODEL']['ROI_HEADS'][
-        'NUM_CLASSES'] = num_novel_classes if surgery_method == 'remove' else num_all_classes
-    print(type(args.unfreeze))
-    print(type(not args.unfreeze))
-    new_config['MODEL']['ROI_HEADS']['FREEZE_FEAT'] = not args.unfreeze
-    new_config['MODEL']['BACKBONE']['FREEZE'] = not args.unfreeze
-    new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not args.unfreeze
+    new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
+        num_novel_classes if surgery_method == 'remove' else num_all_classes
+    new_config['MODEL']['ROI_HEADS']['FREEZE_FEAT'] = not (args.unfreeze or args.unfreeze_roi_head)
+    new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
+    new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
     (train_data, test_data) = get_ft_dataset_names(args.dataset, args.class_split, mode, shot, seed,
                                                    train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))

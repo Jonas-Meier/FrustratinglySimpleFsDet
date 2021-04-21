@@ -14,7 +14,14 @@ def main():
     layers = 50  # 50, 101
     classifier = 'fc'  # fc, cosine
     tfa = False  # False: randinit surgery
-    unfreeze = False  # False: freeze feature extractor while fine-tuning
+    # Unfreeze settings. 'unfreeze' setting combines the three single settings.
+    # Unfreeze settings are combined with 'or', therefore a part of the feature extractor is unfreezed if
+    #  either unfreeze==True OR if the corresponding part is unfreezed
+    unfreeze = False  # False: freeze feature extractor (backbone + proposal generator + roi head) while fine-tuning
+    unfreeze_backbone = False
+    unfreeze_proposal_generator = False
+    unfreeze_roi_head = False
+    # Override existing config, force re-creation of surgery checkpoint
     override_config = True
     override_surgery = True
     if dataset == "coco":
@@ -23,15 +30,21 @@ def main():
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs,
-                    tfa, unfreeze, classifier, lr,  override_config, override_surgery)
+    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, tfa,
+                    unfreeze, unfreeze_backbone, unfreeze_proposal_generator, unfreeze_roi_head,
+                    classifier, override_config, override_surgery)
 
 
-def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs,
-                    tfa=False, unfreeze=False, classifier='fc', lr=-1.0, override_config=False, override_surgery=False):
+def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, tfa=False,
+                    unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False, unfreeze_roi_head=False,
+                    classifier='fc', override_config=False, override_surgery=False):
     base_cmd = "python3 -m tools.run_experiments"
     tfa_str = ' --tfa' if tfa else ''
-    unfreeze_str = ' --unfreeze' if unfreeze else ''
+    unfreeze_str = ''
+    unfreeze_str = unfreeze_str + ' --unfreeze' if unfreeze else unfreeze_str
+    unfreeze_str = unfreeze_str + ' --unfreeze-backbone' if unfreeze_backbone else unfreeze_str
+    unfreeze_str = unfreeze_str + ' --unfreeze-proposal-generator' if unfreeze_proposal_generator else unfreeze_str
+    unfreeze_str = unfreeze_str + ' --unfreeze-roi-head' if unfreeze_roi_head else unfreeze_str
     override_config_str = ' --override-config' if override_config else ''
     override_surgery_str = ' --override-surgery' if override_surgery else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {} " \
@@ -52,7 +65,6 @@ def separate(elements, separator):
     for element in elements:
         res += '{}{}'.format(str(element), separator)
     return res[:-1]  # remove trailing separator
-
 
 
 if __name__ == '__main__':
