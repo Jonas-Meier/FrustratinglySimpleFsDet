@@ -48,11 +48,11 @@ class Trainer(DefaultTrainer):
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
         if evaluator_type == "coco":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco', file_suffix="")
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco', file_suffix=file_suffix)
             )
         if evaluator_type == "isaid":
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid', file_suffix="")
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid', file_suffix=file_suffix)
             )
         if evaluator_type == "pascal_voc":
             return PascalVOCDetectionEvaluator(dataset_name)
