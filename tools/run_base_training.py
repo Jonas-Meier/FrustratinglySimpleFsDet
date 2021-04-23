@@ -47,6 +47,7 @@ def get_empty_base_config():
             },
             'ROI_HEADS': {
                 'NUM_CLASSES': int,
+                'SCORE_THRESH_TEST': float
             }
         },
         'DATASETS': {
@@ -63,6 +64,9 @@ def get_empty_base_config():
         },
         'INPUT': {
             'MIN_SIZE_TRAIN': (int,)
+        },
+        'TEST': {
+            'DETECTIONS_PER_IMAGE': int
         },
         'OUTPUT_DIR': str
     }
@@ -176,6 +180,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     num_base_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base'])
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = num_base_classes
+    new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
     (train_data, test_data) = get_base_dataset_names(args.dataset, args.class_split, mode,
                                                      train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))
@@ -188,15 +193,20 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
+    new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset == 'isaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
 
     # Save config and return it

@@ -79,6 +79,7 @@ def get_empty_ft_config():
             },
             'ROI_HEADS': {
                 'NUM_CLASSES': int,
+                'SCORE_THRESH_TEST': float,
                 'FREEZE_FEAT': bool
             },
             'BACKBONE': {
@@ -102,6 +103,9 @@ def get_empty_ft_config():
         },
         'INPUT': {
             'MIN_SIZE_TRAIN': (int,)
+        },
+        'TEST': {
+            'DETECTIONS_PER_IMAGE': int
         },
         'OUTPUT_DIR': str
     }
@@ -455,6 +459,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     num_all_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base']) + num_novel_classes
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
+    new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
     new_config['MODEL']['ROI_HEADS']['FREEZE_FEAT'] = not (args.unfreeze or args.unfreeze_roi_head)
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
@@ -474,11 +479,15 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset == 'isaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
 
     with open(config_save_file, 'w') as fp:
