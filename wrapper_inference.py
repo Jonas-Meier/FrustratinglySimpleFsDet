@@ -20,6 +20,14 @@ def main():
     classifier = 'fc'  # fc, cosine
     tfa = False  # False: randinit surgery
     unfreeze = False  # False: freeze feature extractor while fine-tuning
+    # Modify test config options (e.g. for quick test hyperparameter tuning).
+    #  Note: these configs are not saved into a config file, the change is just temporary for this certain run!
+    opts = [
+        'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,
+        'TEST.DETECTIONS_PER_IMAGE', 100,
+        'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,
+        'MODEL.RPN.POST_NMS_TOPK_TEST', 1000
+    ]
     if dataset == "coco":
         class_split = coco_class_split
     elif dataset == "isaid":
@@ -36,7 +44,7 @@ def main():
                 cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
                 pattern.format(layers, mode)
             )
-            run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
+            run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
     else:
         assert phase == 2
         assert len(shots) > 0 and len(seeds) > 0
@@ -57,10 +65,10 @@ def main():
                         'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub directory
                         pattern.format(layers, classifier_str, mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
                     )
-                    run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration)
+                    run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
 
 
-def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration):
+def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts):
     assert eval_mode in ['all', 'single', 'last']
     if eval_mode == 'single':  # certain iteration
         eval_mode_str = "--eval-only --eval-iter {}".format(iteration)
@@ -68,9 +76,10 @@ def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration):
         eval_mode_str = "--eval-all"
     else:  # only last iteration
         eval_mode_str = "--eval-only"
+    opts_str = '' if not opts else '--opts ' + separate(opts, ' ')
     base_cmd = "python3 -m tools.test_net"
-    cmd = "OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} --config-file {} --num-gpus {} {}"\
-        .format(num_threads, separate(gpu_ids, ','), base_cmd, config_file, len(gpu_ids), eval_mode_str)
+    cmd = "OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} --config-file {} --num-gpus {} {} {}"\
+        .format(num_threads, separate(gpu_ids, ','), base_cmd, config_file, len(gpu_ids), eval_mode_str, opts_str)
     os.system(cmd)
 
 
