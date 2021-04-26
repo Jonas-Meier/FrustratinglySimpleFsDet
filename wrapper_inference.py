@@ -13,7 +13,7 @@ def main():
     #bs = 16
     shots = [10]
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
-    eval_mode = 'all'  # all, single, last
+    eval_mode = 'single'  # all, single, last
     # normally, 10k steps. Note: it automatically subtracts 1 to fit the odd iteration in the checkpoint file names
     iterations = [10000]
     layers = 50  # 50, 101
