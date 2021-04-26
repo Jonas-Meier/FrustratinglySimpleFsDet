@@ -23,10 +23,10 @@ def main():
     # Modify test config options (e.g. for quick test hyperparameter tuning).
     #  Note: these configs are not saved into a config file, the change is just temporary for this certain run!
     opts = [
-        'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,
-        'TEST.DETECTIONS_PER_IMAGE', 100,
-        'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,
-        'MODEL.RPN.POST_NMS_TOPK_TEST', 1000
+        'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,  # coco: 0.05, isaid: 0.01
+        'TEST.DETECTIONS_PER_IMAGE', 100,  # coco: 100, isaid: 300
+        'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,  # coco: 1000, isaid: 2000
+        'MODEL.RPN.POST_NMS_TOPK_TEST', 1000  # coco: 1000, isaid: 1500
     ]
     if dataset == "coco":
         class_split = coco_class_split
