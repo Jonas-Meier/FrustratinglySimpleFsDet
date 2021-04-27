@@ -443,7 +443,18 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     print("Creating a new config file: {}".format(config_save_file))
     # Set all values in the empty config
     new_config = get_empty_ft_config()  # get an empty config and fill it appropriately
+    # read out some configs from the config files
+    num_conv = cfg.MODEL.ROI_BOX_HEAD.NUM_CONV
+    num_fc = cfg.MODEL.ROI_BOX_HEAD.NUM_FC
     new_config['_BASE_'] = base_cfg
+    # Try to read configs of the base config which will override the default configs
+    base_config = load_yaml_file(os.path.join(config_save_dir, base_cfg))
+    if 'MODEL' in base_config and 'ROI_BOX_HEAD' in base_config['MODEL']:
+        roi_box_config = base_config['MODEL']['ROI_BOX_HEAD']
+        if 'NUM_CONV' in roi_box_config:
+            num_conv = roi_box_config['NUM_CONV']
+        if 'NUM_FC' in roi_box_config:
+            num_fc = roi_box_config['NUM_FC']
 
     if args.dataset == 'voc':
         new_config['MODEL']['WEIGHTS'] = new_config['MODEL']['WEIGHTS'].replace('base1', 'base{}'.format(args.split))
@@ -465,10 +476,10 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
     new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
-    all_convs = range(1, cfg.MODEL.ROI_BOX_HEAD.NUM_CONV + 1)
+    all_convs = range(1, num_conv + 1)
     unfreeze_convs = args.unfreeze_roi_box_head_convs
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_CONVS'] = str([i for i in all_convs if i not in unfreeze_convs])
-    all_fcs = range(1, cfg.MODEL.ROI_BOX_HEAD.NUM_FC + 1)
+    all_fcs = range(1, num_fc + 1)
     unfreeze_fcs = args.unfreeze_roi_box_head_fcs
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_FCS'] = str([i for i in all_fcs if i not in unfreeze_fcs])
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
