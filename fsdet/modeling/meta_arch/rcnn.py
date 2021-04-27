@@ -59,11 +59,38 @@ class GeneralizedRCNN(nn.Module):
             for p in self.proposal_generator.parameters():
                 p.requires_grad = False
             print("froze proposal generator parameters")
-
         if cfg.MODEL.ROI_HEADS.FREEZE_FEAT:
+            # keep this case for backwards-compatibility:
+            # In old version, 'ROI_BOX_HEAD.FREEZE_*'-configs did not exist:
+            #  base-training leaves all freeze configs at default values, which is no freezing at all
+            #  fine-tuning always uses MODEL.ROI_HEADS.FREEZE_FEAT=True which leads to freezing of all
+            #   roi box heads parameters
+            # In new version, 'ROI_HEADS.FREEZE_FEAT' is never used:
+            #  base-training also leaves freeze configs at default values which defaults to no freezing
+            #  fine-tuning sets 'ROI_BOX_HEAD'-configs and leaves 'ROI_HEADS.FREEZE_FEAT' at False
             for p in self.roi_heads.box_head.parameters():
                 p.requires_grad = False
             print("froze roi_box_head parameters")
+        else:
+            # Freeze ROI BBOX Head Parameters
+            name_to_module = {k: v for k, v in self.roi_heads.box_head.named_modules()}
+            # could also use self.roi_heads.box_head.conv_norm_relus but we think of this solution as being more secure
+            for conv_id in cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS:
+                assert 0 < conv_id <= len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS)
+                assert len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS) <= cfg.MODEL.ROI_BOX_HEAD.NUM_CONV
+                conv_name = 'conv{}'.format(conv_id)
+                assert conv_name in name_to_module
+                for p in name_to_module[conv_name].parameters():
+                    p.requires_grad = False
+                print("froze roi_box_head {} parameters".format(conv_name))
+            for fc_id in cfg.MODEL.ROI_BOX_HEAD.FREEZE_FCS:
+                assert 0 < fc_id <= len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_FCS)
+                assert len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_FCS) <= cfg.MODEL.ROI_BOX_HEAD.NUM_FC
+                fc_name = 'fc{}'.format(fc_id)
+                assert fc_name in name_to_module
+                for p in name_to_module[fc_name].parameters():
+                    p.requires_grad = False
+                print("froze roi_box_head {} parameters".format(fc_name))
 
     def forward(self, batched_inputs):
         """

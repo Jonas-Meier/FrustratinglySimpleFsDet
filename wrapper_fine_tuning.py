@@ -20,7 +20,9 @@ def main():
     unfreeze = False  # False: freeze feature extractor (backbone + proposal generator + roi head) while fine-tuning
     unfreeze_backbone = False
     unfreeze_proposal_generator = False
-    unfreeze_roi_head = False
+    #unfreeze_roi_head = False
+    unfreeze_roi_box_head_convs = []  # []: we have no box head conv layers!
+    unfreeze_roi_box_head_fcs = []  # [2]: unfreeze the second of both fc layers (1024x1024)
     # Override existing config, force re-creation of surgery checkpoint
     override_config = True
     override_surgery = False
@@ -31,12 +33,13 @@ def main():
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, tfa,
-                    unfreeze, unfreeze_backbone, unfreeze_proposal_generator, unfreeze_roi_head,
-                    classifier, override_config, override_surgery)
+                    unfreeze, unfreeze_backbone, unfreeze_proposal_generator, unfreeze_roi_box_head_convs,
+                    unfreeze_roi_box_head_fcs, classifier, override_config, override_surgery)
 
 
 def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, tfa=False,
-                    unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False, unfreeze_roi_head=False,
+                    unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False,
+                    unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[],
                     classifier='fc', override_config=False, override_surgery=False):
     base_cmd = "python3 -m tools.run_experiments"
     tfa_str = ' --tfa' if tfa else ''
@@ -44,7 +47,10 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     unfreeze_str = unfreeze_str + ' --unfreeze' if unfreeze else unfreeze_str
     unfreeze_str = unfreeze_str + ' --unfreeze-backbone' if unfreeze_backbone else unfreeze_str
     unfreeze_str = unfreeze_str + ' --unfreeze-proposal-generator' if unfreeze_proposal_generator else unfreeze_str
-    unfreeze_str = unfreeze_str + ' --unfreeze-roi-head' if unfreeze_roi_head else unfreeze_str
+    if unfreeze_roi_box_head_convs:
+        unfreeze_str = unfreeze_str + ' --unfreeze-roi-box-head-convs ' + separate(unfreeze_roi_box_head_convs, ' ')
+    if unfreeze_roi_box_head_fcs:
+        unfreeze_str = unfreeze_str + ' --unfreeze-roi-box-head-fcs ' + separate(unfreeze_roi_box_head_fcs, ' ')
     override_config_str = ' --override-config' if override_config else ''
     override_surgery_str = ' --override-surgery' if override_surgery else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {} " \

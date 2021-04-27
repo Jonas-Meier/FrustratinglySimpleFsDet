@@ -29,8 +29,12 @@ def parse_args():
                         help='Unfreeze the backbone only')
     parser.add_argument('--unfreeze-proposal-generator', action='store_true', dest='unfreeze_proposal_generator',
                         help='Unfreeze the proposal generator (e.g. RPN) only')
-    parser.add_argument('--unfreeze-roi-head', action='store_true', dest='unfreeze_roi_head',
-                        help='Unfreeze roi-head (without classification and regression!) only')
+    parser.add_argument('--unfreeze-roi-box-head-convs', type=int, nargs='*', default=[],
+                        dest='unfreeze_roi_box_head_convs',
+                        help="Unfreeze single bbox head conv layers. Layers are identified by numbers starting at 1.")
+    parser.add_argument('--unfreeze-roi-box-head-fcs', type=int, nargs='*', default=[],
+                        dest='unfreeze_roi_box_head_fcs',
+                        help="Unfreeze single bbox head fc layers. Layers are identified by numbers starting at 1.")
     # Fine-Tuning settings
     parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
                         help='Shots to run experiments over')
@@ -80,7 +84,10 @@ def get_empty_ft_config():
             'ROI_HEADS': {
                 'NUM_CLASSES': int,
                 'SCORE_THRESH_TEST': float,
-                'FREEZE_FEAT': bool
+            },
+            'ROI_BOX_HEAD': {
+                'FREEZE_CONVS': [int],
+                'FREEZE_FCS': [int]
             },
             'BACKBONE': {
                 'FREEZE': bool
@@ -147,8 +154,6 @@ def run_cmd(cmd):
     ##  for a very compact version (see https://docs.python.org/3.8/library/subprocess.html#popen-constructor)
     #   if return_code:
     #       print("Error in cmd: {}".format(cmd)) exit(1)
-    print("Finished running the command!")
-
 
 # deprecated run command
 # def run_cmd(cmd):
@@ -460,7 +465,12 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
     new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
-    new_config['MODEL']['ROI_HEADS']['FREEZE_FEAT'] = not (args.unfreeze or args.unfreeze_roi_head)
+    all_convs = range(1, cfg.MODEL.ROI_BOX_HEAD.NUM_CONV + 1)
+    unfreeze_convs = args.unfreeze_roi_box_head_convs
+    new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_CONVS'] = str([i for i in all_convs if i not in unfreeze_convs])
+    all_fcs = range(1, cfg.MODEL.ROI_BOX_HEAD.NUM_FC + 1)
+    unfreeze_fcs = args.unfreeze_roi_box_head_fcs
+    new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_FCS'] = str([i for i in all_fcs if i not in unfreeze_fcs])
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
     (train_data, test_data) = get_ft_dataset_names(args.dataset, args.class_split, mode, shot, seed,
