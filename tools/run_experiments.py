@@ -477,10 +477,10 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         num_novel_classes if surgery_method == 'remove' else num_all_classes
     new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
     all_convs = range(1, num_conv + 1)
-    unfreeze_convs = args.unfreeze_roi_box_head_convs
+    unfreeze_convs = all_convs if args.unfreeze else args.unfreeze_roi_box_head_convs
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_CONVS'] = str([i for i in all_convs if i not in unfreeze_convs])
     all_fcs = range(1, num_fc + 1)
-    unfreeze_fcs = args.unfreeze_roi_box_head_fcs
+    unfreeze_fcs = all_fcs if args.unfreeze else args.unfreeze_roi_box_head_fcs
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_FCS'] = str([i for i in all_fcs if i not in unfreeze_fcs])
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
