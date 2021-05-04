@@ -116,6 +116,7 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
         assert 'shot' in dataset_name  # normally not necessary, but resembles the old version of this code
         (_, class_split, _, prefix, shot, seed) = dataset_labels
         fileids = {}
+        cls_ind_anno_count = {}  # class index to amount of annotations
         split_dir = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
         split_dir = os.path.join(split_dir, 'seed{}'.format(seed))
         for idx, cls in enumerate(metadata["thing_classes"]):
@@ -127,9 +128,11 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
             imgs = coco_api.loadImgs(img_ids)
             anns = [coco_api.imgToAnns[img_id] for img_id in img_ids]
             fileids[idx] = list(zip(imgs, anns))
+            cls_ind_anno_count[idx] = sum(map(len, anns))
         ind_to_id = {v: k for k, v in id_map.items()}  # inverse map of index back to id
         base_id_to_ind = metadata["base_dataset_id_to_contiguous_id"]
         novel_id_to_ind = metadata["novel_dataset_id_to_contiguous_id"]
+        max_annos = max(cls_ind_anno_count.values())
         assert cfg.FT_ANNOS_PER_IMAGE in ['one', 'all']
         for idx, fileids_ in fileids.items():
             dicts = []
@@ -176,35 +179,92 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
                             obj["category_id"] = id_map[obj["category_id"]]
                             objs.append(obj)
                     record["annotations"] = objs
-                    dataset_dicts.append(record)
+                    dicts.append(record)
             # Note: we cannot directly use {base|novel}_id_to_ind.values() because both use indices starting from
             #  zero. We have to transform the index (within all classes) back to the class-id and then may use this
             #  unique class-id to identify the class as either base class or novel class
             class_id = ind_to_id[idx]
+            class_name = metadata["thing_classes"][idx]
             base_class_ids = base_id_to_ind.keys()
             novel_class_ids = novel_id_to_ind.keys()
+            base_novel_str = ""
             if prefix == 'all':   # no need for adding more novel class annotations for only-novel fine-tuning
                 if class_id in base_class_ids:  # we have a base class
                     assert class_id not in novel_class_ids
-                    # Nothing to do, the 'base_shot_multiplier * shot' annotations have already been added to 'dicts'
-                    target_shots = cfg.BASE_SHOT_MULTIPLIER * shot
+                    base_novel_str = "base "
+                    if cfg.BASE_SHOT_MULTIPLIER > 0:
+                        # Nothing to do, the 'base_shot_multiplier * shot' annotations have already been added to 'dicts'
+                        target_shots = cfg.BASE_SHOT_MULTIPLIER * shot
+                    elif cfg.BASE_SHOT_MULTIPLIER == -1 and cfg.NOVEL_OVERSAMPLING_FACTOR > 0:
+                        # Nothing to do, use all annotations but do not balance anything!
+                        target_shots = cls_ind_anno_count[idx]
+                    else:
+                        assert cfg.BASE_SHOT_MULTIPLIER == cfg.NOVEL_OVERSAMPLING_FACTOR == -1
+                        dicts = duplicate_and_sample(dicts=dicts, target_size=max_annos)
+                        target_shots = -1  # deactivate because balancing is not exact!
                 else:  # we have a novel class
                     assert class_id in novel_class_ids
+                    base_novel_str = "novel "
                     # over-sample the elements in the 'dicts'-list to ensure a more balanced training set for
                     #  fine-tuning, since we allow to sample more than K shots for base classes. This should work just
                     #  straightforward because the elements (images with annotations) in 'dataset_dicts' are used right
                     #  away, no post-processing is done. The elements are randomized and then batched. Therefore, it
                     #  does not matter if we have duplicates in this list!
-                    dicts = cfg.NOVEL_OVERSAMPLING_FACTOR * dicts  # Not the fastest solution, but single dicts are generally small
-                    target_shots = cfg.NOVEL_OVERSAMPLING_FACTOR * shot
-                if len(dicts) > int(target_shots):
-                    dicts = np.random.choice(dicts, int(target_shots), replace=False)
+                    if cfg.NOVEL_OVERSAMPLING_FACTOR > 0:
+                        dicts = cfg.NOVEL_OVERSAMPLING_FACTOR * dicts  # Not the fastest solution, but single dicts are generally small
+                        target_shots = cfg.NOVEL_OVERSAMPLING_FACTOR * shot
+                    elif cfg.NOVEL_OVERSAMPLING_FACTOR == -1 and cfg.BASE_SHOT_MULTIPLIER > 0:
+                        dicts = cfg.BASE_SHOT_MULTIPLIER * dicts
+                        target_shots = cfg.BASE_SHOT_MULTIPLIER * shot
+                    else:
+                        assert cfg.NOVEL_OVERSAMPLING_FACTOR == cfg.BASE_SHOT_MULTIPLIER == -1
+                        dicts = duplicate_and_sample(dicts=dicts, target_size=max_annos)
+                        target_shots = -1  # deactivate because balancing is not exact!
             else:
                 assert prefix == 'novel'  # prefix == 'base' and 'shot' in dataset_name is illegal!
-                if len(dicts) > int(shot):
-                    dicts = np.random.choice(dicts, int(shot), replace=False)
+                target_shots = shot
+            if cfg.FT_ANNOS_PER_IMAGE == 'one' and len(dicts) > int(target_shots):
+                print("Found {} annotations which is more than target annotations {}, "
+                      "going to sample annotations randomly".format(len(dicts), int(target_shots)))
+                dicts = np.random.choice(dicts, int(target_shots), replace=False)
+            elif cfg.FT_ANNOS_PER_IMAGE == 'all' and target_shots > 0:
+                assert sum(map(lambda record: len(record['annotations']), dicts)) <= int(target_shots)
+            num_annos = sum(map(lambda record: len(record['annotations']), dicts))
+            print("{}class: {}; ID: {}; available annotations {}; annotations used for training: {}"
+                  .format(base_novel_str, class_name, class_id, cls_ind_anno_count[idx], num_annos))
             dataset_dicts.extend(dicts)
     return dataset_dicts
+
+
+# Duplicate and sample given 'elements' to roughly fit the target size
+def duplicate_and_sample(dicts, target_size):
+    def dicts_len(dicts):
+        return sum(map(lambda record: len(record['annotations']), dicts))
+    target_dicts = []
+    count = 0
+    total_dict_annos = dicts_len(dicts)
+    # duplicate all records as long as the whole list fits the target size
+    factor = target_size // total_dict_annos
+    target_dicts.extend(factor * dicts)
+    count += factor * total_dict_annos
+    assert count == dicts_len(target_dicts), "Inconsistency: {} and {}".format(count, dicts_len(target_dicts))
+    # sample remaining annotations until we surpass target_size
+    for record in dicts:  # TODO: random sample?
+        assert count <= target_size
+        anno_count = len(record['annotations'])
+        if count + anno_count <= target_size:
+            target_dicts.append(record)
+            count += anno_count
+        else:
+            # we add another record if we are more below target_size than we were above if we would add another record
+            # Note: this destroys our assertion above, so we immediately break
+            if abs(count + anno_count - target_size) < abs(target_size - count):
+                target_dicts.append(record)
+                count += anno_count
+            break
+
+    assert count == dicts_len(target_dicts), "Inconsistency: {} and {}".format(count, dicts_len(target_dicts))
+    return target_dicts
 
 
 def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):

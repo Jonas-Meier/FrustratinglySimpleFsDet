@@ -65,19 +65,28 @@ _CC.TEST_ANNOS = CN({
 
 # How many annotations to use per image while fine-tuning:
 #  'all' uses all available annotations
-#  'one' duplicates images with mire than one annotation and only adds a single annotation per image instance
+#  'one' duplicates images with more than one annotation and only adds a single annotation per image instance
 _CC.FT_ANNOS_PER_IMAGE = 'all'  # 'all' or 'one'. Default: 'one'
 
 _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
-_CC.MAX_SEED_VALUE = 9  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
+_CC.MAX_SEED_VALUE = 19  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
 
-# For fine-tuning, sample 'BASE_SHOT_MULTIPLIER' x 'shots' shots for base classes
-# used by data preparation and annotation reading
-_CC.BASE_SHOT_MULTIPLIER = 5  # default: 1
-# For fine-tuning, oversample novel classes
-# Just used in annotation reading
-_CC.NOVEL_OVERSAMPLING_FACTOR = 5  # default: 1
+
+# BASE_SHOT_MULTIPLIER is used for both, sampling data from original annotations and used by data preparation for
+#  training. It determines how much base-class annotations are sampled since their amount is often much higher than
+#  the shot parameter K.
+# NOVEL_OVERSAMPLING_FACTOR is just used for data preparation for training. It determines how often the sampled images,
+#  containing K annotations, are duplicated, to allow for more balanced datasets if the BASE_SHOT_MULTIPLIER was used to
+#  sample more than K annotations for base classes.
+# Following combinations of values may used in the config, X, Y and K are integers > 0
+#  (BASE_SHOT_MULTIPLIER | NOVEL_OVERSAMPLING_FACTOR -> base class data used | novel class data used)
+#  X  |  Y  ->  X * K   | Y * K
+#  X  | -1  ->  X * K   | X * K
+#  -1 |  Y  ->  all     | Y * K      (Note: base class data remains imbalanced!)
+#  -1 | -1  ->  all classes balanced to amount of class with most annotations
+_CC.BASE_SHOT_MULTIPLIER = 5  # default: 1, -1 for using all data
+_CC.NOVEL_OVERSAMPLING_FACTOR = 1  # default: 1, -1 for same amount as base classes
 
 _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 

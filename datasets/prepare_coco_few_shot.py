@@ -48,6 +48,7 @@ def generate_seeds(args):
     id2img = {}
     for i in data['images']:
         id2img[i['id']] = i
+    # same but shorter: id2img = {i['id']: i for i in data['images']}
 
     # tuples of category names
     # TODO: base- and novel classes do not matter when sampling few-shot data, but may be important when saving them!
@@ -87,38 +88,42 @@ def generate_seeds(args):
 
             sample_annos = []  # annotations
             sample_imgs = []  # images
+            sample_img_ids = []  # ids of sampled images, just used for duplicate checks
             for shots in args.shots:
                 if cat_name in base_classes:
                     assert cat_name not in novel_classes
-                    target_shots = cfg.BASE_SHOT_MULTIPLIER * shots
-                    print("Generating {}x{} shot data for base class {}"
-                          .format(cfg.BASE_SHOT_MULTIPLIER, shots, cat_name))
+                    if cfg.BASE_SHOT_MULTIPLIER == -1:
+                        target_shots = len(cat_name_to_annos[cat_name])  # should be all available annos
+                        print("Using all available {} annotations for base class {}!"
+                              .format(target_shots, cat_name))
+                    else:
+                        assert cfg.BASE_SHOT_MULTIPLIER > 0
+                        target_shots = cfg.BASE_SHOT_MULTIPLIER * shots
+                        print("Generating {}x{} shot data for base class {}"
+                              .format(cfg.BASE_SHOT_MULTIPLIER, shots, cat_name))
                 else:
                     assert cat_name in novel_classes
                     target_shots = shots
                     print("Generating {} shot data for novel class {}"
                           .format(shots, cat_name))
                 img_ids = list(img_id_to_annos.keys())
-                random.shuffle(img_ids)  # TODO: probably use random.sample(img_ids, 1) in a loop?
                 # while True:
                     # img_ids = random.sample(list(img_id_to_annos.keys()), shots)
+                # TODO: probably use random.sample(img_ids, 1) in a 'while True'-loop?
                 for img_id in img_ids:
-                    skip = False
-                    for s in sample_annos:
-                        if img_id == s['image_id']:  # TODO: only necessary if we iterate multiple times through all images
-                            skip = True
-                            break
-                    if skip:
+                    if img_id in sample_img_ids:  # only necessary if we iterate multiple times through all images
                         continue
-                    if len(img_id_to_annos[img_id]) + len(sample_annos) > target_shots:  # TODO: This condition may lead to following:
-                        # 1. For k=5 shots and if each image had exactly 2 annotations per class we finally only
-                        # have four annotations for that class -> probably too few annotations
-                        # 2. In contrast to other approaches, they allow for taking multiple annotations from the
-                        # same image (even more: they only want ALL annotations from an image (for a certain class)
-                        # or none at all) (as support data) -> unknown consequences
+                    if len(img_id_to_annos[img_id]) + len(sample_annos) > target_shots:
+                        # TODO: This condition may lead to following:
+                        #  1. For k=5 shots and if each image had exactly 2 annotations per class we finally only
+                        #  have four annotations for that class -> probably too few annotations
+                        #  2. In contrast to other approaches, they allow for taking multiple annotations from the
+                        #  same image (even more: they only want ALL annotations from an image (for a certain class)
+                        #  or none at all) (as support data) -> unknown consequences
                         continue
                     sample_annos.extend(img_id_to_annos[img_id])  # add all annotations of image with id 'img_id' with class 'c'
                     sample_imgs.append(id2img[img_id])  # add the image with id 'img_id'
+                    sample_img_ids.append(img_id)
                     assert len(sample_imgs) <= len(sample_annos), \
                         "Error, got {} images but only {} annotations!".format(len(sample_imgs), len(sample_annos))
                     if len(sample_annos) == target_shots:
