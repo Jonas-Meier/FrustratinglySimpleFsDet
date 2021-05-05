@@ -59,6 +59,7 @@ class GeneralizedRCNN(nn.Module):
             for p in self.proposal_generator.parameters():
                 p.requires_grad = False
             print("froze proposal generator parameters")
+
         if cfg.MODEL.ROI_HEADS.FREEZE_FEAT:
             # keep this case for backwards-compatibility:
             # In old version, 'ROI_BOX_HEAD.FREEZE_*'-configs did not exist:
