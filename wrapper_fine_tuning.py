@@ -14,6 +14,8 @@ def main():
     layers = 50  # 50, 101
     classifier = 'fc'  # fc, cosine
     tfa = False  # False: randinit surgery
+    # experimental: different heads for base classes and novel classes. Only works with 'randinit' surgery (tfa==False)
+    double_head = False  # TODO: set 'override_surgery' if 'double_head' == True?
     # Unfreeze settings. 'unfreeze' setting combines the three single settings.
     # Unfreeze settings are combined with 'or', therefore a part of the feature extractor is unfreezed if
     #  either unfreeze==True OR if the corresponding part is unfreezed
@@ -24,25 +26,30 @@ def main():
     unfreeze_roi_box_head_convs = []  # []: we have no box head conv layers!
     unfreeze_roi_box_head_fcs = []  # [2]: unfreeze the second of both fc layers (1024x1024)
     # Override existing config, force re-creation of surgery checkpoint
+    resume = False
     override_config = True
-    override_surgery = False
+    override_surgery = True
+    if resume:
+        override_config = override_surgery = False
     if dataset == "coco":
         class_split = coco_class_split
     elif dataset == "isaid":
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, tfa,
-                    unfreeze, unfreeze_backbone, unfreeze_proposal_generator, unfreeze_roi_box_head_convs,
-                    unfreeze_roi_box_head_fcs, classifier, override_config, override_surgery)
+    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, double_head,
+                    tfa, unfreeze, unfreeze_backbone, unfreeze_proposal_generator, unfreeze_roi_box_head_convs,
+                    unfreeze_roi_box_head_fcs, classifier, override_config, override_surgery, resume)
 
 
-def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, tfa=False,
-                    unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False,
+def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, double_head=False,
+                    tfa=False, unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False,
                     unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[],
-                    classifier='fc', override_config=False, override_surgery=False):
+                    classifier='fc', override_config=False, override_surgery=False, resume=False):
     base_cmd = "python3 -m tools.run_experiments"
-    tfa_str = ' --tfa' if tfa else ''
+    surgery_str = ''  # combine different surgery settings to spare some space
+    surgery_str = surgery_str + ' --tfa' if tfa else surgery_str
+    surgery_str = surgery_str + ' --double-head' if double_head else surgery_str
     unfreeze_str = ''
     unfreeze_str = unfreeze_str + ' --unfreeze' if unfreeze else unfreeze_str
     unfreeze_str = unfreeze_str + ' --unfreeze-backbone' if unfreeze_backbone else unfreeze_str
@@ -56,7 +63,7 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {} " \
           "--gpu-ids {} --num-threads {} --layers {} --bs {} --lr {} --classifier {}{}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ','),
-                num_threads, layers, bs, lr, classifier, tfa_str, unfreeze_str, override_config_str, override_surgery_str)
+                num_threads, layers, bs, lr, classifier, surgery_str, unfreeze_str, override_config_str, override_surgery_str)
     os.system(cmd)
 
 

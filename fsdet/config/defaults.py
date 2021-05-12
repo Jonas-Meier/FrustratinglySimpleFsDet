@@ -99,6 +99,10 @@ _CC.MODEL.PROPOSAL_GENERATOR.FREEZE = False
 _CC.MODEL.ROI_HEADS.FREEZE_FEAT = False
 _CC.MODEL.ROI_BOX_HEAD.FREEZE_CONVS = []  # freeze bbox head conv layers with given id (starting by 1)
 _CC.MODEL.ROI_BOX_HEAD.FREEZE_FCS = []  # freeze bbox head fc layers with given id (starting by 1)
+# Multi-Head configs
+_CC.MODEL.ROI_HEADS.MULTIHEAD_NUM_CLASSES = [60, 20]  # num classes for each head
+_CC.MODEL.ROI_BOX_HEAD.NUM_HEADS = 2
+_CC.MODEL.ROI_BOX_HEAD.SPLIT_AT_FC = 2  # no. of fc layer where to split the head
 
 # choose from "FastRCNNOutputLayers" and "CosineSimOutputLayers"
 _CC.MODEL.ROI_HEADS.OUTPUT_LAYER = "FastRCNNOutputLayers"

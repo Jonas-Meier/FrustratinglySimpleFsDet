@@ -33,6 +33,8 @@ def parse_args():
                         help='Target parameter names')
     parser.add_argument('--tar-name', type=str, default='model_reset',
                         help='Name of the new ckpt')
+    parser.add_argument('--double-head', action='store_true', default=False,
+                        help="use different heads for base classes and novel classes")
     # Dataset
     parser.add_argument('--dataset', choices=['coco', 'voc', 'lvis', 'isaid'],
                         required=True, help='dataset')
@@ -52,6 +54,8 @@ def ckpt_surgery(args):
     (this design choice has no particular reason). Thus, the random
     initialization step is not really necessary.
     """
+    # Note: this method does not handle the "remove" surgery at all, even if one could think it would, according to the
+    # docstings! "remove"-surgery is done by 'surgery_loop'-method, independent on the passed 'surgery'-argument
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
         weight_name = param_name + ('.weight' if is_weight else '.bias')
         pretrained_weight = ckpt['model'][weight_name]
@@ -78,7 +82,56 @@ def ckpt_surgery(args):
             new_weight[-1] = pretrained_weight[-1]  # bg class
         ckpt['model'][weight_name] = new_weight
 
-    surgery_loop(args, surgery)
+    def double_head_surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
+        del tar_size  # we use different target sizes for base classes and novel classes
+        # Special kind of surgery for the experimental double head. For simplicity reasons, it is just supported along with
+        #  'randinit' and for may only be used with coco-like datasets
+        weight_name = param_name + ('.weight' if is_weight else '.bias')
+        pretrained_weight = ckpt['model'][weight_name]
+        base_tar_size = len(BASE_CLASSES)
+        novel_tar_size = len(NOVEL_CLASSES)
+        if "cls_score" in param_name:  # +1 for background class
+            base_tar_size += 1
+            novel_tar_size += 1
+        else:  # *4 for bboxes, no bbox parameters for background class necessary
+            assert "bbox_pred" in param_name
+            base_tar_size *= 4
+            novel_tar_size *= 4
+        assert pretrained_weight.size(0) == base_tar_size
+
+        if is_weight:
+            # old base class predictor's feature size should be the same size we want for novel class predictor as well
+            feat_size = pretrained_weight.size(1)
+            novel_weights = torch.rand((novel_tar_size, feat_size))
+            torch.nn.init.normal_(novel_weights, 0, 0.01)
+        else:
+            novel_weights = torch.zeros(novel_tar_size)
+        assert args.dataset not in ['voc', 'lvis'], \
+            "Double-Head predictor currently not supported for dataset {}".format(args.dataset)
+        ckpt['model'][weight_name.replace("box_predictor", "box_predictor1")] = pretrained_weight  # copy old base weights to new base predictor weights
+        ckpt['model'][weight_name.replace("box_predictor", "box_predictor2")] = novel_weights  # add new weights for novel class predictor
+        del ckpt['model'][weight_name]  # delete old base predictor weights
+
+        # duplicate FC2 layers for fine-tuning!
+        fc2_weight_name = "roi_heads.box_head.fc2.weight"
+        fc2_bias_name = "roi_heads.box_head.fc2.bias"
+        if is_weight and fc2_weight_name in ckpt['model']:
+            # duplicate fc2 weight
+            ckpt['model']['roi_heads.box_head.fc2:1.weight'] = ckpt['model'][fc2_weight_name]
+            ckpt['model']['roi_heads.box_head.fc2:2.weight'] = ckpt['model'][fc2_weight_name]
+            # remove old weights
+            del ckpt['model'][fc2_weight_name]
+        elif not is_weight and fc2_bias_name in ckpt['model']:
+            # duplicate fc2 bias
+            ckpt['model']['roi_heads.box_head.fc2:1.bias'] = ckpt['model'][fc2_bias_name]
+            ckpt['model']['roi_heads.box_head.fc2:2.bias'] = ckpt['model'][fc2_bias_name]
+            # remove old bias
+            del ckpt['model'][fc2_bias_name]
+
+    if not args.double_head:
+        surgery_loop(args, surgery)
+    else:
+        surgery_loop(args, double_head_surgery)
 
 
 def combine_ckpts(args):

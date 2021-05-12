@@ -72,6 +72,28 @@ class GeneralizedRCNN(nn.Module):
             for p in self.roi_heads.box_head.parameters():
                 p.requires_grad = False
             print("froze roi_box_head parameters")
+        elif cfg.MODEL.ROI_HEADS.NAME == 'StandardROIDoubleHeads' and \
+                cfg.MODEL.ROI_BOX_HEAD.NAME == 'FastRCNNConvFCMultiHead':
+            # Custom freezing options for fine-tuning of a model with two heads (first head for base-classes and second
+            #  head for novel classes), where the first head and its fc layers will be completely frozen (even
+            #  classification and bbox regression!) and for the second head, the last fc-layer will remain unfrozen.
+            #  This setting should allow for maintaining the base class performance while allowing the novel classes to
+            #  be learned well.
+            # freeze all 'conv', 'fc1' and 'fc2:1' parameters of the box head
+            for k, v in self.roi_heads.box_head.named_modules():
+                # We hard-code freezing of 'fc1' and 'fc2:1' because the class 'StandardROIDoubleHeads' ensures that
+                #  we have exactly two heads and that we split the head always at index 2!
+                if ('conv' in k) or ('fc1' in k) or ('fc2:1' in k):
+                    for p in v.parameters():
+                        p.requires_grad = False
+                    print("Froze parameters of roi_box_head {} module".format(k))
+            # additionally freeze the first predictor completely!
+            for k, v in self.roi_heads.box_predictors[0].named_modules():
+                # We explicitly name the modules for more informative messages
+                if (k == 'cls_score') or (k == 'bbox_pred'):
+                    for p in v.parameters():
+                        p.requires_grad = False
+                    print("Froze parameters of roi_box_predictor {} module".format(k))
         else:
             # Freeze ROI BBOX Head Parameters
             name_to_module = {k: v for k, v in self.roi_heads.box_head.named_modules()}

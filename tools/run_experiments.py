@@ -36,6 +36,8 @@ def parse_args():
                         dest='unfreeze_roi_box_head_fcs',
                         help="Unfreeze single bbox head fc layers. Layers are identified by numbers starting at 1.")
     # Fine-Tuning settings
+    parser.add_argument('--double-head', action='store_true',
+                        help="use different predictor heads for base classes and novel classes")
     parser.add_argument('--shots', type=int, nargs='+', default=[1, 2, 3, 5, 10],
                         help='Shots to run experiments over')
     parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],
@@ -50,6 +52,9 @@ def parse_args():
                         help='Rerun surgery if the surgery checkpoint yet exists. '
                              'Normally not necessary, but can be used while debugging to trigger the surgery every run')
     # Misc
+    # TODO: Add resume argument:
+    #  resume==True: resume from last checkpoint (current default, no need for change)
+    #  resume==False: delete all checkpoints and start fresh training!
     parser.add_argument('--root', type=str, default='./', help='Root of data')
     parser.add_argument('--suffix', type=str, default='', help='Suffix of path')
     parser.add_argument('--ckpt-freq', type=int, default=10, # TODO: add an argument to enable or disable? (either fix amount of iterations or fix total amount of checkpoints)
@@ -82,10 +87,15 @@ def get_empty_ft_config():
                 'POST_NMS_TOPK_TEST': int
             },
             'ROI_HEADS': {
+                'NAME': str,
                 'NUM_CLASSES': int,
+                'MULTIHEAD_NUM_CLASSES': [int],
                 'SCORE_THRESH_TEST': float,
             },
             'ROI_BOX_HEAD': {
+                'NAME': str,
+                'NUM_HEADS': int,
+                'SPLIT_AT_FC': int,
                 'FREEZE_CONVS': [int],
                 'FREEZE_FCS': [int]
             },
@@ -199,17 +209,20 @@ def run_test(config_file, config):
         run_cmd(test_cmd)
 
 
-def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None):
+def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None, double_head=False):
     assert method in ['randinit', 'remove', 'combine'], 'Wrong method: {}'.format(method)
+    if double_head:
+        assert method == 'randinit', "Currently, double head is just supported together with 'combine' surgery!"
     src2_str = ''
+    double_head_str = ' --double-head' if double_head else ''
     if method == 'combine':
         assert src2 is not None, 'Need a second source for surgery method \'combine\'!'
         src2_str = '--src2 {}'.format(src2)
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
     command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {} {}'\
+              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {} {} {}'\
         .format(args.num_threads, comma_sep(args.gpu_ids), base_command,
-                dataset, class_split, method, src1, save_dir, src2_str)
+                dataset, class_split, method, src1, save_dir, src2_str, double_head_str)
     run_cmd(command)
 
 
@@ -429,7 +442,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     if not os.path.exists(surgery_ckpt) or rerun_surgery:
         # surgery model does not exist, so we have to do a surgery!
         run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
-                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir)
+                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir,
+                         double_head=args.double_head)
         assert os.path.exists(surgery_ckpt)
         print("Finished creating surgery checkpoint {}".format(surgery_ckpt))
     else:
@@ -471,11 +485,24 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000  # Per FPN level. TODO: per batch or image?
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1000  # TODO: per batch or image?
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
+    new_config['MODEL']['ROI_HEADS']['NAME'] = 'StandardROIHeads' if not args.double_head else 'StandardROIDoubleHeads'
+    num_base_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base'])
     num_novel_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['novel'])
-    num_all_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base']) + num_novel_classes
+    num_all_classes = num_base_classes + num_novel_classes
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
+    if args.double_head:
+        new_config['MODEL']['ROI_HEADS']['MULTIHEAD_NUM_CLASSES'] = str([num_base_classes, num_novel_classes])
+    else:
+        del new_config['MODEL']['ROI_HEADS']['MULTIHEAD_NUM_CLASSES']
     new_config['MODEL']['ROI_HEADS']['SCORE_THRESH_TEST'] = 0.05
+    new_config['MODEL']['ROI_BOX_HEAD']['NAME'] = 'FastRCNNConvFCHead' if not args.double_head else 'FastRCNNConvFCMultiHead'
+    if args.double_head:
+        new_config['MODEL']['ROI_BOX_HEAD']['NUM_HEADS'] = 2
+        new_config['MODEL']['ROI_BOX_HEAD']['SPLIT_AT_FC'] = 2
+    else:
+        del new_config['MODEL']['ROI_BOX_HEAD']['NUM_HEADS']
+        del new_config['MODEL']['ROI_BOX_HEAD']['SPLIT_AT_FC']
     all_convs = range(1, num_conv + 1)
     unfreeze_convs = all_convs if args.unfreeze else args.unfreeze_roi_box_head_convs
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_CONVS'] = str([i for i in all_convs if i not in unfreeze_convs])

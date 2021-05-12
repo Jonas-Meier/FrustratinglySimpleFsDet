@@ -1,9 +1,12 @@
 """Implement ROI_heads."""
+import copy
+
 import numpy as np
 import torch
 from torch import nn
 
 import logging
+from detectron2.data import MetadataCatalog
 from detectron2.layers import ShapeSpec
 from detectron2.modeling.backbone.resnet import BottleneckBlock, make_stage
 from detectron2.modeling.box_regression import Box2BoxTransform
@@ -14,7 +17,7 @@ from detectron2.modeling.sampling import subsample_labels
 from detectron2.structures import Boxes, Instances, pairwise_iou
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.registry import Registry
-from typing import Dict
+from typing import Dict, List
 
 from .box_head import build_box_head
 from .fast_rcnn import ROI_HEADS_OUTPUT_REGISTRY, FastRCNNOutputLayers, FastRCNNOutputs
@@ -491,3 +494,308 @@ class StandardROIHeads(ROIHeads):
                 self.test_detections_per_img,
             )
             return pred_instances
+
+
+@ROI_HEADS_REGISTRY.register()
+class StandardROIMultiHeads(StandardROIHeads):
+    """
+    Same as StandardROIHeads but allows for using multiple heads (e.g. different heads for base classes and novel
+    classes)
+    """
+    def __init__(self, cfg, input_shape):
+        super(StandardROIMultiHeads, self).__init__(cfg, input_shape)
+
+    def _init_box_head(self, cfg):
+        # fmt: off
+        self.cpu_device = torch.device("cpu")
+        self.device = torch.device(cfg.MODEL.DEVICE)
+        pooler_resolution     = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
+        pooler_scales         = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
+        sampling_ratio        = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type           = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        self.num_head_classes = cfg.MODEL.ROI_HEADS.MULTIHEAD_NUM_CLASSES  # classes per head
+        self.num_heads        = cfg.MODEL.ROI_BOX_HEAD.NUM_HEADS
+        # Dataset names because we need the appropriate metadata to obtain the correct class indices for each head!
+        self.train_dataset_name = cfg.DATASETS.TRAIN[0]
+        self.test_dataset_name = cfg.DATASETS.TEST[0]
+        # fmt: on
+
+        assert self.num_classes == sum(self.num_head_classes)
+        # If StandardROIHeads is applied on multiple feature maps (as in FPN),
+        # then we share the same predictors and therefore the channel counts must be the same
+        in_channels = [self.feature_channels[f] for f in self.in_features]
+        # Check all channel counts are equal
+        assert len(set(in_channels)) == 1, in_channels
+        in_channels = in_channels[0]
+
+        self.box_pooler = ROIPooler(
+            output_size=pooler_resolution,
+            scales=pooler_scales,
+            sampling_ratio=sampling_ratio,
+            pooler_type=pooler_type,
+        )
+        # Here we split "box head" and "box predictor", which is mainly due to historical reasons.
+        # They are used together so the "box predictor" layers should be part of the "box head".
+        # New subclasses of ROIHeads do not need "box predictor"s.
+        self.box_head = build_box_head(  # TODO: probably force 'FastRCNNConvFCMultiHead'?
+            cfg,
+            ShapeSpec(
+                channels=in_channels,
+                height=pooler_resolution,
+                width=pooler_resolution,
+            ),
+        )
+        output_layer = cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
+
+        self.box_predictors = []
+        bbox_head_output_size = self.box_head.output_size
+        if self.num_heads > 1:
+            bbox_head_output_size //= self.num_heads
+        for i in range(self.num_heads):
+            box_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(output_layer)(
+                    cfg,
+                    bbox_head_output_size,
+                    self.num_head_classes[i],
+                    self.cls_agnostic_bbox_reg,
+            )
+            self.add_module("box_predictor{}".format(i+1), box_predictor)
+            self.box_predictors.append(box_predictor)
+
+    def _get_ind_mappings(self) -> List[Dict]:
+        # Target indices range from 0 to 'cfg.MODEL.ROI_HEADS.NUM_CLASSES', but we here need, for each head i:
+        #  a mapping from old index to range 0 to 'cfg.MODEL.ROI_HEADS.MULTIHEAD_NUM_CLASSES[i]'
+        # Expected output: List(dict(int:int)), the list is expected to have one dict per head. Each dict is expected to
+        #  map the large index of a class (from the single head) to the index used on this small head
+        # Note: don't forget (for each head!) to map the background class (last index, not index 0!) to the last index
+        # of this head's classes! (use self.num_head_classes[i] to access the amount of classes for head i)
+        raise NotImplementedError
+
+    def _forward_box(self, features, proposals):
+        """
+        Forward logic of the box prediction branch.
+        Args:
+            features (list[Tensor]): #level input features for box prediction
+            proposals (list[Instances]): the per-image object proposals with
+                their matching ground truth.
+                Each has fields "proposal_boxes", and "objectness_logits",
+                "gt_classes", "gt_boxes".
+        Returns:
+            In training, a dict of losses.
+            In inference, a list of `Instances`, the predicted instances.
+        """
+        # pooled features, result size is (e.g. [512, 256, 7, 7])
+        # [MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE,
+        # MODEL.FPN.OUT_CHANNELS?,
+        # MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION,
+        # MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION]
+        box_features = self.box_pooler(
+            features, [x.proposal_boxes for x in proposals]
+        )
+        # class-agnostic per-roi feature vectors, same size for each head
+        # result is a list with '#heads' elements each of size
+        #  [ROI_HEADS.BATCH_SIZE_PER_IMAGE * SOLVER.IMS_PER_BATCH, MODEL.ROI_BOX_HEAD.FC_DIM], e.g. [8192, 1024]
+        box_features = self.box_head(box_features)
+        assert len(box_features) == len(self.box_predictors) == self.num_heads, \
+            "box_features output should match the amount of box predictors: {}, {}"\
+            .format(len(box_features), len(self.box_predictors))
+
+        # class-dependent logits and bbox deltas
+        class_logits, proposal_deltas = [], []
+        for i, box_predictor in enumerate(self.box_predictors):
+            # pred_class_logits = [ROI_HEADS.BATCH_SIZE_PER_IMAGE * SOLVER.IMS_PER_BATCH, num_classes + 1]
+            # pred_proposal_deltas =
+            #  class-agnostic:  [ROI_HEADS.BATCH_SIZE_PER_IMAGE * SOLVER.IMS_PER_BATCH, 4]
+            #  non cag:         [ROI_HEADS.BATCH_SIZE_PER_IMAGE * SOLVER.IMS_PER_BATCH, 4 x num_classes] Note: not num_classes + 1!
+            pred_class_logits, pred_proposal_deltas = box_predictor(box_features[i])
+
+            class_logits.append(pred_class_logits)
+            proposal_deltas.append(pred_proposal_deltas)
+        del box_features
+
+        # Assumptions:
+        # - 'box_features'-output from box_head is class-agnostic (ans same-sized for each head!), we can't do anything
+        #    there!
+        # - we use those features to obtain class-dependent activations (correct amount of target size is ensured by
+        #    each 'predictor head'!
+        # - for softmax calculation, we have to compare those activations against targets, which we obtain from
+        #    the variable 'proposals', which contains objectness score (from RPN) and gt-class (and gt-boxes)
+        # - those gt-data from the variable 'proposals' uses all available classes (and thus indices from
+        #    0 to num_classes), we then need to transform those indices to appropriate indices for each head (and need
+        #    to remember which number we mapped to which number at which head because each single head expects numbers
+        #    or indices starting by 0, so our mapping destroys the unique numbers!
+        # - we now have multiple possibilities what to do with our proposals: first of all, we decide to merge classes
+        #    after softmax and to not merge the activations before the softmax. This would allow to skip the
+        #    index-mapping but would also cause another problem: since each head produces background logits ans the
+        #    final head, applying softmax on activations of all classes together just expects a single background class,
+        #    so which of the background activations to choose and which to discard? This is a non-trivial problem and
+        #    because of that, we choose to first apply softmax to each head and then merging the resulting class
+        #    probabilities. We now assume wlog (without loss of generality) that we have batch-size 16 and using
+        #    512 rois per batch yielding 8192 rois per batch (after roi pooling)
+        #    - we could now take the Proposals and split them, depending on the target classes. In addition to this
+        #      technique, we would probably want to use the background class activations for each head. If we think this
+        #      idea a while further, we note that splitting of proposals into different heads does not make sense.
+        #      We first note that each head i itself produces [8192, num_classes[i] + 1] classification logits because
+        #      each head obtains 8192 rois as input (because the classification head splits after roi pooling, therefore
+        #      each head encounters the same amount of input). For that matter, we either have to remove objects
+        #      belonging to non-target classes at both sides, at feature side (class and box logits from the predictor)
+        #      and at proposal-side (proposals from the RPN where GT-class is known), while keeping background class
+        #      logits at EACH head.
+        #    - another, and possibly more sophisticated, yet more simple, approach would be to use all proposals for
+        #      each head with a little need in modification: at each head, change the target-class (gt-class) of the
+        #      proposals for non-target classes of this head (not counting background class!) to 0. This means,
+        #      non-target classes equal the background class.
+        #      (Note: at Detectron2, the Background class is not the class with first index (0), but the class with
+        #      last index (|num_classes|)!)
+        #      Note: For training, we don't have to transform the indices back to the original indices because we're
+        #      just interested in the loss which is automatically calculated correctly since the produced logits are
+        #      yet in the correct shape and the adjusted class indices are automatically transferred into one-hot
+        #      vectors for the classification loss (e.g. Cross Entropy). Therefore, we do not need back-transformation
+        #      because we're done after calculating the loss.
+        # - Inference: In contrast to training, we (of course) have not gt-annotations, therefore we cannot prepare or
+        #   adjust the class of proposals. We don't even have to because we don't want to calculate losses. In contrast
+        #   to the training however, we now need postprocessing of predicted classes after having calculated softmax
+        #   probabilities because we need to know which class belongs to the highest probability for each proposal.
+        #   In contrast to single-heads, we now have #heads predictions for each proposal because we input ALL
+        #   proposals to each head. This could be problematic if we think of a case where for a single proposal one
+        #   head produces a medium high confidence for an actual class (not background) and another head outputs high
+        #   background confidence for that proposal (because it learned the target classes from different head as
+        #   background class for itself). Probably this problem isn't an actual issue because the "Fast-RCNN"-Head
+        #   won't output bbox predictions for Background class which would leave us with just a single valid prediction
+        #   for that proposal (with medium confidence).
+
+        # Proposals: contains 'SOLVER.IMS_PER_BATCH' elements of type detectron2.structures.Instances
+        #   Access elements of list 'proposals' with indices.
+        #   Access the elements of 'Instances' with '.get_fields()', or directly with '.tensor'
+        #   Access the tensor (which 'Boxes' wraps) with boxes.tensor
+        #     Note: Boxes supports __getitem__ using slices, indices, boolean arrays, etc.)
+        #   Each Instance contains following fields of following sizes:
+        #     'proposal_boxes': detectron2.structures.Boxes(tensor) of size [MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE, 4]
+        #     'objectness_logits': tensor of size [MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE]
+        #     'gt_classes': tensor of size [MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE]
+        #     'gt_boxes': detectron2.structures.Boxes(tensor) of size [MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE, 4]
+        # 'Proposals': (objectness logits + gt classes)
+        # 'box_features': (pooled roi feature put forward though the net)
+
+        # Algorithm:
+        # (Synopsis: we use ALL proposals for each head and just need to set non-target classes to 0 (==Background))
+        # 1. For Training, for each head i
+        heads_proposals = []
+        if self.training:
+            all_inds_to_head_inds_list = self._get_ind_mappings()
+            # 1.1 For each head i
+            for i in range(len(self.box_predictors)):
+                # 1.1.1 Take a copy of all Proposals, take the target categories of head i
+                # list of #ROI_HEADS.BATCH_SIZE_PER_IMAGE Proposal-objects, each comprising
+                # ROI_HEADS.BATCH_SIZE_PER_IMAGE proposals
+                tmp_proposals = copy.deepcopy(proposals)
+                all_inds_to_head_inds = all_inds_to_head_inds_list[i]
+                all_bg_cls = self.num_classes
+                head_bg_cls = self.num_head_classes[i]
+                assert all_bg_cls in all_inds_to_head_inds and all_inds_to_head_inds[all_bg_cls] == head_bg_cls
+                head_targets = list(all_inds_to_head_inds.keys())
+                # Note: as of 'fast_rcnn'-doc, [0, num_cls) are foreground and |num_cls| is background!
+                for instances in tmp_proposals:
+                    gt_classes = instances.gt_classes  # ==instances.get_fields()['gt_classes']
+                    # 1.1.2 Set the class of the j-th proposal to background class if its not a target class
+                    # TODO: not sure about copying the tensor to host memory but torch currently does not support
+                    #  the 'isin' function on its own...
+                    bg_indices = np.isin(gt_classes.to(self.cpu_device), head_targets, invert=True).nonzero()
+                    # using "all classes" background class, which is later transformed to appropriate background
+                    #  class for this head
+                    gt_classes[bg_indices] = all_bg_cls
+                    # 1.1.3 If proposal j is a proposal for a target class, transform its class to range
+                    # [0, num_classes[i]]
+                    # Note: apply_ may only be used for cpu-tensors!, so we have move it to cpu temporarily
+                    # TODO: 'apply_' might be slow since it's not easily parallelisable
+                    gt_classes = gt_classes.to(self.cpu_device)  # move to CPU temporarily
+                    gt_classes.apply_(lambda x: all_inds_to_head_inds[x])  # apply_ works inplace!
+                    instances.gt_classes = gt_classes.to(self.device)  # move back to GPU and override object attribute
+                heads_proposals.append(tmp_proposals)
+        else:
+            # 2.1 Pass all proposals to all heads
+            for i in range(len(self.box_predictors)):
+                heads_proposals.append(copy.deepcopy(proposals))
+
+        # Initialize 'FastRCNNOutputs'-object, nothing more!
+        heads_outputs = []
+        for i in range(len(self.box_predictors)):
+            heads_outputs.append(
+                FastRCNNOutputs(
+                    self.box2box_transform,
+                    class_logits[i],
+                    proposal_deltas[i],
+                    heads_proposals[i],
+                    self.smooth_l1_beta,
+                )
+            )
+
+        if self.training:
+            # calculate losses e.g.
+            #  'softmax cross entropy' on pred_class_logits ("loss_cls": self.softmax_cross_entropy_loss())
+            #  'smooth L1 loss' on pred_proposal_deltas ("loss_box_reg": self.smooth_l1_loss())
+            # Note: we don't need to transform any classes back to previous range because we're just interested in the
+            #  loss. The gt-class (index in range of each head's target classes) will be automatically transformed to a
+            #  one-hot vector which is sufficient to calculate the loss at each output neuron for each target class.
+            #  We would just need to transform the categories back of we were interested in the name of each detection's
+            #  class (as we are for inference).
+            losses_dicts = {}
+            for i, outputs in enumerate(heads_outputs):
+                losses_dict = outputs.losses()
+                for k, v in losses_dict.items():
+                    losses_dicts[str(k) + "_" + str(i+1)] = v
+                del losses_dict
+            return losses_dicts
+        else:
+            pred_instances = []
+            all_inds_to_head_inds_list = self._get_ind_mappings()
+            for i, outputs in enumerate(heads_outputs):
+                tmp_pred_instances, _ = outputs.inference(
+                    self.test_score_thresh,
+                    self.test_nms_thresh,
+                    self.test_detections_per_img,  # TODO: problem in multi-head: detections_per_image_per_head?
+                )
+                # 2.2 After softmax, transform class of proposals back to range [0, all_classes]
+                all_inds_to_head_inds = all_inds_to_head_inds_list[i]
+                head_ind_to_ind = {v: k for k, v in all_inds_to_head_inds.items()}
+                for img_pred_instances in tmp_pred_instances:
+                    for instances in img_pred_instances:
+                        # slow but ok for inference.
+                        # python does not offer a simple inplace element-wise mapping function!
+                        instances.pred_classes = list(map(lambda x: head_ind_to_ind[x], instances.pred_classes))
+
+                pred_instances.extend(tmp_pred_instances)
+            return pred_instances
+
+
+@ROI_HEADS_REGISTRY.register()
+class StandardROIDoubleHeads(StandardROIMultiHeads):
+    """
+    Same as StandardROIMultiHeads but using exactly two heads (for base classes and novel classes)
+    """
+    def __init__(self, cfg, input_shape):
+        super(StandardROIDoubleHeads, self).__init__(cfg, input_shape)
+        assert self.num_heads == 2, "To use Double-Head set num_heads to 2!"
+        assert self.box_head.split_at_fc == 2, \
+            "Current ckpt_surgery requires a fixed amount of fc layers as well as a firm split index of 2!"
+
+    def _get_ind_mappings(self):
+        dataset = self.train_dataset_name if self.training else self.test_dataset_name  # classes should normally be the same...
+        metadata = MetadataCatalog.get(dataset)
+        # For now, we use this kind of head solely for fine-tuning
+        assert hasattr(metadata, 'novel_dataset_id_to_contiguous_id')
+        assert hasattr(metadata, 'base_dataset_id_to_contiguous_id')
+        all_id_to_inds = metadata.thing_dataset_id_to_contiguous_id
+        base_id_to_inds = metadata.base_dataset_id_to_contiguous_id
+        novel_id_to_inds = metadata.novel_dataset_id_to_contiguous_id
+        all_inds_to_base_inds = {v: base_id_to_inds[k] for k, v in all_id_to_inds.items() if k in base_id_to_inds.keys()}
+        all_inds_to_novel_inds = {v: novel_id_to_inds[k] for k, v in all_id_to_inds.items() if k in novel_id_to_inds.keys()}
+        # For each head, add a mapping from old background class index to each head's background class index
+        all_bg_ind = len(all_id_to_inds)
+        base_bg_ind = len(base_id_to_inds)
+        novel_bg_ind = len(novel_id_to_inds)
+        assert all_bg_ind not in all_id_to_inds.values()
+        assert base_bg_ind not in base_id_to_inds.values()
+        assert novel_bg_ind not in novel_id_to_inds.values()
+        all_inds_to_base_inds[all_bg_ind] = base_bg_ind
+        all_inds_to_novel_inds[all_bg_ind] = novel_bg_ind
+        return [all_inds_to_base_inds, all_inds_to_novel_inds]
