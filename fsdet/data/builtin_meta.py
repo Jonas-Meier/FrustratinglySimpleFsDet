@@ -1,4 +1,4 @@
-from class_splits import CLASS_SPLITS, ALL_CLASSES, get_ids_from_names
+from class_splits import CLASS_SPLITS, ALL_CLASSES, get_ids_from_names, get_names_from_ids
 
 # All coco categories, together with their nice-looking visualization colors
 # It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
@@ -389,11 +389,13 @@ def _get_cocolike_instances_meta(dataset):
     thing_colors = [[255, 255, 0] for _ in thing_ids]
     # assert len(thing_ids) == 80, len(thing_ids)
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    thing_classes = ALL_CLASSES[dataset]
+    # ALL_CLASSES[dataset] should already been in the correct order but we call the method explicitly for consistency
+    thing_classes = get_names_from_ids(dataset, thing_ids)
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,
         "thing_colors": thing_colors,
+        "dataset": dataset,
     }
     return ret
 
@@ -402,12 +404,12 @@ def _get_cocolike_fewshot_instances_meta(dataset, class_split):
     ret = _get_cocolike_instances_meta(dataset)
     novel_categories = CLASS_SPLITS[dataset][class_split]['novel']
     novel_ids = sorted(get_ids_from_names(dataset, novel_categories))
-    novel_classes = list(novel_categories)
+    novel_classes = get_names_from_ids(dataset, novel_ids)  # to ensure class name order matches id order
     novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
     base_categories = list(CLASS_SPLITS[dataset][class_split]['base'])
     base_ids = sorted(get_ids_from_names(dataset, base_categories))
     base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
-    base_classes = base_categories
+    base_classes = get_names_from_ids(dataset, base_ids)  # to ensure class name order matches id order
     ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
     ret["novel_classes"] = novel_classes
     ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
