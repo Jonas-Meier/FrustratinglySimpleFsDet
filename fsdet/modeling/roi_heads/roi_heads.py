@@ -714,7 +714,7 @@ class StandardROIMultiHeads(StandardROIHeads):
         else:
             # 2.1 Pass all proposals to all heads
             for i in range(len(self.box_predictors)):
-                heads_proposals.append(copy.deepcopy(proposals))
+                heads_proposals.append(proposals)
 
         # Initialize 'FastRCNNOutputs'-object, nothing more!
         heads_outputs = []
@@ -757,15 +757,21 @@ class StandardROIMultiHeads(StandardROIHeads):
                 # 2.2 After softmax, transform class of proposals back to range [0, all_classes]
                 all_inds_to_head_inds = all_inds_to_head_inds_list[i]
                 head_ind_to_ind = {v: k for k, v in all_inds_to_head_inds.items()}
-                # 'tmp_pred_instances' is a list of 'Instances'-objects
+                # 'tmp_pred_instances' is a list of 'Instances'-objects, one object for each image
                 for instances in tmp_pred_instances:
+                    # Note: at inference, this method is called once for each image, thus, |proposals| == 1
+                    #  probably it is problematic to add one 'Instances'-object per head since the returned list has
+                    #  twice the size as expected, probably, the remaining objects in the list are ignored!
                     # slow but ok for inference.
                     pred_classes = instances.pred_classes.to(self.cpu_device)  # move to cpu because of method 'apply_'
                     pred_classes.apply_(lambda x: head_ind_to_ind[x])  # element-wise inplace transformation
                     instances.pred_classes = pred_classes.to(self.device)  # move back to gpu and set object attribute
-
-                pred_instances.extend(tmp_pred_instances)
-            return pred_instances
+                pred_instances.append(tmp_pred_instances)
+            # num images == len(proposals), where 'proposals' is the same in the list 'heads_proposals'
+            # pred_instances = [num_heads, num_images], but we need [num images]
+            #  [num_heads, num_images] -> [num_images, num_heads], then concatenate all 'Instances'-objects for a single
+            #  image
+            return [Instances.cat(list(x)) for x in zip(*pred_instances)]
 
 
 @ROI_HEADS_REGISTRY.register()
@@ -781,6 +787,7 @@ class StandardROIDoubleHeads(StandardROIMultiHeads):
 
     def _get_ind_mappings(self):
         dataset = self.train_dataset_name if self.training else self.test_dataset_name  # classes should normally be the same...
+        dataset = 'isaid_experiment2_train_all_10shot_seed1'
         metadata = MetadataCatalog.get(dataset)
         # For now, we use this kind of head solely for fine-tuning
         assert hasattr(metadata, 'novel_dataset_id_to_contiguous_id')
@@ -799,4 +806,8 @@ class StandardROIDoubleHeads(StandardROIMultiHeads):
         assert novel_bg_ind not in novel_id_to_inds.values()
         all_inds_to_base_inds[all_bg_ind] = base_bg_ind
         all_inds_to_novel_inds[all_bg_ind] = novel_bg_ind
+        print("all inds to base inds mapping: {}".format(all_inds_to_base_inds))
+        print("all inds to novel inds mapping: {}".format(all_inds_to_novel_inds))
+        print("all ids to inds: {}".format(all_id_to_inds))
+        exit(1)
         return [all_inds_to_base_inds, all_inds_to_novel_inds]
