@@ -757,11 +757,13 @@ class StandardROIMultiHeads(StandardROIHeads):
                 # 2.2 After softmax, transform class of proposals back to range [0, all_classes]
                 all_inds_to_head_inds = all_inds_to_head_inds_list[i]
                 head_ind_to_ind = {v: k for k, v in all_inds_to_head_inds.items()}
-                for img_pred_instances in tmp_pred_instances:
-                    for instances in img_pred_instances:
-                        # slow but ok for inference.
-                        # python does not offer a simple inplace element-wise mapping function!
-                        instances.pred_classes = list(map(lambda x: head_ind_to_ind[x], instances.pred_classes))
+                # 'tmp_pred_instances' is a list of 'Instances'-objects
+                for instances in tmp_pred_instances:
+                    # slow but ok for inference.
+                    # python does not offer a simple inplace element-wise mapping function!
+                    pred_classes = instances.pred_classes.to(self.cpu_device)  # move to cpu because of method 'apply_'
+                    pred_classes.apply_(lambda x: head_ind_to_ind[x])  # element-wise inplace transformation
+                    instances.pred_classes = pred_classes.to(self.device)  # move back to gpu and set object attribute
 
                 pred_instances.extend(tmp_pred_instances)
             return pred_instances
