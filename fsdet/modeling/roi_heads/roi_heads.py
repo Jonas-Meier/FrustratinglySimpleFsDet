@@ -760,7 +760,6 @@ class StandardROIMultiHeads(StandardROIHeads):
                 # 'tmp_pred_instances' is a list of 'Instances'-objects
                 for instances in tmp_pred_instances:
                     # slow but ok for inference.
-                    # python does not offer a simple inplace element-wise mapping function!
                     pred_classes = instances.pred_classes.to(self.cpu_device)  # move to cpu because of method 'apply_'
                     pred_classes.apply_(lambda x: head_ind_to_ind[x])  # element-wise inplace transformation
                     instances.pred_classes = pred_classes.to(self.device)  # move back to gpu and set object attribute
