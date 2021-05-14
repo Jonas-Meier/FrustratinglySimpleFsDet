@@ -23,6 +23,7 @@ def main():
     unfreeze_backbone = False
     unfreeze_proposal_generator = False
     #unfreeze_roi_head = False
+    # Note: separate conv and fc unfreezing is disabled for double_head!
     unfreeze_roi_box_head_convs = []  # []: we have no box head conv layers!
     unfreeze_roi_box_head_fcs = []  # [2]: unfreeze the second of both fc layers (1024x1024)
     # Override existing config, force re-creation of surgery checkpoint
