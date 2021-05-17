@@ -138,12 +138,28 @@ Following arguments are supported:
 * --dataset: dataset to be used (e.g. `coco` or `isaid`)
 * --class-split: the class split used. Has to be a existant key in the dictionary CLASS_SPLIT[dataset] of the file class_splits.py
 * --gpu-ids: gpu ids to run the base-training on. Accepts multiple gpu ids, sets the internally used --num-gpus argument and the CUDA_VISIBLE_DEVICES environment variable appropriately
+* --layers: ResNet backbone layers
 * --bs: total batch size, not per gpu! (default: `16`)
 * --lr: larning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on batch size
 * --override-config: force overriding of already existant configs
 * --num-threads: limit amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
 
 ### Fine-Tuning
+Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting of fine-tunings. The most important arguments are:
+* --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs and --override-config work the same way as for the base-training
+* --classfier: use regular `fc` or `cosine` classifier 
+* --tfa: use two-stage fine-tuning approach (Trains a net on only novel classes to obtain novel class initialization for regular fine-tuning), turned off by default. When turned off, this equals the `randinit` surgery type.
+* --unfreeze: unfreeze the whole net (backbone + proposal generator + roi head convs + roi head fcs)
+* Unfreeze certain parts of the net:
+  * --unfreeze-backbone: unfreeze backbone
+  * --unfreeze-proposal-generator: unfreeze proposal generator (e.g. RPN)
+  * --unfreeze-roi-box-head-convs: unfreeze certain ROI-Box-Head conv layers (if any). Set indices starting by 1.
+  * --unfreeze-roi-box-head-fcs: unfreeze certain ROI-Box-Head fc layers (if any). Set indices starting by 1.
+* --double-head: experimental setting with separate heads for base classes and novel classes. Requires the usage of exact two FC layers in the ROI Box Head and requires the heads to be split at index 2 (config ROI_BOX_HEAD.SPLIT_AT_FC)
+* --shots: shot parameter(s)
+* --seeds: seed(s) representing different data groups
+* --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
+* --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 
 
 
