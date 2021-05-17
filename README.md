@@ -119,7 +119,6 @@ In general, it's recommended to preprocess the dataset annotations to be in the 
     3. In `tools/run_experiments.py`: probably need to adjust config patterns and folder structures for configs and checkpoints as well.
 
 ## Training
-
 Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every training you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
 
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
@@ -145,7 +144,7 @@ Following arguments are supported:
 * --num-threads: limit amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
 
 ### Fine-Tuning
-Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting of fine-tunings. The most important arguments are:
+Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting fine-tunings. The most important arguments are:
 * --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs and --override-config work the same way as for the base-training
 * --classfier: use regular `fc` or `cosine` classifier 
 * --tfa: use two-stage fine-tuning approach (Trains a net on only novel classes to obtain novel class initialization for regular fine-tuning), turned off by default. When turned off, this equals the `randinit` surgery type.
@@ -161,41 +160,19 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
 * --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 
-
-
-[//]: # (Old documentation below this comment! TODO: adjust an remove unnecessary parts!)
-
-
-### Training & Evaluation in Command Line
-
-To train a model, run
-```angular2html
-python3 -m tools.train_net --num-gpus 8 \
-        --config-file configs/PascalVOC-detection/split1/faster_rcnn_R_101_FPN_base1.yaml
+## Inference
+Inference can either be run directly in the command line via:
+```bash
+python3 -m tools.test_net --num-gpus 8 --config-file configs/<path-to-config>/<config>.yaml --eval-only
 ```
+or by using the corresponding wrapper `wrapper_inference.py` for easy parametrization.
 
-To evaluate the trained models, run
-```angular2html
-python3 -m tools.test_net --num-gpus 8 \
-        --config-file configs/PascalVOC-detection/split1/faster_rcnn_R_101_FPN_ft_all1_1shot.yaml \
-        --eval-only
-```
+Note: 
+* --eval-only evaluates just the last checkpoint. Add --eval-iter to evaluate a certain checkpoint iteration. Use --eval-all to evaluate all saved checkpoints.
+* --opts can be used to override some test-specific configs without having to modify the config file directly
 
-### Multiple Runs
 
-For ease of training and evaluation over multiple runs, we provided several helpful scripts in `tools/`.
-
-You can use `tools/run_experiments.py` to do the training and evaluation. For example, to experiment on 30 seeds of the first split of PascalVOC on all shots, run
-```angular2html
-python3 -m tools.run_experiments --num-gpus 8 \
-        --shots 1 2 3 5 10 --seeds 0 30 --split 1
-```
-
-After training and evaluation, you can use `tools/aggregate_seeds.py` to aggregate the results over all the seeds to obtain one set of numbers. To aggregate the 3-shot results of the above command, run
-```angular2html
-python3 -m tools.aggregate_seeds --shots 3 --seeds 30 --split 1 \
-        --print --plot
-```
+[//]: # (What to do with tools.aggregate_seeds ?)
 
 ## Legacy Notes
 We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes.
