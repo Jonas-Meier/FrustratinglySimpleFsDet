@@ -787,7 +787,6 @@ class StandardROIDoubleHeads(StandardROIMultiHeads):
 
     def _get_ind_mappings(self):
         dataset = self.train_dataset_name if self.training else self.test_dataset_name  # classes should normally be the same...
-        dataset = 'isaid_experiment2_train_all_10shot_seed1'
         metadata = MetadataCatalog.get(dataset)
         # For now, we use this kind of head solely for fine-tuning
         assert hasattr(metadata, 'novel_dataset_id_to_contiguous_id')
@@ -806,8 +805,4 @@ class StandardROIDoubleHeads(StandardROIMultiHeads):
         assert novel_bg_ind not in novel_id_to_inds.values()
         all_inds_to_base_inds[all_bg_ind] = base_bg_ind
         all_inds_to_novel_inds[all_bg_ind] = novel_bg_ind
-        print("all inds to base inds mapping: {}".format(all_inds_to_base_inds))
-        print("all inds to novel inds mapping: {}".format(all_inds_to_novel_inds))
-        print("all ids to inds: {}".format(all_id_to_inds))
-        exit(1)
         return [all_inds_to_base_inds, all_inds_to_novel_inds]
