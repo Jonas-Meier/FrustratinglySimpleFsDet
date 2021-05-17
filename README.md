@@ -120,12 +120,31 @@ In general, it's recommended to preprocess the dataset annotations to be in the 
 
 ## Training
 
-Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every trainng you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
+Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every training you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
 
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
 
+Note: The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new trainign is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both script can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+
 ### Pre-trained Models
 Benchmark results and pretrained models are available [here](docs/MODEL_ZOO.md). More models and configs are available [here](fsdet/model_zoo/model_zoo.py)
+
+### Base-Training
+Since we do not use pre-defined configs and calculate fresh configs for each new training, it's best to run base trainings with the script `tools/run_base_training.py` (or easily parametrized with the corresponding wrapper `wrapper_base_training.py`):
+```bash
+python3 -m tools.run_base_training --dataset isaid --class-split vehicle_nonvehicle --gpu-ids 0 1 2 3 --layers 50 --bs 16 --lr 0.02
+```
+Following arguments are supported:
+* --dataset: dataset to be used (e.g. `coco` or `isaid`)
+* --class-split: the class split used. Has to be a existant key in the dictionary CLASS_SPLIT[dataset] of the file class_splits.py
+* --gpu-ids: gpu ids to run the base-training on. Accepts multiple gpu ids, sets the internally used --num-gpus argument and the CUDA_VISIBLE_DEVICES environment variable appropriately
+* --bs: total batch size, not per gpu! (default: `16`)
+* --lr: larning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on batch size
+* --override-config: force overriding of already existant configs
+* --num-threads: limit amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
+
+### Fine-Tuning
+
 
 
 [//]: # (Old documentation below this comment! TODO: adjust an remove unnecessary parts!)
