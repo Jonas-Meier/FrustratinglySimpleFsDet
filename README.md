@@ -50,6 +50,7 @@ python3 -m pip install -r requirements.txt
   - **test_net.py**: Testing script.
   - **ckpt_surgery.py**: Surgery on checkpoints.
   - **run_experiments.py**: Running experiments across many seeds.
+  - **run_base_training.py**: Same as 'run_experiments.py' but for base trainings.
   - **aggregate_seeds.py**: Aggregating results from many seeds.
 
 
@@ -69,7 +70,7 @@ Create symlinks of your COCO data to the `datasets` directory of the repository 
 See [here](datasets/README.md#base-datasets) for more information on base datasets.
 
 ### Few-Shot Dataset
-We use COCO 2014 and extract 5k images from the val set for evaluation and use the rest for training. We use the 20 object classes that are the same with PASCAL VOC as novel classes and use the rest as base classes.
+We use COCO 2014 and extract 5k images from the val set for evaluation and use the rest for training.
 
 Create a directory `cocosplit` inside the `datasets` directory of the repository. Its expected structure is:
 ```
@@ -100,7 +101,22 @@ Following arguments are accepted by `prepare_coco_few_shot.py`:
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
 ## Custom Dataset
-/TODO/
+In general, it's recommended to preprocess the dataset annotations to be in the same format as the MS-COCO dataset, since those restrictions allow for re-using existant code fragments. For that reason, we further assume that the dataset is already in a coco-like format.
+1. For the new dataset, add entries to following config dictionaries of `fsdet/config/defaults.py`: `DATA_DIR`, `DATA_SAVE_PATH_PATTERN`, `CONFIG_DIR_PATTERN`, `CONFIG_CKPT_DIR_PATTERN`, `TRAIN_SPLIT`, `TEST_SPLIT`, `TRAIN_IMG_DIR`, `TEST_IMG_DIR`, `TRAIN_ANNOS` and `TEST_ANNOS`
+2. For dataset preparation, at `datasets/prepare_coco_few_shot.py`, for the new dataset:
+    1. Add a case to the method `get_data_path`
+    2. Add an entry to the choices of the `--dataset` argument
+3. For setting correct Meta Datasets and mappings to annotations:
+    1. In `fsdet/data/builtin_meta.py` adjust the method `_get_builtin_metadata` to add cases for `\<DATASET\>` and `\<DATASET\>_fewshot` with the approprite call of `_get_cocolike_instances_meta` and `_get_cocolike_fewshot_instances_meta`, respectively
+    2. In `fsdet/data/builtin.py`, add a new register method and call that method at the bottom of the file
+    3. In `fsdet/data/__init__.py`, import the newly created register method
+4. In the surgery (`tools/ckpt_surgery.py`):
+    1. Add a new case to the main entry point and set the following variables: `NOVEL_CLASSES`, `BASE_CLASSES`, `IDMAP` and `TAR_SIZE`
+    2. Add the dataset to the choices of the `--dataset` argument
+5. For Training and Testing
+    1. In `tools/test_net.py` and `tools/train_net.py`: add a case for the evaluator_type
+    2. In `tools/run_base_training.py`: add the dataset to choices of `--dataset` argument, add dataset-specific constants in a case at the beginning of the `get_config` method, probably adjust base training config pattern and folder structures for configs and checkpoints
+    3. In `tools/run_experiments.py`: probably need to adjust config patterns and folder structures for configs and checkpoints as well.
 
 ## Training
 
