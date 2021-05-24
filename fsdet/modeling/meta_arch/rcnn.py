@@ -93,7 +93,7 @@ class GeneralizedRCNN(nn.Module):
                 if (k == 'cls_score') or (k == 'bbox_pred'):
                     for p in v.parameters():
                         p.requires_grad = False
-                    print("Froze parameters of roi_box_predictor {} module".format(k))
+                    print("Froze parameters of roi_box_predictor_1 {} module".format(k))
         else:
             # Freeze ROI BBOX Head Parameters
             name_to_module = {k: v for k, v in self.roi_heads.box_head.named_modules()}
