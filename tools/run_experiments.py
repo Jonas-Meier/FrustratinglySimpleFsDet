@@ -328,9 +328,9 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {}  # no values yet set, need to examine the behaviour of novel fine-tuning on iSAID dataset first
         ALL_ITERS = {  # for now, we just support 10, 50 and 100 shot!
-            10: (200000, (1000000,), 10000),
-            50: (200000, (1000000,), 10000),
-            100: (200000, (1000000,), 10000)
+            10: (100000, (85000,), 10000),
+            50: (100000, (85000,), 10000),
+            100: (100000, (85000,), 10000)
         }
     elif args.dataset == 'voc':
         # PASCAL VOC
