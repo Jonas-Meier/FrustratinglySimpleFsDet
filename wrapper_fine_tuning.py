@@ -6,7 +6,7 @@ def main():
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
     gpu_ids = [0]
-    num_threads = 4  # four threads seem to be a bit faster than just one
+    num_threads = 2  # two threads seem to be a bit faster than just one, but four threads are as fast as two threads!
     bs = 16
     lr = 0.001  # 0.001 for bs=16. Set to -1 for automatic linear scaling!
     shots = [10]
