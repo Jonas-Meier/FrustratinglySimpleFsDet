@@ -63,12 +63,11 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     override_surgery_str = ' --override-surgery' if override_surgery else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {} " \
           "--gpu-ids {} --num-threads {} --layers {} --bs {} --lr {} --classifier {}{}{}{}{}"\
-        .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ','),
+        .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ' '),
                 num_threads, layers, bs, lr, classifier, surgery_str, unfreeze_str, override_config_str, override_surgery_str)
     os.system(cmd)
 
 
-# note: separate(elements, ' ') == *elements
 def separate(elements, separator):
     res = ''
     if not isinstance(elements, (list, tuple)):

@@ -24,11 +24,11 @@ def run_base_training(dataset, class_split, gpu_ids, num_threads, layers, bs, lr
     base_cmd = "python3 -m tools.run_base_training"
     override_config_str = ' --override-config' if override_config else ''
     cmd = "{} --dataset {} --class-split {} --gpu-ids {} --num-threads {} --layers {} --bs {} --lr {}{}"\
-        .format(base_cmd, dataset, class_split, comma_sep(gpu_ids), num_threads, layers, bs, lr, override_config_str)
+        .format(base_cmd, dataset, class_split, separate(gpu_ids, ' '), num_threads, layers, bs, lr, override_config_str)
     os.system(cmd)
 
 
-def comma_sep(elements):
+def separate(elements, separator):
     res = ''
     if not isinstance(elements, (list, tuple)):
         return str(elements)
@@ -36,8 +36,8 @@ def comma_sep(elements):
     if len(elements) == 1:
         return str(elements[0])
     for element in elements:
-        res += '{},'.format(str(element))
-    return res[:-1]  # remove trailing space
+        res += '{}{}'.format(str(element), separator)
+    return res[:-1]  # remove trailing separator
 
 
 if __name__ == '__main__':
