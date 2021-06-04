@@ -35,6 +35,15 @@ def parse_args():
     parser.add_argument('--unfreeze-roi-box-head-fcs', type=int, nargs='*', default=[],
                         dest='unfreeze_roi_box_head_fcs',
                         help="Unfreeze single bbox head fc layers. Layers are identified by numbers starting at 1.")
+    parser.add_argument('--max-iter', type=int, default=-1, dest='max_iter',
+                        help='Override maximum iteration. '
+                             'Set to -1 to use hard-coded defaults for each dataset and shot')
+    parser.add_argument('--lr-decay-steps', type=int, nargs='*', default=[-1], dest='lr_decay_steps',
+                        help='Override learning rate decay steps. '
+                             'Set to [-1] to use hard-coded defaults for each dataset and shot')
+    parser.add_argument('--ckpt-interval', type=int, default=-1, dest='ckpt_interval',
+                        help='Override checkpoint interval. '
+                             'Set to -1 to use hard-coded defaults for each dataset and shot')
     # Fine-Tuning settings
     parser.add_argument('--double-head', action='store_true',
                         help="use different predictor heads for base classes and novel classes")
@@ -518,9 +527,16 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['SOLVER']['IMS_PER_BATCH'] = args.bs  # default: 16
     lr_scale_factor = args.bs / 16
     new_config['SOLVER']['BASE_LR'] = args.lr if args.lr != -1 else 0.001 * lr_scale_factor
-    new_config['SOLVER']['STEPS'] = str(ITERS[shot][1])
-    new_config['SOLVER']['MAX_ITER'] = ITERS[shot][0]
-    new_config['SOLVER']['CHECKPOINT_PERIOD'] = ITERS[shot][2]  # ITERS[shot][0] // args.ckpt_freq
+    # max_iter, lr_decay_steps, ckpt_interval
+    if len(args.lr_decay_steps) == 1 and args.lr_decay_steps[0] == -1:
+        lr_decay_steps = ITERS[shot][1]
+    else:
+        lr_decay_steps = tuple(args.lr_decay_steps)
+    max_iter = ITERS[shot][0] if args.max_iter == -1 else args.max_iter
+    ckpt_interval = ITERS[shot][2] if args.ckpt_interval == -1 else args.ckpt_interval
+    new_config['SOLVER']['STEPS'] = str(lr_decay_steps)
+    new_config['SOLVER']['MAX_ITER'] = max_iter
+    new_config['SOLVER']['CHECKPOINT_PERIOD'] = ckpt_interval  # ITERS[shot][0] // args.ckpt_freq
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
