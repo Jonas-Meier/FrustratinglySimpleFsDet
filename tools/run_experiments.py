@@ -527,7 +527,6 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['SOLVER']['IMS_PER_BATCH'] = args.bs  # default: 16
     lr_scale_factor = args.bs / 16
     new_config['SOLVER']['BASE_LR'] = args.lr if args.lr != -1 else 0.001 * lr_scale_factor
-    # max_iter, lr_decay_steps, ckpt_interval
     if len(args.lr_decay_steps) == 1 and args.lr_decay_steps[0] == -1:
         lr_decay_steps = ITERS[shot][1]
     else:
