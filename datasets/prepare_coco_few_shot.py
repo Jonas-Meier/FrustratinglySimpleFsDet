@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 9],
                         help="Range of seeds to run. Just a single seed or two seeds representing a range with 2nd "
                              "argument being inclusive as well!")
+    parser.add_argument("--no-shuffle", action="store_false", default=True, dest="shuffle",
+                        help="Shuffle images prior to sampling of annotations.")
     args = parser.parse_args()
     return args
 
@@ -76,7 +78,6 @@ def generate_seeds(args):
         seeds = range(args.seeds[0], args.seeds[1] + 1)
     for i in seeds:
         print("Generating seed {}".format(i))
-        random.seed(i)
         for cat_name in all_classes:
             print("Generating data for class {}".format(cat_name))
             img_id_to_annos = {}
@@ -86,10 +87,10 @@ def generate_seeds(args):
                 else:
                     img_id_to_annos[anno['image_id']] = [anno]
 
-            sample_annos = []  # annotations
-            sample_imgs = []  # images
-            sample_img_ids = []  # ids of sampled images, just used for duplicate checks
             for shots in args.shots:
+                sample_annos = []  # annotations
+                sample_imgs = []  # images
+                sample_img_ids = []  # ids of sampled images, just used for duplicate checks
                 if cat_name in base_classes:
                     assert cat_name not in novel_classes
                     if cfg.BASE_SHOT_MULTIPLIER == -1:
@@ -110,6 +111,11 @@ def generate_seeds(args):
                 # while True:
                     # img_ids = random.sample(list(img_id_to_annos.keys()), shots)
                 # TODO: probably use random.sample(img_ids, 1) in a 'while True'-loop?
+                if args.shuffle:
+                    shuffle_seed = i  # Same order for same seeds, but should not matter...
+                    random.seed(shuffle_seed)
+                    print("shuffling images")
+                    random.shuffle(img_ids)
                 for img_id in img_ids:
                     if img_id in sample_img_ids:  # only necessary if we iterate multiple times through all images
                         continue
