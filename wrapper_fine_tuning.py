@@ -11,7 +11,7 @@ def main():
     lr = 0.001  # 0.001 for bs=16. Set to -1 for automatic linear scaling!
     shots = [10]
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
-    layers = 101  # 50, 101
+    layers = 50  # 50, 101
     # Set following three variables to -1 for using default hard-coded value depending on dataset and shot
     max_iter = -1  # maximum iteration
     # Force no steps by using a single value greater than max_iter, behaviour of empty list is unknown!
