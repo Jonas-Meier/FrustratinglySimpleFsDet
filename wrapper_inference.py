@@ -11,8 +11,8 @@ def main():
     num_threads = 2
     phase = 2  # phase 1: base-training, phase 2: fine-tuning
     #bs = 16
-    shots = [10]
-    seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
+    shots = [10]  # shots to evaluate on
+    seeds = [0]  # seeds to evaluate on
     eval_mode = 'single'  # all, single, last
     # normally, 10k steps. Note: it automatically subtracts 1 to fit the odd iteration in the checkpoint file names
     iterations = [10000]
