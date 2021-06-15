@@ -171,7 +171,7 @@ class COCOEvaluator(DatasetEvaluator):
                     else None  # cocoapi does not handle empty results very well
                 )
                 res_ = self._derive_coco_results(
-                    coco_eval, "bbox", class_names=names,
+                    coco_eval, "bbox", class_names=names, split=split
                 )
                 res = {}
                 for metric in res_.keys():
@@ -204,7 +204,7 @@ class COCOEvaluator(DatasetEvaluator):
             )
             self._results["bbox"] = res
 
-    def _derive_coco_results(self, coco_eval, iou_type, class_names=None):
+    def _derive_coco_results(self, coco_eval, iou_type, class_names=None, split=''):
         """
         Derive the desired score numbers from summarized COCOeval.
 
@@ -264,6 +264,7 @@ class COCOEvaluator(DatasetEvaluator):
             return results_per_category, table
 
         metrics = ["AP", "AP50", "AP75", "APs", "APm", "APl"]
+        split_str = '({} classes)'.format(split) if split != '' else split
         if coco_eval is None:
             self._logger.warn("No predictions from the model! Set scores to -1")
             return {metric: -1 for metric in metrics}
@@ -273,7 +274,7 @@ class COCOEvaluator(DatasetEvaluator):
             metric: float(coco_eval.stats[idx] * 100) \
                 for idx, metric in enumerate(metrics)
         }
-        tmp_str = "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
+        tmp_str = "Evaluation results for {} {}: \n".format(iou_type, split_str) + create_small_table(results)
         log_info_and_append(self._summary_file, tmp_str)
 
         if class_names is None or len(class_names) <= 1:
@@ -281,7 +282,7 @@ class COCOEvaluator(DatasetEvaluator):
 
         # get per-class AP@0.5:0.95, log result, append to file and update 'results'
         results_per_category, table = get_per_category_ap_table(coco_eval, class_names, iou_low=0.5, iou_high=0.95)
-        tmp_str = "Per-category {} AP: \n".format(iou_type) + table
+        tmp_str = "Per-category {} AP {}: \n".format(iou_type, split_str) + table
         log_info_and_append(self._summary_file, tmp_str)
         results.update({"AP-" + name: ap for name, ap in results_per_category})
 
@@ -289,7 +290,7 @@ class COCOEvaluator(DatasetEvaluator):
         # TODO: probably just do this if 'class_names' are all class names
         #  -> What's with the case of base training? We then wouldn't have any per-class AP@50 results
         results_per_category, table = get_per_category_ap_table(coco_eval, class_names, iou_low=0.5, iou_high=0.5)
-        tmp_str = "Per-category {} AP50: \n".format(iou_type) + table
+        tmp_str = "Per-category {} AP50 {}: \n".format(iou_type, split_str) + table
         log_info_and_append(self._summary_file, tmp_str)
         results.update({"AP@0.5-" + name: ap for name, ap in results_per_category})  # TODO: necessary for AP@0.5?
 
