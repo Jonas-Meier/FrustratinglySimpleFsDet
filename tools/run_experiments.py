@@ -383,7 +383,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         test_split = cfg.TEST_SPLIT[args.dataset]
         config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
         ckpt_dir = os.path.join(
-            cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
+            cfg.CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
             'faster_rcnn'
         )
         base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'

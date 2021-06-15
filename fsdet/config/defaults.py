@@ -26,7 +26,7 @@ _CC.CONFIG_DIR_PATTERN = CN({
 })
 
 # relative to repository root
-_CC.CONFIG_CKPT_DIR_PATTERN = CN({
+_CC.CKPT_DIR_PATTERN = CN({
     "coco": os.path.join('checkpoints', 'coco_{}'),
     "isaid": os.path.join('checkpoints', 'isaid_{}')
 })

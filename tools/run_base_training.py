@@ -141,7 +141,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     mode = 'base'  # TODO: for base training with all classes, should the mode be 'base' as well?
     config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
     ckpt_dir = os.path.join(
-        cfg.CONFIG_CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
+        cfg.CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
         'faster_rcnn'
     )
     base_cfg = '../../Base-RCNN-FPN.yaml'  # adjust depth depending on 'config_dir'
