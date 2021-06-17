@@ -171,8 +171,12 @@ Note:
 * --eval-only evaluates just the last checkpoint. Add --eval-iter to evaluate a certain checkpoint iteration. Use --eval-all to evaluate all saved checkpoints.
 * --opts can be used to override some test-specific configs without having to modify the config file directly
 
+## Aggregate Results of many Seeds
+Due to the heavily modified repository workflow (including file and directory names as well as the directory hierarchy), it's unclear if the script `tools/aggregate_seeds.py` still works. Thus, we recommend using the script `tools/collect_metrics.py` which is directly adapted to the actual repository workflow. Adjust the variables to match your training's configuration and run:
 
-[//]: # (What to do with tools.aggregate_seeds ?)
+```bash
+python3 -m tools.collect_metrics
+```
 
 ## Legacy Notes
 We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes.
