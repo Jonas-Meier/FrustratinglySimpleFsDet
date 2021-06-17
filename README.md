@@ -50,8 +50,12 @@ python3 -m pip install -r requirements.txt
   - **test_net.py**: Testing script.
   - **ckpt_surgery.py**: Surgery on checkpoints.
   - **run_experiments.py**: Running experiments across many seeds.
-  - **run_base_training.py**: Same as 'run_experiments.py' but for base trainings.
+  - **run_base_training.py**: Same as `run_experiments.py` but for base trainings and without seeds.
   - **aggregate_seeds.py**: Aggregating results from many seeds.
+  - **collect_metrics.py**: Aggregate results from many seeds and compute mean and standard deviation.
+- **wrapper_base_training.py**: Wrapper for script `run_base_training.py`.
+- **wrapper_fine_tuning.py**: Wrapper for script `run_experiments.py`.
+- **wrapper_inference.py**: Easy parametrization for inference.
 
 
 ## Dataset Preparation
@@ -83,20 +87,15 @@ See [here](datasets/README.md#few-shot-datasets) for more information on few-sho
 
 Download the [dataset split files](http://dl.yf.io/fs-det/datasets/cocosplit/datasplit/) and put them into `datasetsplit` directory.
 
-Create few-shot data with 
+Create few-shot data, e.g. for coco voc_nonvoc split with 10 shots and five seed groups:
 ``` bash
-cd datasets/
-python prepare_coco_few_shot.py
-```
-or
-``` bash
-python3 -m datasets.prepare_coco_few_shot
+python3 -m datasets.prepare_coco_few_shot --dataset coco --class-split voc_nonvoc --shots 10 --seeds 0 4
 ```
 Following arguments are accepted by `prepare_coco_few_shot.py`:
 * --dataset: dataset used (e.g. `coco`, `isaid`, etc.)
 * --class-split: class split into base classes and novel classes (e.g. `voc_nonvoc` for dataset coco)
 * --shots: list of shots
-* --seeds: range of seeds. Start and end are both inclusive!
+* --seeds: Single seed or a range of seeds with both, start and end being inclusive!
 
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
@@ -137,7 +136,7 @@ Following arguments are supported:
 * --dataset: dataset to be used (e.g. `coco` or `isaid`)
 * --class-split: the class split used. Has to be a existant key in the dictionary CLASS_SPLIT[dataset] of the file class_splits.py
 * --gpu-ids: gpu ids to run the base-training on. Accepts multiple gpu ids, sets the internally used --num-gpus argument and the CUDA_VISIBLE_DEVICES environment variable appropriately
-* --layers: ResNet backbone layers
+* --layers: ResNet backbone layers (default: `50`)
 * --bs: total batch size, not per gpu! (default: `16`)
 * --lr: larning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on batch size
 * --override-config: force overriding of already existant configs
@@ -156,9 +155,10 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
   * --unfreeze-roi-box-head-fcs: unfreeze certain ROI-Box-Head fc layers (if any). Set indices starting by 1.
 * --double-head: experimental setting with separate heads for base classes and novel classes. Requires the usage of exact two FC layers in the ROI Box Head and requires the heads to be split at index 2 (config ROI_BOX_HEAD.SPLIT_AT_FC)
 * --shots: shot parameter(s)
-* --seeds: seed(s) representing different data groups
+* --seeds: seed(s) representing different data groups (single seed or two seeds, representing a range with both start and end being inclusive!)
 * --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
+* The maximum iteration, the learning rate decay steps and the checkpoint interval may be overridden using the arguments --max-iter, --lr-decay-steps and --ckpt-interval, respectively. If not specified, hard-coded values depending on dataset and shot are used.
 
 ## Inference
 Inference can either be run directly in the command line via:
