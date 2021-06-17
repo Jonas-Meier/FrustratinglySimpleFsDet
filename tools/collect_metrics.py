@@ -33,7 +33,23 @@ unfreeze = False
 
 def main():
     per_class_metrics, summary_metrics = get_statistics()
-    _print_metrics(per_class_metrics, summary_metrics)
+    metrics_to_print1 = [
+        ['base', '0.50:0.95', 'all'],
+        ['base', '0.50', 'all'],
+        ['novel', '0.50:0.95', 'all'],
+        ['novel', '0.50', 'all'],
+        ['all', '0.50:0.95', 'all'],
+        ['all', '0.50', 'all']
+    ]
+    metrics_to_print2 = [
+        ['base', '0.50:0.95', 'all'],
+        ['novel', '0.50:0.95', 'all'],
+        ['all', '0.50:0.95', 'all'],
+        ['base', '0.50', 'all'],
+        ['novel', '0.50', 'all'],
+        ['all', '0.50', 'all']
+    ]
+    _print_metrics(per_class_metrics, summary_metrics, summary_print_only=metrics_to_print1)
 
 
 def default_summary_dict():
