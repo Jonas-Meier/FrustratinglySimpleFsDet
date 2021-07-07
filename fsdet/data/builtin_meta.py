@@ -379,21 +379,21 @@ PASCAL_VOC_BASE_CATEGORIES = {
 
 COLORS = {}
 COLORS["isaid"] = [
-    [50, 150, 100],
-    [100, 50, 150],
-    [150, 100, 50],
-    [50, 100, 150],
-    [100, 150, 50],
-    [25, 200, 150],
-    [150, 25, 200],
-    [200, 150, 25],
-    [150, 200, 25],
-    [200, 25, 150],
-    [15, 175, 75],
-    [75, 15, 175],
-    [175, 75, 15],
-    [15, 75, 175],
-    [175, 15, 75]
+    [255, 204, 179],  # FFCCB3, Apricot
+    [255, 212, 128],  # FFD480, Jasmine
+    [217, 255, 179],  # D9FFB3, Tea green
+    [128, 255, 212],  # 80FFD4, Aquamarine
+    [179, 217, 255],  # B3D9FF, Pale cornflower blue
+    [170, 128, 255],  # AA80FF, Lavender
+    [255, 77, 166],  # FF4DA6, Brilliant rose
+    [255, 25, 64],  # FF1940, Tractor red
+    [204, 0, 170],  # CC00AA, Deep magenta
+    [77, 0, 153],  # 4D0099, Indigo
+    [0, 0, 255],  # 0000FF, Blue
+    [0, 149, 179],  # 0095B3, Bondi blue
+    [0, 77, 26],  # 004D1A, Forest green
+    [204, 170, 0],  # CCAA00, Harvest gold
+    [255, 85, 0]  # FF5500, International orange
 ]
 
 
