@@ -100,6 +100,8 @@ if __name__ == "__main__":
 
     os.makedirs(args.output, exist_ok=True)
 
+    # TODO: Add the possibility to delete old predictions. Currently, they are overridden
+
     for dic in tqdm.tqdm(dicts):
         img = cv2.imread(dic["file_name"], cv2.IMREAD_COLOR)[:, :, ::-1]
         basename = os.path.basename(dic["file_name"])
@@ -117,7 +119,7 @@ if __name__ == "__main__":
             # ColorMode.IMAGE (default) chooses a random color for each prediction, ColorMode.SEGMENTATION rather uses
             #  the set 'thing_colors'
             vis = Visualizer(img, metadata, instance_mode=ColorMode.IMAGE)
-            vis_pred = vis.draw_instance_predictions(predictions).get_image()
+            vis_pred = vis.draw_instance_predictions(predictions, show_labels=True).get_image()
 
         if args.display_gt:
             vis = Visualizer(img, metadata)

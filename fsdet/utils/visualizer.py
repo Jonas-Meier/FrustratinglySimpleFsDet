@@ -54,6 +54,10 @@ class ColorMode(Enum):
     Same as IMAGE, but convert all areas without masks to gray-scale.
     Only available for drawing per-instance mask predictions.
     """
+    CUSTOM = 3
+    """
+    Custom color code
+    """
 
 
 class GenericMask:
@@ -351,7 +355,7 @@ class Visualizer:
         )
         self._instance_mode = instance_mode
 
-    def draw_instance_predictions(self, predictions):
+    def draw_instance_predictions(self, predictions, show_labels=True):
         """
         Draw instance-level prediction results on an image.
 
@@ -359,6 +363,7 @@ class Visualizer:
             predictions (Instances): the output of an instance detection/segmentation
                 model. Following fields will be used to draw:
                 "pred_boxes", "pred_classes", "scores", "pred_masks" (or "pred_masks_rle").
+            show_labels (Boolean): print labels or not
 
         Returns:
             output (VisImage): image object with visualizations.
@@ -366,7 +371,10 @@ class Visualizer:
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
         scores = predictions.scores if predictions.has("scores") else None
         classes = predictions.pred_classes if predictions.has("pred_classes") else None
-        labels = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+        if show_labels:
+            labels = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+        else:
+            labels = None
         keypoints = predictions.pred_keypoints if predictions.has("pred_keypoints") else None
 
         if predictions.has("pred_masks"):
@@ -379,6 +387,9 @@ class Visualizer:
             colors = [
                 self._jitter([x / 255 for x in self.metadata.thing_colors[c]]) for c in classes
             ]
+            alpha = 0.8
+        elif self._instance_mode == ColorMode.CUSTOM and self.metadata.get("thing_colors"):
+            colors = [[x / 255 for x in self.metadata.thing_colors[c]] for c in classes]
             alpha = 0.8
         else:
             colors = None
