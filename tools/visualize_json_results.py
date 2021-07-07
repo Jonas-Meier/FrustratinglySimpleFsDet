@@ -13,7 +13,10 @@ from collections import defaultdict
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import Boxes, BoxMode, Instances
 from detectron2.utils.logger import setup_logger
-from detectron2.utils.visualizer import Visualizer
+
+from fsdet.utils.visualizer import Visualizer, ColorMode
+# allows us to use custom datasets (otherwise we were restricted to detectrons's builtin datasets)
+from fsdet.data import *
 
 
 def create_instances(predictions, image_size):
@@ -23,6 +26,8 @@ def create_instances(predictions, image_size):
     chosen = (score > args.conf_threshold).nonzero()[0]
     score = score[chosen]
     bbox = np.asarray([predictions[i]["bbox"] for i in chosen])
+    if not bbox:
+        return ret  # otherwise, BoxMode.convert will throw an error
     bbox = BoxMode.convert(bbox, BoxMode.XYWH_ABS, BoxMode.XYXY_ABS)
 
     labels = np.asarray(
@@ -57,6 +62,15 @@ if __name__ == "__main__":
         type=float,
         help="confidence threshold",
     )
+    parser.add_argument(
+        "--filter-empty-images", action="store_true",
+        help="Filter images with no valid detections (given the threshold)."
+    )
+    parser.add_argument(
+        "--display-gt", action="store_true",
+        help="Adds an image containing all ground truth objects beside the image with the actual predictions."
+    )
+
     args = parser.parse_args()
 
     logger = setup_logger()
@@ -93,11 +107,22 @@ if __name__ == "__main__":
         predictions = create_instances(
             pred_by_image[dic["image_id"]], img.shape[:2]
         )
-        vis = Visualizer(img, metadata)
-        vis_pred = vis.draw_instance_predictions(predictions).get_image()
 
-        vis = Visualizer(img, metadata)
-        vis_gt = vis.draw_dataset_dict(dic).get_image()
+        if not predictions.has('scores'):
+            if args.filter_empty_images:
+                continue
+            else:
+                vis_pred = img
+        else:
+            # ColorMode.IMAGE (default) chooses a random color for each prediction, ColorMode.SEGMENTATION rather uses
+            #  the set 'thing_colors'
+            vis = Visualizer(img, metadata, instance_mode=ColorMode.IMAGE)
+            vis_pred = vis.draw_instance_predictions(predictions).get_image()
 
-        concat = np.concatenate((vis_pred, vis_gt), axis=1)
-        cv2.imwrite(os.path.join(args.output, basename), concat[:, :, ::-1])
+        if args.display_gt:
+            vis = Visualizer(img, metadata)
+            vis_gt = vis.draw_dataset_dict(dic).get_image()
+            concat = np.concatenate((vis_pred, vis_gt), axis=1)
+            cv2.imwrite(os.path.join(args.output, basename), concat[:, :, ::-1])
+        else:
+            cv2.imwrite(os.path.join(args.output, basename), vis_pred[:, :, ::-1])
