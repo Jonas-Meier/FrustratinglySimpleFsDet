@@ -26,7 +26,7 @@ def create_instances(predictions, image_size):
     chosen = (score > args.conf_threshold).nonzero()[0]
     score = score[chosen]
     bbox = np.asarray([predictions[i]["bbox"] for i in chosen])
-    if not bbox:
+    if len(bbox) == 0:
         return ret  # otherwise, BoxMode.convert will throw an error
     bbox = BoxMode.convert(bbox, BoxMode.XYWH_ABS, BoxMode.XYXY_ABS)
 
