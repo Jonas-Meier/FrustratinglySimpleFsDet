@@ -377,6 +377,25 @@ PASCAL_VOC_BASE_CATEGORIES = {
     ],
 }
 
+COLORS = {}
+COLORS["isaid"] = [
+    [50, 150, 100],
+    [100, 50, 150],
+    [150, 100, 50],
+    [50, 100, 150],
+    [100, 150, 50],
+    [25, 200, 150],
+    [150, 25, 200],
+    [200, 150, 25],
+    [150, 200, 25],
+    [200, 25, 150],
+    [15, 175, 75],
+    [75, 15, 175],
+    [175, 75, 15],
+    [15, 75, 175],
+    [175, 15, 75]
+]
+
 
 # TODO: probably discard the category sets here, and use our own class splits instead!
 #  we don't need categories with isthing=0, it seems as they aren't needed here as well.
@@ -386,7 +405,7 @@ PASCAL_VOC_BASE_CATEGORIES = {
 
 def _get_cocolike_instances_meta(dataset):
     thing_ids = get_ids_from_names(dataset, ALL_CLASSES[dataset])
-    thing_colors = [[255, 255, 0] for _ in thing_ids]
+    thing_colors = [[255, 255, 0] for _ in thing_ids] if dataset not in COLORS else COLORS[dataset]
     # assert len(thing_ids) == 80, len(thing_ids)
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
     # ALL_CLASSES[dataset] should already been in the correct order but we call the method explicitly for consistency
@@ -416,11 +435,11 @@ def _get_cocolike_fewshot_instances_meta(dataset, class_split):
     ret["base_classes"] = base_classes
     ret["class_split"] = class_split
     # set a different color for novel classes
-    colors = ret["thing_colors"]
-    classes = ret["thing_classes"]
-    novel_class_color = [0, 255, 0]
-    for novel_class in novel_classes:
-        colors[classes.index(novel_class)] = novel_class_color
+    # colors = ret["thing_colors"]
+    # classes = ret["thing_classes"]
+    # novel_class_color = [0, 255, 0]
+    # for novel_class in novel_classes:
+    #     colors[classes.index(novel_class)] = novel_class_color
     return ret
 
 
