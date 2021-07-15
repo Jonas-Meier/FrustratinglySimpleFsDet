@@ -148,6 +148,12 @@ _ISAID_EXPERIMENT3_NOVEL = ['Ground_Track_Field', 'Helicopter', 'Roundabout',
                             'Soccer_ball_field', 'basketball_court', 'baseball_diamond']  # order is from rare to common
 _ISAID_EXPERIMENT3_BASE = [i for i in ISAID_CATS_ID_TO_NAME.values() if i not in _ISAID_EXPERIMENT3_NOVEL]
 
+_ISAID_EXPERIMENT3_BEST1_NOVEL = ['Roundabout']
+_ISAID_EXPERIMENT3_BEST3_NOVEL = ['Roundabout', 'baseball_diamond', 'Helicopter']
+_ISAID_EXPERIMENT3_WORST1_NOVEL = ['basketball_court']
+_ISAID_EXPERIMENT3_WORST3_NOVEL = ['basketball_court', 'Soccer_ball_field', 'Ground_Track_Field']
+
+
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
     "isaid": _ISAID_ALL_NAMES
@@ -196,6 +202,22 @@ CLASS_SPLITS["isaid"] = {
     "experiment3": {
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_NOVEL
+    },
+    "experiment3_best1": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_BEST1_NOVEL
+    },
+    "experiment3_best3": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_BEST3_NOVEL
+    },
+    "experiment3_worst1": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_WORST1_NOVEL
+    },
+    "experiment3_worst3": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_WORST3_NOVEL
     }
 }
 
