@@ -94,47 +94,43 @@ def register_all_cocolike(dataset):
     # register meta datasets
     METASPLITS = []
     cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
-    for name in cocolike_metadata_names.keys():
-        if 'shot' in name:
+    for name, args in cocolike_metadata_names.items():
+        if len(args) == 6:  # fine-tuning either on just novel classes or novel + base classes
+            assert 'shot' in name
+            (_, class_split, _, _, _, _) = args
             tmp_dir = train_dir
             tmp_annos = ""  # TODO: why no annofile specified? -> probably because the anno file name contains class names!
-        elif train_name in name:
-            assert test_name not in name
-            assert 'shot' not in name
-            tmp_dir = train_dir
-            tmp_annos = train_annos
-        else:
-            assert test_name in name
-            assert 'shot' not in name
-            tmp_dir = test_dir
-            tmp_annos = test_annos
-        METASPLITS.append((name, tmp_dir, tmp_annos))
-
-    # register all metasplits
-    for name, imgdir, annofile in METASPLITS:
-        class_split = None
-        for cls_split in CLASS_SPLITS[dataset].keys():
-            if cls_split in name:
-                class_split = cls_split
-                break
-        if class_split is not None:
-            # Note: For all base- and novel-datasets we need the class split inside the dataset name because only this
-            #  way the base classes and novel classes are set correctly inside the 'metadata'.
-            # Note: The testing datasets have to have the '_base' or '_novel' and the class split as well because
-            #  since we limit the amount of classes while training we do also want to limit the amount of classes at
-            #  testing
-            # Note: No assertion necessary because we use this case in most situations!
             metadata = _get_builtin_metadata("{}_fewshot".format(dataset), class_split=class_split)
-        else:
-            # Note: If this dataset is no base dataset and no novel dataset, we don't need class splits and use the
-            #  whole dataset and all classes for training and testing
+        elif len(args) == 4:  # base training; testing for only base, only novel or all classes
+            assert 'shot' not in name
+            (_, class_split, split, _) = args
+            if split == train_name:
+                tmp_dir = train_dir
+                tmp_annos = train_annos
+            else:
+                assert split == test_name
+                tmp_dir = test_dir
+                tmp_annos = test_annos
+            metadata = _get_builtin_metadata("{}_fewshot".format(dataset), class_split=class_split)
+        else:  # 'regular' training or testing on all classes directly
+            assert len(args) == 2
+            assert 'shot' not in name
             assert '_base' not in name and '_novel' not in name, name
+            (_, split) = args
+            if split == train_name:
+                tmp_dir = train_dir
+                tmp_annos = train_annos
+            else:
+                assert split == test_name
+                tmp_dir = test_dir
+                tmp_annos = test_annos
             metadata = _get_builtin_metadata(dataset)
         register_meta_cocolike(
-            dataset, name,
-            metadata,  # Just some metadata of the dataset, e.g. the classes, colors, etc.
-            imgdir,
-            annofile,
+            dataset=dataset,
+            name=name,
+            metadata=metadata,  # Just some metadata of the dataset, e.g. the classes, colors, etc.
+            imgdir=tmp_dir,
+            annofile=tmp_annos
         )
 
 
