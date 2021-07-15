@@ -71,12 +71,12 @@ def ckpt_surgery(args):
         if args.dataset == 'voc':
             new_weight[:prev_cls] = pretrained_weight[:prev_cls]
         else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
-            for i, c in enumerate(BASE_CLASSES):
+            for i, c in enumerate(BASE_CLASS_IDS):
                 idx = c if args.dataset == 'lvis' else i
                 if 'cls_score' in param_name:
-                    new_weight[IDMAP[c]] = pretrained_weight[idx]
+                    new_weight[ALL_CLASS_ID_TO_IND[c]] = pretrained_weight[idx]
                 else:
-                    new_weight[IDMAP[c]*4:(IDMAP[c]+1)*4] = \
+                    new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
                         pretrained_weight[idx*4:(idx+1)*4]
         if 'cls_score' in param_name:
             new_weight[-1] = pretrained_weight[-1]  # bg class
@@ -88,8 +88,8 @@ def ckpt_surgery(args):
         #  'randinit' and for may only be used with coco-like datasets
         weight_name = param_name + ('.weight' if is_weight else '.bias')
         pretrained_weight = ckpt['model'][weight_name]
-        base_tar_size = len(BASE_CLASSES)
-        novel_tar_size = len(NOVEL_CLASSES)
+        base_tar_size = len(BASE_CLASS_IDS)
+        novel_tar_size = len(NOVEL_CLASS_IDS)
         if "cls_score" in param_name:  # +1 for background class
             base_tar_size += 1
             novel_tar_size += 1
@@ -155,12 +155,12 @@ def combine_ckpts(args):
         if args.dataset == 'voc':
             new_weight[:prev_cls] = pretrained_weight[:prev_cls]
         else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
-            for i, c in enumerate(BASE_CLASSES):
+            for i, c in enumerate(BASE_CLASS_IDS):
                 idx = c if args.dataset == 'lvis' else i
                 if 'cls_score' in param_name:
-                    new_weight[IDMAP[c]] = pretrained_weight[idx]
+                    new_weight[ALL_CLASS_ID_TO_IND[c]] = pretrained_weight[idx]
                 else:
-                    new_weight[IDMAP[c] * 4:(IDMAP[c] + 1) * 4] = \
+                    new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
                         pretrained_weight[idx * 4:(idx + 1) * 4]
         ckpt2_weight = ckpt2['model'][weight_name]
 
@@ -171,11 +171,11 @@ def combine_ckpts(args):
             else:
                 new_weight[prev_cls:] = ckpt2_weight
         else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
-            for i, c in enumerate(NOVEL_CLASSES):
+            for i, c in enumerate(NOVEL_CLASS_IDS):
                 if 'cls_score' in param_name:
-                    new_weight[IDMAP[c]] = ckpt2_weight[i]
+                    new_weight[ALL_CLASS_ID_TO_IND[c]] = ckpt2_weight[i]
                 else:
-                    new_weight[IDMAP[c] * 4:(IDMAP[c] + 1) * 4] = \
+                    new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
                         ckpt2_weight[i * 4:(i + 1) * 4]
             if 'cls_score' in param_name:
                 new_weight[-1] = pretrained_weight[-1]
@@ -257,22 +257,28 @@ if __name__ == '__main__':
         # ]
 
         # sort base classes and novel classes ids just in case!
-        NOVEL_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
-        BASE_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
-        ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
-        IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
-        TAR_SIZE = 80
-        assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
+        NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+        BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+        ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
+        TAR_SIZE = len(ALL_CLASS_IDS)
+        DATASET_CLASSES = 80  # total amount of classes in this dataset
+        if TAR_SIZE != DATASET_CLASSES:
+            print("Warning: Base and novel classes add up to {} of {} total classes!".format(TAR_SIZE, DATASET_CLASSES))
+            # assert DATASET_CLASSES == len(ALL_CLASSES), "Error in category definition!"
     elif args.dataset == 'isaid':
-        NOVEL_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
-        BASE_CLASSES = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
-        ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
-        IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
-        TAR_SIZE = 15
-        assert TAR_SIZE == len(ALL_CLASSES), "Error in category definition!"
+        NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+        BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+        ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
+        TAR_SIZE = len(ALL_CLASS_IDS)
+        DATASET_CLASSES = 15  # total amount of classes in this dataset
+        if TAR_SIZE != DATASET_CLASSES:
+            print("Warning: Base and novel classes add up to {} of {} total classes!".format(TAR_SIZE, DATASET_CLASSES))
+            # assert DATASET_CLASSES == len(ALL_CLASSES), "Error in category definition!"
     elif args.dataset == 'lvis':
         # LVIS
-        NOVEL_CLASSES = [
+        NOVEL_CLASS_IDS = [
             0, 6, 9, 13, 14, 15, 20, 21, 30, 37, 38, 39, 41, 45, 48, 50, 51, 63,
             64, 69, 71, 73, 82, 85, 93, 99, 100, 104, 105, 106, 112, 115, 116,
             119, 121, 124, 126, 129, 130, 135, 139, 141, 142, 143, 146, 149,
@@ -310,9 +316,9 @@ if __name__ == '__main__':
             1179, 1180, 1186, 1187, 1188, 1189, 1203, 1204, 1205, 1213, 1215,
             1218, 1224, 1225, 1227
         ]
-        BASE_CLASSES = [c for c in range(1230) if c not in NOVEL_CLASSES]
-        ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
-        IDMAP = {v:i for i, v in enumerate(ALL_CLASSES)}
+        BASE_CLASS_IDS = [c for c in range(1230) if c not in NOVEL_CLASS_IDS]
+        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+        ALL_CLASS_ID_TO_IND = {v:i for i, v in enumerate(ALL_CLASS_IDS)}
         TAR_SIZE = 1230
     elif args.dataset == 'voc':
         # VOC

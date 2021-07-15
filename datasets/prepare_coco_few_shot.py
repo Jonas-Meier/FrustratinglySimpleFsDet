@@ -59,17 +59,21 @@ def generate_seeds(args):
     all_classes = tuple(base_classes + novel_classes)
 
     coco_cat_id_to_name = {c['id']: c['name'] for c in new_all_cats}
-    # Need make sure, 'all_classes' and 'coco_cat_id_to_name' contain the same categories! This should be sufficient
-    assert len(all_classes) == len(coco_cat_id_to_name) == len(set(all_classes + tuple(coco_cat_id_to_name.values()))), \
-        "Error, inconsistency with categories defined in the dataset and in the class split: {} and {}". \
-        format(coco_cat_id_to_name.values(), all_classes)
+    # Need make sure, 'all_classes' are all contained in 'coco_cat_id_to_name'
+    assert len(all_classes) <= len(coco_cat_id_to_name) \
+           and len(set(all_classes + tuple(coco_cat_id_to_name.values()))) == len(coco_cat_id_to_name), \
+           "Error, inconsistency with categories defined in the dataset and in the class split: {} and {}".\
+           format(coco_cat_id_to_name.values(), all_classes)
 
     cat_name_to_annos = {i: [] for i in all_classes}
     for anno in data['annotations']:
         if anno['iscrowd'] == 1:
             continue
         cat_name = coco_cat_id_to_name[anno['category_id']]
-        cat_name_to_annos[cat_name].append(anno)
+        if cat_name not in cat_name_to_annos:  # if base and novel classes do not sum up to all classes in the dataset
+            continue
+        else:
+            cat_name_to_annos[cat_name].append(anno)
 
     if len(args.seeds) == 1:
         seeds = [args.seeds[0]]
@@ -116,6 +120,8 @@ def generate_seeds(args):
                     random.seed(shuffle_seed)
                     print("shuffling images")
                     random.shuffle(img_ids)
+                else:
+                    print("not shuffling images prior to sampling!")
                 for img_id in img_ids:
                     if img_id in sample_img_ids:  # only necessary if we iterate multiple times through all images
                         continue

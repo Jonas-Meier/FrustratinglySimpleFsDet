@@ -404,12 +404,13 @@ COLORS["isaid"] = [
 
 
 def _get_cocolike_instances_meta(dataset):
-    thing_ids = get_ids_from_names(dataset, ALL_CLASSES[dataset])
+    thing_ids = sorted(get_ids_from_names(dataset, ALL_CLASSES[dataset]))  # sort to be sure!
     thing_colors = [[255, 255, 0] for _ in thing_ids] if dataset not in COLORS else COLORS[dataset]
     # assert len(thing_ids) == 80, len(thing_ids)
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
     # ALL_CLASSES[dataset] should already been in the correct order but we call the method explicitly for consistency
     thing_classes = get_names_from_ids(dataset, thing_ids)
+    assert len(thing_classes) == len(set(thing_classes)), "Error, found duplicates in category names!"
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,
@@ -421,19 +422,31 @@ def _get_cocolike_instances_meta(dataset):
 
 def _get_cocolike_fewshot_instances_meta(dataset, class_split):
     ret = _get_cocolike_instances_meta(dataset)
-    novel_categories = CLASS_SPLITS[dataset][class_split]['novel']
-    novel_ids = sorted(get_ids_from_names(dataset, novel_categories))
-    novel_classes = get_names_from_ids(dataset, novel_ids)  # to ensure class name order matches id order
-    novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
+    novel_categories = list(CLASS_SPLITS[dataset][class_split]['novel'])
     base_categories = list(CLASS_SPLITS[dataset][class_split]['base'])
+    all_categories = novel_categories + base_categories
+    novel_ids = sorted(get_ids_from_names(dataset, novel_categories))
     base_ids = sorted(get_ids_from_names(dataset, base_categories))
-    base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
+    all_ids = sorted(get_ids_from_names(dataset, all_categories))
+    novel_classes = get_names_from_ids(dataset, novel_ids)  # to ensure class name order matches id order
     base_classes = get_names_from_ids(dataset, base_ids)  # to ensure class name order matches id order
+    all_classes = get_names_from_ids(dataset, all_ids)  # to ensure class name order matches id order
+    for class_names in [base_classes, novel_classes, all_classes]:  # just to be sure
+        assert len(class_names) == len(set(class_names)), "Error, found duplicates in category names!"
+    novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
+    base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
+    all_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(all_ids)}
     ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
     ret["novel_classes"] = novel_classes
     ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
     ret["base_classes"] = base_classes
+    ret["all_dataset_id_to_contiguous_id"] = all_dataset_id_to_contiguous_id
+    ret["all_classes"] = all_classes
     ret["class_split"] = class_split
+    if len(ret["thing_classes"]) != len(all_classes):
+        # Need to adjust the colors, since we do not use all classes during fine-tuning!
+        name_to_col = {name: col for name, col in zip(ret["thing_classes"], ret["thing_colors"])}
+        ret["thing_colors"] = [name_to_col[name] for name in all_classes]
     # set a different color for novel classes
     # colors = ret["thing_colors"]
     # classes = ret["thing_classes"]
@@ -499,3 +512,11 @@ def _get_builtin_metadata(dataset_name, class_split=None):
     elif dataset_name == "pascal_voc_fewshot":
         return _get_pascal_voc_fewshot_instances_meta()
     raise KeyError("No built-in metadata for dataset {}".format(dataset_name))
+
+
+def debug_colors(dataset):
+    pass  # TODO: print the colors of the given dataset
+
+
+if __name__ == '__main__':
+    debug_colors('isaid')

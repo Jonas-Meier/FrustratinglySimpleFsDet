@@ -175,6 +175,8 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
                         obj = {key: anno[key] for key in ann_keys if key in anno}
 
                         obj["bbox_mode"] = BoxMode.XYWH_ABS
+                        # TODO: this is unnecessary for fine-tuning and probably unnecessary for
+                        #  "only novel class"-trainings as well!
                         if obj["category_id"] in id_map:
                             obj["category_id"] = id_map[obj["category_id"]]
                             objs.append(obj)
@@ -273,12 +275,22 @@ def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):
         lambda: load_cocolike_json(dataset, annofile, imgdir, metadata, name),
     )
 
-    if "_base" in name or "_novel" in name:
+    if "_base" in name or "_novel" in name:  # base or only novel fine tuning
         split = "base" if "_base" in name else "novel"
         metadata["thing_dataset_id_to_contiguous_id"] = metadata[
             "{}_dataset_id_to_contiguous_id".format(split)
         ]
         metadata["thing_classes"] = metadata["{}_classes".format(split)]
+    elif "shot" in name and "all" in name:  # fine-tuning on base and novel classes
+        # Note: this case allows to train a fine-tuning where the base classes and novel classes do not
+        #  add up to all classes of the dataset. For this reason, the corresponding classes and mappings with
+        #  'all' prefix are used rather than the 'thing' prefix
+        split = "all"
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
+            "{}_dataset_id_to_contiguous_id".format(split)
+        ]
+        metadata["thing_classes"] = metadata["{}_classes".format(split)]
+
 
     MetadataCatalog.get(name).set(
         json_file=annofile,
