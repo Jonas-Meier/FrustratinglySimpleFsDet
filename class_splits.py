@@ -153,6 +153,17 @@ _ISAID_EXPERIMENT3_BEST3_NOVEL = ['Roundabout', 'baseball_diamond', 'Helicopter'
 _ISAID_EXPERIMENT3_WORST1_NOVEL = ['basketball_court']
 _ISAID_EXPERIMENT3_WORST3_NOVEL = ['basketball_court', 'Soccer_ball_field', 'Ground_Track_Field']
 
+_SAID_EXPERIMENT3_COMMON3_BASE = ['Small_Vehicle', 'Large_Vehicle', 'ship']
+_SAID_EXPERIMENT3_COMMON6_BASE = ['Small_Vehicle', 'Large_Vehicle', 'ship', 'plane', 'storage_tank', 'Harbor']
+
+_ISAID_SIMILAR1_BASE = ['tennis_court']
+_ISAID_SIMILAR1_NOVEL = ['basketball_court']
+
+_ISAID_DIFFERENT1_BASE = ['plane']
+_ISAID_DIFFERENT1_NOVEL = ['basketball_court']
+
+_ISAID_DIFFERENT2_BASE = ['Harbor']
+_ISAID_DIFFERENT2_NOVEL = ['basketball_court']
 
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
@@ -203,21 +214,41 @@ CLASS_SPLITS["isaid"] = {
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_NOVEL
     },
-    "experiment3_best1": {
+    "experiment3_best1": {  # TODO: change to "*best1_novel"?
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_BEST1_NOVEL
     },
-    "experiment3_best3": {
+    "experiment3_best3": {  # TODO: change to "*best3_novel"?
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_BEST3_NOVEL
     },
-    "experiment3_worst1": {
+    "experiment3_worst1": {  # TODO: change to "*worst1_novel"?
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_WORST1_NOVEL
     },
-    "experiment3_worst3": {
+    "experiment3_worst3": {  # TODO: change to "*worst3_novel"?
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_WORST3_NOVEL
+    },
+    "experiment3_common3": {  # TODO: change to "*common3_base"?
+        "base": _SAID_EXPERIMENT3_COMMON3_BASE,
+        "novel": _ISAID_EXPERIMENT3_NOVEL
+    },
+    "experiment3_common6": {  # TODO: change to "*common6_base"?
+        "base": _SAID_EXPERIMENT3_COMMON6_BASE,
+        "novel": _ISAID_EXPERIMENT3_NOVEL
+    },
+    "similar1": {
+        "base": _ISAID_SIMILAR1_BASE,
+        "novel": _ISAID_SIMILAR1_NOVEL
+    },
+    "different1": {
+        "base": _ISAID_DIFFERENT1_BASE,
+        "novel": _ISAID_DIFFERENT1_NOVEL
+    },
+    "different2": {
+        "base": _ISAID_DIFFERENT2_BASE,
+        "novel": _ISAID_DIFFERENT2_NOVEL
     }
 }
 
