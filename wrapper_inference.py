@@ -5,8 +5,8 @@ from fsdet.config.config import get_cfg
 def main():
     cfg = get_cfg()
     dataset = "coco"  # coco, isaid
-    coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
-    isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
+    coco_class_splits = ["voc_nonvoc"]  # voc_nonvoc, none_all
+    isaid_class_splits = ["vehicle_nonvehicle"]  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
     gpu_ids = [0]
     num_threads = 2
     phase = 2  # phase 1: base-training, phase 2: fine-tuning
@@ -22,16 +22,22 @@ def main():
     unfreeze = False  # False: freeze feature extractor while fine-tuning
     # Modify test config options (e.g. for quick test hyperparameter tuning).
     #  Note: these configs are not saved into a config file, the change is just temporary for this certain run!
-    opts = [
-        'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,  # coco: 0.05, isaid: 0.01
-        'TEST.DETECTIONS_PER_IMAGE', 100,  # coco: 100, isaid: 300
-        'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,  # coco: 1000, isaid: 2000
-        'MODEL.RPN.POST_NMS_TOPK_TEST', 1000  # coco: 1000, isaid: 1500
-    ]
     if dataset == "coco":
-        class_split = coco_class_split
+        class_splits = coco_class_splits
+        opts = [
+            'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,
+            'TEST.DETECTIONS_PER_IMAGE', 100,
+            'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,
+            'MODEL.RPN.POST_NMS_TOPK_TEST', 1000
+        ]
     elif dataset == "isaid":
-        class_split = isaid_class_split
+        class_splits = isaid_class_splits
+        opts = [
+            'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,
+            'TEST.DETECTIONS_PER_IMAGE', 300,
+            'MODEL.RPN.PRE_NMS_TOPK_TEST', 2000,
+            'MODEL.RPN.POST_NMS_TOPK_TEST', 1500
+        ]
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     if eval_mode != 'single':  # to prevent multiple execution of inference on all or the last checkpoint!
@@ -39,12 +45,13 @@ def main():
     if phase == 1:
         mode = 'base'
         pattern = 'faster_rcnn_R_{}_FPN_{}.yaml'
-        for iteration in iterations:
-            config_file = os.path.join(
-                cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
-                pattern.format(layers, mode)
-            )
-            run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
+        for class_split in class_splits:
+            for iteration in iterations:
+                config_file = os.path.join(
+                    cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
+                    pattern.format(layers, mode)
+                )
+                run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
     else:
         assert phase == 2
         assert len(shots) > 0 and len(seeds) > 0
@@ -53,19 +60,20 @@ def main():
         classifier_str = '_{}'.format(classifier)
         unfreeze_str = '_unfreeze' if unfreeze else ''
         tfa_str = '_TFA' if tfa else ''
-        for shot in shots:
-            for seed in seeds:
-                for iteration in iterations:
-                    # TODO: Possible problems in future:
-                    #  1. We hard-code mode 'all'
-                    #  2. We don't use a suffix (as in 'run_experiments.py')
-                    config_file = os.path.join(
-                        cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
-                        'seed{}'.format(seed),
-                        'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub directory
-                        pattern.format(layers, classifier_str, mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
-                    )
-                    run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
+        for class_split in class_splits:
+            for shot in shots:
+                for seed in seeds:
+                    for iteration in iterations:
+                        # TODO: Possible problems in future:
+                        #  1. We hard-code mode 'all'
+                        #  2. We don't use a suffix (as in 'run_experiments.py')
+                        config_file = os.path.join(
+                            cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
+                            'seed{}'.format(seed),
+                            'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub dir
+                            pattern.format(layers, classifier_str, mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
+                        )
+                        run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
 
 
 def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts):
