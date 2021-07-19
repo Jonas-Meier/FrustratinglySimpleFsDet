@@ -277,7 +277,7 @@ class COCOEvaluator(DatasetEvaluator):
         tmp_str = "Evaluation results for {} {}: \n".format(iou_type, split_str) + create_small_table(results)
         log_info_and_append(self._summary_file, tmp_str)
 
-        if class_names is None or len(class_names) <= 1:
+        if not class_names:
             return results
 
         # get per-class AP@0.5:0.95, log result, append to file and update 'results'
