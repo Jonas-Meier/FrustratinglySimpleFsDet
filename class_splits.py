@@ -165,6 +165,15 @@ _ISAID_DIFFERENT1_NOVEL = ['basketball_court']
 _ISAID_DIFFERENT2_BASE = ['Harbor']
 _ISAID_DIFFERENT2_NOVEL = ['basketball_court']
 
+_ISAID_STORAGE_ROUNDABOUT_BASE = ['storage_tank']
+_ISAID_STORAGE_ROUNDABOUT_NOVEL = ['Roundabout']
+
+_ISAID_PLANE_ROUNDABOUT_BASE = ['plane']
+_ISAID_PLANE_ROUNDABOUT_NOVEL = ['Roundabout']
+
+_ISAID_LV_ROUNDABOUT_BASE = ['Large_Vehicle']
+_ISAID_LV_ROUNDABOUT_NOVEL = ['Roundabout']
+
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
     "isaid": _ISAID_ALL_NAMES
@@ -249,7 +258,19 @@ CLASS_SPLITS["isaid"] = {
     "different2": {
         "base": _ISAID_DIFFERENT2_BASE,
         "novel": _ISAID_DIFFERENT2_NOVEL
-    }
+    },
+    "storage_roundabout": {
+        "base": _ISAID_STORAGE_ROUNDABOUT_BASE,
+        "novel": _ISAID_STORAGE_ROUNDABOUT_NOVEL
+    },
+    "plane_roundabout": {
+        "base": _ISAID_PLANE_ROUNDABOUT_BASE,
+        "novel": _ISAID_PLANE_ROUNDABOUT_NOVEL
+    },
+    "lv_roundabout": {
+        "base": _ISAID_LV_ROUNDABOUT_BASE,
+        "novel": _ISAID_LV_ROUNDABOUT_NOVEL
+    },
 }
 
 # xVIEW has 60 classes
