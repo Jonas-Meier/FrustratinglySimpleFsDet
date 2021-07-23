@@ -52,6 +52,8 @@ def parse_args():
     parser.add_argument('--seeds', type=int, nargs='+', default=[1, 20],
                         help='Range of seeds to run. Just a single seed or two seeds representing a range with 2nd '
                              'argument being inclusive as well!')
+    parser.add_argument('--explicit-seeds', action='store_true', dest='explicit_seeds',
+                        help='Specify a list of explicit seeds, rather than a range of seeds.')
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
     # Workflow settings
@@ -572,11 +574,14 @@ def comma_sep(elements):
 
 
 def main(args):
-    if len(args.seeds) == 1:
-        seeds = [args.seeds[0]]
+    if args.explicit_seeds:
+        seeds = args.seeds
     else:
-        assert len(args.seeds) == 2
-        seeds = range(args.seeds[0], args.seeds[1] + 1)
+        if len(args.seeds) == 1:
+            seeds = [args.seeds[0]]
+        else:
+            assert len(args.seeds) == 2
+            seeds = range(args.seeds[0], args.seeds[1] + 1)
     for shot in args.shots:
         for seed in seeds:
             print('Split: {}, Seed: {}, Shot: {}'.format(args.split, seed, shot))
