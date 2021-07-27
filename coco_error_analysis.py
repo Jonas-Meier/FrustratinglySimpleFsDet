@@ -37,8 +37,8 @@ def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
         ax = plt.subplot(111)
         if single_type:
             assert single_type in types
-            type_ind = np.where(np.array(types) == single_type)  # e.g. for getting the correct color when filling...
-            ax.plot(rs, ps_curve[1], color=[0, 0, 0], linewidth=0.5)
+            type_ind = np.where(np.array(types) == single_type)
+            ax.plot(rs, ps_curve[type_ind + 1], color=[0, 0, 0], linewidth=0.5)
         else:
             for k in range(len(types)):
                 ax.plot(rs, ps_curve[k + 1], color=[0, 0, 0], linewidth=0.5)
