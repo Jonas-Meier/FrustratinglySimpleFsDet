@@ -11,7 +11,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 
-def makeplot(rs, ps, outDir, class_name, iou_type):
+def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
     cs = np.vstack([
         np.ones((2, 3)),
         np.array([0.31, 0.51, 0.74]),
@@ -24,7 +24,10 @@ def makeplot(rs, ps, outDir, class_name, iou_type):
     types = ['C75', 'C50', 'Loc', 'Sim', 'Oth', 'BG', 'FN']
     for i in range(len(areaNames)):
         area_ps = ps[..., i, 0]
-        figure_title = iou_type + '-' + class_name + '-' + areaNames[i]
+        if single_type:
+            figure_title = iou_type + '-' + class_name + '-' + areaNames[i] + '-' + single_type
+        else:
+            figure_title = iou_type + '-' + class_name + '-' + areaNames[i]
         aps = [ps_.mean() for ps_ in area_ps]
         ps_curve = [
             ps_.mean(axis=1) if ps_.ndim > 1 else ps_ for ps_ in area_ps
@@ -32,15 +35,20 @@ def makeplot(rs, ps, outDir, class_name, iou_type):
         ps_curve.insert(0, np.zeros(ps_curve[0].shape))
         fig = plt.figure()
         ax = plt.subplot(111)
-        for k in range(len(types)):
-            ax.plot(rs, ps_curve[k + 1], color=[0, 0, 0], linewidth=0.5)
-            ax.fill_between(
-                rs,
-                ps_curve[k],
-                ps_curve[k + 1],
-                color=cs[k],
-                label=str(f'[{aps[k]:.3f}]' + types[k]),
-            )
+        if single_type:
+            assert single_type in types
+            type_ind = np.where(np.array(types) == single_type)  # e.g. for getting the correct color when filling...
+            ax.plot(rs, ps_curve[1], color=[0, 0, 0], linewidth=0.5)
+        else:
+            for k in range(len(types)):
+                ax.plot(rs, ps_curve[k + 1], color=[0, 0, 0], linewidth=0.5)
+                ax.fill_between(
+                    rs,
+                    ps_curve[k],
+                    ps_curve[k + 1],
+                    color=cs[k],
+                    label=str(f'[{aps[k]:.3f}]' + types[k]),
+                )
         plt.xlabel('recall')
         plt.ylabel('precision')
         plt.xlim(0, 1.0)
@@ -48,7 +56,7 @@ def makeplot(rs, ps, outDir, class_name, iou_type):
         plt.title(figure_title)
         plt.legend()
         # plt.show()
-        fig.savefig(outDir + f'/{figure_title}.png')
+        fig.savefig(outDir + f'/{figure_title}.pdf')
         plt.close(fig)
 
 
