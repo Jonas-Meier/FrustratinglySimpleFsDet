@@ -54,7 +54,8 @@ def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
         plt.xlim(0, 1.0)
         plt.ylim(0, 1.0)
         plt.title(figure_title)
-        plt.legend()
+        if not single_type:
+            plt.legend()
         # plt.show()
         fig.savefig(outDir + f'/{figure_title}.pdf')
         plt.close(fig)
