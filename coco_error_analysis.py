@@ -20,8 +20,14 @@ def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
         np.array([0.50, 0.39, 0.64]),
         np.array([1, 0.6, 0]),
     ])
+    curve_colors = {
+        "red": np.array([0.75, 0.125, 0.25]),
+        "orange": np.array([0.875, 0.625, 0]),
+        "green": np.array([0, 0.5, 0])
+    }
     areaNames = ['allarea', 'small', 'medium', 'large']
     types = ['C75', 'C50', 'Loc', 'Sim', 'Oth', 'BG', 'FN']
+    curve_color = curve_colors["red"]
     for i in range(len(areaNames)):
         area_ps = ps[..., i, 0]
         if single_type:
@@ -40,7 +46,7 @@ def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
             type_ind = np.where(np.array(types) == single_type)[0]
             assert len(type_ind) == 1
             type_ind = type_ind[0]
-            ax.plot(rs, ps_curve[type_ind + 1], color=[0, 0, 0], linewidth=0.5)
+            ax.plot(rs, ps_curve[type_ind + 1], color=curve_color, linewidth=0.5)
         else:
             for k in range(len(types)):
                 ax.plot(rs, ps_curve[k + 1], color=[0, 0, 0], linewidth=0.5)
