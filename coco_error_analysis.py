@@ -38,6 +38,8 @@ def makeplot(rs, ps, outDir, class_name, iou_type, single_type=None):
         if single_type:
             assert single_type in types
             type_ind = np.where(np.array(types) == single_type)
+            assert len(type_ind) == 1
+            type_ind = type_ind[0]
             ax.plot(rs, ps_curve[type_ind + 1], color=[0, 0, 0], linewidth=0.5)
         else:
             for k in range(len(types)):
