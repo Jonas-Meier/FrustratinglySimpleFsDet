@@ -138,9 +138,9 @@ Following arguments are supported:
 * --gpu-ids: gpu ids to run the base-training on. Accepts multiple gpu ids, sets the internally used --num-gpus argument and the CUDA_VISIBLE_DEVICES environment variable appropriately
 * --layers: ResNet backbone layers (default: `50`)
 * --bs: total batch size, not per gpu! (default: `16`)
-* --lr: larning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on batch size
+* --lr: learning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on the batch size
 * --override-config: force overriding of already existant configs
-* --num-threads: limit amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
+* --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
 
 ### Fine-Tuning
 Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting fine-tunings. The most important arguments are:
@@ -156,6 +156,7 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
 * --double-head: experimental setting with separate heads for base classes and novel classes. Requires the usage of exact two FC layers in the ROI Box Head and requires the heads to be split at index 2 (config ROI_BOX_HEAD.SPLIT_AT_FC)
 * --shots: shot parameter(s)
 * --seeds: seed(s) representing different data groups (single seed or two seeds, representing a range with both start and end being inclusive!)
+* --explicit-seeds: Interpret the list of seeds as explicit seeds rather than as a range of seeds.
 * --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 * The maximum iteration, the learning rate decay steps and the checkpoint interval may be overridden using the arguments --max-iter, --lr-decay-steps and --ckpt-interval, respectively. If not specified, hard-coded values depending on dataset and shot are used.
