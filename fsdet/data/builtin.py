@@ -93,7 +93,7 @@ def register_all_cocolike(dataset):
     test_annos = cfg.TEST_ANNOS[dataset]
     # register meta datasets
     METASPLITS = []
-    cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
+    cocolike_metadata_names = get_cocolike_metadata_names(dataset)
     for name, args in cocolike_metadata_names.items():
         if len(args) == 6:  # fine-tuning either on just novel classes or novel + base classes
             assert 'shot' in name

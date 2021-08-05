@@ -11,6 +11,7 @@ from detectron2.structures import BoxMode
 from class_splits import CLASS_SPLITS
 from fsdet.config import get_cfg
 cfg = get_cfg()
+COCOLIKE_METADATA_NAMES = {}
 
 """
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
@@ -19,12 +20,19 @@ This file contains functions to parse COCO-format annotations into dicts in "Det
 __all__ = ["register_meta_cocolike", "get_cocolike_metadata_names"]
 
 
-def get_cocolike_metadata_names(dataset='coco', train_name='trainval', test_name='test'):
+# Cache the metadata names since they do not change at runtime.
+def get_cocolike_metadata_names(dataset='coco'):
+    if dataset not in COCOLIKE_METADATA_NAMES:
+        COCOLIKE_METADATA_NAMES[dataset] = _get_cocolike_metadata_names(dataset=dataset)
+    return COCOLIKE_METADATA_NAMES[dataset]
+
+
+def _get_cocolike_metadata_names(dataset='coco'):
+    train_name = cfg.TRAIN_SPLIT[dataset]
+    test_name = cfg.TEST_SPLIT[dataset]
     assert train_name not in test_name
     assert test_name not in train_name
     ret = {}
-    # TODO: unnecessary to save dataset, train_name and test_name as args because they have to be known prior to calling
-    #  this method?
     # register whole training and testing datasets. Whole test dataset is used for fine-tuning inference
     #  TODO: what is the complete training dataset used for?
     for split in [train_name, test_name]:
@@ -72,7 +80,7 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
     """
     train_name = cfg.TRAIN_SPLIT[dataset]
     test_name = cfg.TEST_SPLIT[dataset]
-    cocolike_metadata_names = get_cocolike_metadata_names(dataset, train_name, test_name)
+    cocolike_metadata_names = get_cocolike_metadata_names(dataset)
     assert dataset_name in cocolike_metadata_names
     dataset_labels = cocolike_metadata_names[dataset_name]
     id_map = metadata["thing_dataset_id_to_contiguous_id"]
@@ -275,22 +283,25 @@ def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):
         lambda: load_cocolike_json(dataset, annofile, imgdir, metadata, name),
     )
 
-    if "_base" in name or "_novel" in name:  # base or only novel fine tuning
-        split = "base" if "_base" in name else "novel"
+    metadata_args = get_cocolike_metadata_names(dataset)[name]
+    if len(metadata_args) == 4:
+        # Either:
+        #   - base training on only novel classes
+        #   - inference on only base/novel classes or on all classes
+        (_, _, _, prefix) = metadata_args
         metadata["thing_dataset_id_to_contiguous_id"] = metadata[
-            "{}_dataset_id_to_contiguous_id".format(split)
+            "{}_dataset_id_to_contiguous_id".format(prefix)
         ]
-        metadata["thing_classes"] = metadata["{}_classes".format(split)]
-    elif "shot" in name and "all" in name:  # fine-tuning on base and novel classes
-        # Note: this case allows to train a fine-tuning where the base classes and novel classes do not
-        #  add up to all classes of the dataset. For this reason, the corresponding classes and mappings with
-        #  'all' prefix are used rather than the 'thing' prefix
-        split = "all"
+        metadata["thing_classes"] = metadata["{}_classes".format(prefix)]
+    elif len(metadata_args) == 6:
+        # Either:
+        #  - fine-tuning on only novel classes
+        #  - "regular" fine-tuning on all classes (base+novel)
+        (_, _, _, prefix, _, _) = metadata_args
         metadata["thing_dataset_id_to_contiguous_id"] = metadata[
-            "{}_dataset_id_to_contiguous_id".format(split)
+            "{}_dataset_id_to_contiguous_id".format(prefix)
         ]
-        metadata["thing_classes"] = metadata["{}_classes".format(split)]
-
+        metadata["thing_classes"] = metadata["{}_classes".format(prefix)]
 
     MetadataCatalog.get(name).set(
         json_file=annofile,
