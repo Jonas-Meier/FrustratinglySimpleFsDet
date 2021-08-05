@@ -149,8 +149,13 @@ _ISAID_EXPERIMENT3_NOVEL = ['Ground_Track_Field', 'Helicopter', 'Roundabout',
 _ISAID_EXPERIMENT3_BASE = [i for i in ISAID_CATS_ID_TO_NAME.values() if i not in _ISAID_EXPERIMENT3_NOVEL]
 
 _ISAID_EXPERIMENT3_BEST1_NOVEL = ['Roundabout']
-_ISAID_EXPERIMENT3_BEST3_NOVEL = ['Roundabout', 'baseball_diamond', 'Helicopter']
+_ISAID_EXPERIMENT3_BASEBALL_NOVEL = ['baseball_diamond']
+_ISAID_EXPERIMENT3_HELICOPTER_NOVEL = ['Helicopter']
+_ISAID_EXPERIMENT3_GTF_NOVEL = ['Ground_Track_Field']
+_ISAID_EXPERIMENT3_SOCCER_NOVEL = ['Soccer_ball_field']
 _ISAID_EXPERIMENT3_WORST1_NOVEL = ['basketball_court']
+
+_ISAID_EXPERIMENT3_BEST3_NOVEL = ['Roundabout', 'baseball_diamond', 'Helicopter']
 _ISAID_EXPERIMENT3_WORST3_NOVEL = ['basketball_court', 'Soccer_ball_field', 'Ground_Track_Field']
 
 _SAID_EXPERIMENT3_COMMON3_BASE = ['Small_Vehicle', 'Large_Vehicle', 'ship']
@@ -270,6 +275,22 @@ CLASS_SPLITS["isaid"] = {
     "lv_roundabout": {
         "base": _ISAID_LV_ROUNDABOUT_BASE,
         "novel": _ISAID_LV_ROUNDABOUT_NOVEL
+    },
+    "experiment3_baseball_novel": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_BASEBALL_NOVEL
+    },
+    "experiment3_helicopter_novel": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_HELICOPTER_NOVEL
+    },
+    "experiment3_gtf_novel": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_GTF_NOVEL
+    },
+    "experiment3_soccer_novel": {
+        "base": _ISAID_EXPERIMENT3_BASE,
+        "novel": _ISAID_EXPERIMENT3_SOCCER_NOVEL
     },
 }
 
