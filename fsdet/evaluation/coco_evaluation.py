@@ -232,7 +232,7 @@ class COCOEvaluator(DatasetEvaluator):
                 return ind
             precisions = coco_eval.eval["precision"]
             # precision has dims (iou, recall, cls, area range, max dets)
-            assert len(class_names) == precisions.shape[2]
+            assert len(class_names) == precisions.shape[2], "{},{}".format(len(class_names), precisions.shape[2])
             ind_lo = _get_thr_ind(coco_eval, iou_low)
             ind_hi = _get_thr_ind(coco_eval, iou_high)
             results_per_category = []
