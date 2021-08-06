@@ -289,19 +289,17 @@ def register_meta_cocolike(dataset, name, metadata, imgdir, annofile):
         #   - base training on only novel classes
         #   - inference on only base/novel classes or on all classes
         (_, _, _, prefix) = metadata_args
-        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
-            "{}_dataset_id_to_contiguous_id".format(prefix)
-        ]
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata["{}_dataset_id_to_contiguous_id".format(prefix)]
         metadata["thing_classes"] = metadata["{}_classes".format(prefix)]
+        metadata["thing_ids"] = metadata["{}_ids".format(prefix)]
     elif len(metadata_args) == 6:
         # Either:
         #  - fine-tuning on only novel classes
         #  - "regular" fine-tuning on all classes (base+novel)
         (_, _, _, prefix, _, _) = metadata_args
-        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
-            "{}_dataset_id_to_contiguous_id".format(prefix)
-        ]
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata["{}_dataset_id_to_contiguous_id".format(prefix)]
         metadata["thing_classes"] = metadata["{}_classes".format(prefix)]
+        metadata["thing_ids"] = metadata["{}_ids".format(prefix)]
 
     MetadataCatalog.get(name).set(
         json_file=annofile,

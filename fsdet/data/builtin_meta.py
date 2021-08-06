@@ -377,6 +377,11 @@ PASCAL_VOC_BASE_CATEGORIES = {
     ],
 }
 
+# TODO: probably discard the category sets here, and use our own class splits instead!
+#  we don't need categories with isthing=0, it seems as they aren't needed here as well.
+#  In addition, we probably don't need the colors defined. We will highly probable use either one color
+#  for all categories, or two colors, one for base classes, one for novel classes!
+
 COLORS = {}
 COLORS["isaid"] = [
     [255, 204, 179],  # FFCCB3, Apricot
@@ -397,12 +402,6 @@ COLORS["isaid"] = [
 ]
 
 
-# TODO: probably discard the category sets here, and use our own class splits instead!
-#  we don't need categories with isthing=0, it seems as they aren't needed here as well.
-#  In addition, we probably don't need the colors defined. We will highly probable use either one color
-#  for all categories, or two colors, one for base classes, one for novel classes!
-
-
 def _get_cocolike_instances_meta(dataset):
     thing_ids = sorted(get_ids_from_names(dataset, ALL_CLASSES[dataset]))  # sort to be sure!
     thing_colors = [[255, 255, 0] for _ in thing_ids] if dataset not in COLORS else COLORS[dataset]
@@ -414,6 +413,7 @@ def _get_cocolike_instances_meta(dataset):
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,
+        "thing_ids": thing_ids,
         "thing_colors": thing_colors,
         "dataset": dataset,
     }
@@ -438,10 +438,13 @@ def _get_cocolike_fewshot_instances_meta(dataset, class_split):
     all_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(all_ids)}
     ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
     ret["novel_classes"] = novel_classes
+    ret["novel_ids"] = novel_ids
     ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
     ret["base_classes"] = base_classes
+    ret["base_ids"] = base_ids
     ret["all_dataset_id_to_contiguous_id"] = all_dataset_id_to_contiguous_id
     ret["all_classes"] = all_classes
+    ret["all_ids"] = all_ids
     ret["class_split"] = class_split
     if len(ret["thing_classes"]) != len(all_classes):
         # Need to adjust the colors, since we do not use all classes during fine-tuning!

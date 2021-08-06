@@ -68,8 +68,10 @@ class COCOEvaluator(DatasetEvaluator):
         self._is_splits = "all" in dataset_name or "base" in dataset_name \
             or "novel" in dataset_name
         self._class_split = self._metadata.class_split
-        self._base_class_ids = sorted(get_ids_from_names(dataset, CLASS_SPLITS[dataset][self._class_split]['base']))
-        self._novel_class_ids = sorted(get_ids_from_names(dataset, CLASS_SPLITS[dataset][self._class_split]['novel']))
+        # Note: we use 'thing_ids' over 'all_ids' because 'meta_coco' will override 'thing_ids' appropriately
+        self._all_class_ids = self._metadata.thing_ids
+        self._base_class_ids = self._metadata.get("base_ids", None)
+        self._novel_class_ids = self._metadata.get("novel_ids",  None)
         json_file = PathManager.get_local_path(self._metadata.json_file)
         with contextlib.redirect_stdout(io.StringIO()):
             self._coco_api = COCO(json_file)
@@ -157,7 +159,7 @@ class COCOEvaluator(DatasetEvaluator):
         if self._is_splits:
             self._results["bbox"] = {}
             for split, classes, names in [
-                    ("all", None, self._metadata.get("thing_classes")),
+                    ("all", self._all_class_ids, self._metadata.get("thing_classes")),
                     ("base", self._base_class_ids, self._metadata.get("base_classes")),
                     ("novel", self._novel_class_ids, self._metadata.get("novel_classes"))]:
                 if "all" not in self._dataset_name and \
