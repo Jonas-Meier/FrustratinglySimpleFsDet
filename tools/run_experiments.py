@@ -23,6 +23,10 @@ def parse_args():
                         help='Use regular fc classifier or cosine classifier')
     parser.add_argument('--tfa', action='store_true',
                         help='Two-stage fine-tuning')
+    parser.add_argument('--discard-base-weights', action='store_false', dest='keep_base_weights', default=True,
+                        help='Specify to discard the base class predictor weights, obtained from base training.')
+    parser.add_argument('--discard-bg-weights', action='store_false', dest='keep_background_weights', default=True,
+                        help='Specify to discard the weights of the background class, obtained from base training.')
     parser.add_argument('--unfreeze', action='store_true',
                         help='Unfreeze feature extractor (backbone + proposal generator + roi-head)')
     parser.add_argument('--unfreeze-backbone', action='store_true', dest='unfreeze_backbone',
@@ -220,20 +224,24 @@ def run_test(config_file, config):
         run_cmd(test_cmd)
 
 
-def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None, double_head=False):
+def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
+                     double_head=False, keep_base_weights=True, keep_bg_weights=True):
     assert method in ['randinit', 'remove', 'combine'], 'Wrong method: {}'.format(method)
     if double_head:
         assert method == 'randinit', "Currently, double head is just supported together with 'combine' surgery!"
     src2_str = ''
     double_head_str = ' --double-head' if double_head else ''
+    keep_weights_str = ''
+    keep_weights_str = keep_weights_str + ' --discard-base-weights' if not keep_base_weights else keep_weights_str
+    keep_weights_str = keep_weights_str + ' --discard-bg-weights' if not keep_bg_weights else keep_weights_str
     if method == 'combine':
         assert src2 is not None, 'Need a second source for surgery method \'combine\'!'
-        src2_str = '--src2 {}'.format(src2)
+        src2_str = ' --src2 {}'.format(src2)
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
     command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {} {} {}'\
+              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {}{}{}{}'\
         .format(args.num_threads, comma_sep(args.gpu_ids), base_command,
-                dataset, class_split, method, src1, save_dir, src2_str, double_head_str)
+                dataset, class_split, method, src1, save_dir, src2_str, double_head_str, keep_weights_str)
     run_cmd(command)
 
 
@@ -454,7 +462,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         # surgery model does not exist, so we have to do a surgery!
         run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
                          src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir,
-                         double_head=args.double_head)
+                         double_head=args.double_head, keep_base_weights=args.keep_base_weights,
+                         keep_bg_weights=args.keep_background_weights)
         assert os.path.exists(surgery_ckpt)
         print("Finished creating surgery checkpoint {}".format(surgery_ckpt))
     else:

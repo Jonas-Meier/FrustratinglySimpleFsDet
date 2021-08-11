@@ -20,6 +20,8 @@ def main():
     ckpt_interval = -1  # interval to create checkpoints
     classifier = 'fc'  # fc, cosine
     tfa = False  # False: randinit surgery
+    keep_base_weights = True  # keep predictor weights of base classes. Default: True
+    keep_bg_weights = True  # keep predictor weights for background class. Default: True
     # experimental: different heads for base classes and novel classes. Only works with 'randinit' surgery (tfa==False)
     double_head = False  # TODO: set 'override_surgery' if 'double_head' == True?
     # Unfreeze settings. 'unfreeze' setting combines the three single settings.
@@ -33,7 +35,7 @@ def main():
     unfreeze_roi_box_head_convs = []  # []: we have no box head conv layers!
     unfreeze_roi_box_head_fcs = []  # [2]: unfreeze the second of both fc layers (1024x1024)
     # Override existing config, force re-creation of surgery checkpoint
-    resume = False
+    resume = False  # TODO: not yet fully supported!
     override_config = True
     override_surgery = True
     if resume:
@@ -45,22 +47,25 @@ def main():
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, max_iter,
-                    lr_decay_steps, ckpt_interval, explicit_seeds, double_head, tfa, unfreeze,
-                    unfreeze_backbone, unfreeze_proposal_generator,  unfreeze_roi_box_head_convs,
-                    unfreeze_roi_box_head_fcs, classifier, override_config, override_surgery,
-                    resume)
+                    lr_decay_steps, ckpt_interval, explicit_seeds, double_head,
+                    keep_base_weights, keep_bg_weights, tfa, unfreeze, unfreeze_backbone,
+                    unfreeze_proposal_generator,  unfreeze_roi_box_head_convs, unfreeze_roi_box_head_fcs,
+                    classifier, override_config, override_surgery, resume)
 
 
 def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, max_iter=-1,
-                    lr_decay_steps=[-1], ckpt_interval=-1, explicit_seeds=False, double_head=False, tfa=False, unfreeze=False,
-                    unfreeze_backbone=False, unfreeze_proposal_generator=False, unfreeze_roi_box_head_convs=[],
-                    unfreeze_roi_box_head_fcs=[], classifier='fc', override_config=False, override_surgery=False,
-                    resume=False):
+                    lr_decay_steps=[-1], ckpt_interval=-1, explicit_seeds=False, double_head=False,
+                    keep_base_weights=True, keep_bg_weights=True, tfa=False, unfreeze=False, unfreeze_backbone=False,
+                    unfreeze_proposal_generator=False, unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[],
+                    classifier='fc', override_config=False, override_surgery=False, resume=False):
     base_cmd = "python3 -m tools.run_experiments"
     explicit_seeds_str = ' --explicit-seeds' if explicit_seeds else ''
     surgery_str = ''  # combine different surgery settings to spare some space
     surgery_str = surgery_str + ' --tfa' if tfa else surgery_str
     surgery_str = surgery_str + ' --double-head' if double_head else surgery_str
+    keep_weights_str = ''
+    keep_weights_str = keep_weights_str + ' --discard-base-weights' if not keep_base_weights else keep_weights_str
+    keep_weights_str = keep_weights_str + ' --discard-bg-weights' if not keep_bg_weights else keep_weights_str
     unfreeze_str = ''
     unfreeze_str = unfreeze_str + ' --unfreeze' if unfreeze else unfreeze_str
     unfreeze_str = unfreeze_str + ' --unfreeze-backbone' if unfreeze_backbone else unfreeze_str
@@ -73,10 +78,11 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     override_surgery_str = ' --override-surgery' if override_surgery else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {}  --gpu-ids {} " \
           "--num-threads {} --layers {} --bs {} --lr {} --max-iter {} --lr-decay-steps {}  --ckpt-interval {} " \
-          "--classifier {}{}{}{}{}{}"\
+          "--classifier {}{}{}{}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ' '),
                 num_threads, layers, bs, lr, max_iter, separate(lr_decay_steps, ' '), ckpt_interval,
-                classifier, surgery_str, unfreeze_str, override_config_str, override_surgery_str, explicit_seeds_str)
+                classifier, surgery_str, keep_weights_str, unfreeze_str, override_config_str, override_surgery_str,
+                explicit_seeds_str)
     os.system(cmd)
 
 

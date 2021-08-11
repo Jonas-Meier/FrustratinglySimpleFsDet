@@ -26,6 +26,10 @@ def parse_args():
                              'novel dataset, remove the final layer of the '
                              'base detector. randinit = randomly initialize '
                              'novel weights.')
+    parser.add_argument('--discard-base-weights', action='store_false', dest='keep_base_weights', default=True,
+                        help='Specify to discard the base class predictor weights, obtained from base training.')
+    parser.add_argument('--discard-bg-weights', action='store_false', dest='keep_background_weights', default=True,
+                        help='Specify to discard the weights of the background class, obtained from base training.')
     # Targets
     parser.add_argument('--param-name', type=str, nargs='+',
                         default=['roi_heads.box_predictor.cls_score',
@@ -65,20 +69,27 @@ def ckpt_surgery(args):
         if is_weight:
             feat_size = pretrained_weight.size(1)
             new_weight = torch.rand((tar_size, feat_size))
-            torch.nn.init.normal_(new_weight, 0, 0.01)
+            # Init with 0.01 for cls and 0.001 for bbox (see fast_rcnn:FastRCNNOutputLayers (l.358))
+            if 'cls_score' in param_name:
+                assert 'bbox_pred' not in param_name
+                torch.nn.init.normal_(new_weight, 0, 0.01)
+            else:
+                assert 'bbox_pred' in param_name
+                torch.nn.init.normal_(new_weight, 0, 0.001)
         else:
             new_weight = torch.zeros(tar_size)
         if args.dataset == 'voc':
             new_weight[:prev_cls] = pretrained_weight[:prev_cls]
         else:  # coco, lvis, isaid, etc. (all datasets with idmaps)
-            for i, c in enumerate(BASE_CLASS_IDS):
-                idx = c if args.dataset == 'lvis' else i
-                if 'cls_score' in param_name:
-                    new_weight[ALL_CLASS_ID_TO_IND[c]] = pretrained_weight[idx]
-                else:
-                    new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
-                        pretrained_weight[idx*4:(idx+1)*4]
-        if 'cls_score' in param_name:
+            if args.keep_base_weights:
+                for i, c in enumerate(BASE_CLASS_IDS):
+                    idx = c if args.dataset == 'lvis' else i
+                    if 'cls_score' in param_name:
+                        new_weight[ALL_CLASS_ID_TO_IND[c]] = pretrained_weight[idx]
+                    else:
+                        new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
+                            pretrained_weight[idx*4:(idx+1)*4]
+        if 'cls_score' in param_name and args.keep_background_weights:
             new_weight[-1] = pretrained_weight[-1]  # bg class
         ckpt['model'][weight_name] = new_weight
 
@@ -103,7 +114,13 @@ def ckpt_surgery(args):
             # old base class predictor's feature size should be the same size we want for novel class predictor as well
             feat_size = pretrained_weight.size(1)
             novel_weights = torch.rand((novel_tar_size, feat_size))
-            torch.nn.init.normal_(novel_weights, 0, 0.01)
+            # Init with 0.01 for cls and 0.001 for bbox (see fast_rcnn:FastRCNNOutputLayers (l.358))
+            if 'cls_score' in param_name:
+                assert 'bbox_pred' not in param_name
+                torch.nn.init.normal_(novel_weights, 0, 0.01)
+            else:
+                assert 'bbox_pred' in param_name
+                torch.nn.init.normal_(novel_weights, 0, 0.001)
         else:
             novel_weights = torch.zeros(novel_tar_size)
         assert args.dataset not in ['voc', 'lvis'], \
