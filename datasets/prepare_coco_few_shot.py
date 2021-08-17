@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import random
+import shutil
 import time
 
 import sys
@@ -82,6 +83,17 @@ def generate_seeds(args):
         seeds = range(args.seeds[0], args.seeds[1] + 1)
     for i in seeds:
         print("Generating seed {}".format(i))
+        save_dir = os.path.join(
+            cfg.DATA_SAVE_PATH_PATTERN[args.dataset].format(args.class_split),
+            'seed{}'.format(i)
+        )
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        else:
+            print("Cleaning save path directory '{}'".format(save_dir))
+            shutil.rmtree(save_dir)
+            os.mkdir(save_dir)
+
         for cat_name in all_classes:
             print("Generating data for class {}".format(cat_name))
             img_id_to_annos = {}
@@ -147,9 +159,11 @@ def generate_seeds(args):
                 new_data['images'] = sample_imgs
                 new_data['annotations'] = sample_annos
                 new_data['categories'] = new_all_cats
+
                 # Note: even if we sample more annotations for base classes we use the original 'shots' in the file
                 # name for clarity!
-                save_path = get_save_path_seeds(data_path, cat_name, shots, i)
+                save_file = 'full_box_{}shot_{}_{}.json'.format(cat_name, shots, cfg.TRAIN_SPLIT[args.dataset])
+                save_path = os.path.join(save_dir, save_file)
                 with open(save_path, 'w') as f:
                     # json.dump(new_data, f)
                     json.dump(new_data, f, indent=2)  # Easier to check files manually
@@ -157,16 +171,6 @@ def generate_seeds(args):
     m, s = divmod(int(end-start), 60)
     print("Created few-shot data for {} shots and {} seeds in {}m {}s"
           .format(len(args.shots), len(seeds), m, s))
-
-
-def get_save_path_seeds(path, cls, shots, seed):
-    s = path.split('/')
-    train_name = cfg.TRAIN_SPLIT[args.dataset]
-    prefix = 'full_box_{}shot_{}_{}'.format(shots, cls, train_name)
-    save_dir = os.path.join(cfg.DATA_SAVE_PATH_PATTERN[args.dataset].format(args.class_split), 'seed{}'.format(seed))
-    os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, prefix + '.json')
-    return save_path
 
 
 if __name__ == '__main__':

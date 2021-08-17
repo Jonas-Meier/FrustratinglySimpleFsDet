@@ -127,6 +127,35 @@ def load_cocolike_json(dataset, json_file, image_root, metadata, dataset_name):
         cls_ind_anno_count = {}  # class index to amount of annotations
         split_dir = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
         split_dir = os.path.join(split_dir, 'seed{}'.format(seed))
+        if os.path.exists(os.path.join(split_dir, "full_box_{}shot_{}.json".format(shot, train_name))):
+            json_file = os.path.join(split_dir, "full_box_{}shot_{}.json".format(shot, train_name))
+            json_file = PathManager.get_local_path(json_file)
+            with contextlib.redirect_stdout(io.StringIO()):
+                coco_api = COCO(json_file)
+            img_ids = sorted(list(coco_api.imgs.keys()))
+            imgs = coco_api.loadImgs(img_ids)
+            anns = [coco_api.imgToAnns[img_id] for img_id in img_ids]
+            fileids_ = list(zip(imgs, anns))
+            for (img_dict, anno_dict_list) in fileids_:
+                record = {}
+                record["file_name"] = os.path.join(
+                    image_root, img_dict["file_name"]
+                )
+                record["height"] = img_dict["height"]
+                record["width"] = img_dict["width"]
+                image_id = record["image_id"] = img_dict["id"]
+                objs = []
+                for anno in anno_dict_list:
+                    assert anno["image_id"] == image_id
+                    assert anno.get("ignore", 0) == 0
+                    obj = {key: anno[key] for key in ann_keys if key in anno}
+                    obj["bbox_mode"] = BoxMode.XYWH_ABS
+                    if obj["category_id"] in id_map:
+                        obj["category_id"] = id_map[obj["category_id"]]
+                        objs.append(obj)
+                record["annotations"] = objs
+                dataset_dicts.append(record)
+            return dataset_dicts
         for idx, cls in enumerate(metadata["thing_classes"]):
             json_file = os.path.join(split_dir, "full_box_{}shot_{}_{}.json".format(shot, cls, train_name))
             json_file = PathManager.get_local_path(json_file)
