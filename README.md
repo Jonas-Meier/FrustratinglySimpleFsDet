@@ -87,6 +87,8 @@ See [here](datasets/README.md#few-shot-datasets) for more information on few-sho
 
 Download the [dataset split files](http://dl.yf.io/fs-det/datasets/cocosplit/datasplit/) and put them into `datasetsplit` directory.
 
+To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
+
 Create few-shot data, e.g. for coco voc_nonvoc split with 10 shots and five seed groups:
 ``` bash
 python3 -m datasets.prepare_coco_few_shot --dataset coco --class-split voc_nonvoc --shots 10 --seeds 0 4
@@ -126,7 +128,7 @@ Note: You can also download the ImageNet pretrained backbones [ResNet-50](https:
 
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
 
-Note: The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new trainign is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both script can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+Note: The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new trainign is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
 
 ### Pre-trained Models
 Benchmark results and pretrained models are available [here](docs/MODEL_ZOO.md). More models and configs are available [here](fsdet/model_zoo/model_zoo.py)
@@ -147,6 +149,13 @@ Following arguments are supported:
 * --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
 
 ### Fine-Tuning
+Before you start the fine-tuning, make sure the configs in `fsdet/config/defaults.py` are set as you want:
+* `FT_ANNOS_PER_IMAGE`: Either use `all` annotations of an image directly, oder use only `one` annotation per image (the latter causes the same image to be duplicated, adding just one annotation to each duplicate). We recommend using the strategy `all`.
+* `VALID_FEW_SHOTS`: The shots you want to examine have to be present here.
+* `MAX_SEED_VALUE`: Adjust to be at least as large as the largest seed you use to creata few-shot data with.
+* `BASE_SHOT_MULTIPLIER`: Has to match the multiplier that was used to create few-shot data with.
+* `NOVEL_OVERSAMPLING_FACTOR`: Use this factor (NOF) to re-balance the dataset for fine-tuning (e.g. if a `BASE_SHOT_MULTIPLIER` larger than 1 was used.
+
 Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting fine-tunings. The most important arguments are:
 * --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs and --override-config work the same way as for the base-training
 * --classfier: use regular `fc` or `cosine` classifier 
