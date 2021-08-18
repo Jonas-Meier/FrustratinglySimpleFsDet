@@ -106,11 +106,11 @@ In general, it's recommended to preprocess the dataset annotations to be in the 
     1. Add a case to the method `get_data_path`
     2. Add an entry to the choices of the `--dataset` argument
 3. For setting correct Meta Datasets and mappings to annotations:
-    1. In `fsdet/data/builtin_meta.py` adjust the method `_get_builtin_metadata` to add cases for `\<DATASET\>` and `\<DATASET\>_fewshot` with the approprite call of `_get_cocolike_instances_meta` and `_get_cocolike_fewshot_instances_meta`, respectively
+    1. In `fsdet/data/builtin_meta.py` adjust the method `_get_builtin_metadata` to add cases for `<DATASET>` and `<DATASET>_fewshot` with the approprite call of `_get_cocolike_instances_meta` and `_get_cocolike_fewshot_instances_meta`, respectively
     2. In `fsdet/data/builtin.py`, add a new register method and call that method at the bottom of the file
     3. In `fsdet/data/__init__.py`, import the newly created register method
 4. In the surgery (`tools/ckpt_surgery.py`):
-    1. Add a new case to the main entry point and set the following variables: `NOVEL_CLASSES`, `BASE_CLASSES`, `IDMAP` and `TAR_SIZE`
+    1. If your dataset is "coco-like", you may just add the dataset name to the first case of the main entry point (and the TOTAL_CLASSES dict - for sanity checks).
     2. Add the dataset to the choices of the `--dataset` argument
 5. For Training and Testing
     1. In `tools/test_net.py` and `tools/train_net.py`: add a case for the evaluator_type
