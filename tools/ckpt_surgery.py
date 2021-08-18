@@ -255,44 +255,25 @@ def reset_ckpt(ckpt):
 
 
 if __name__ == '__main__':
-    #
     args = parse_args()
     print("Called with args:")
     print(args)
-    # COCO
-    if args.dataset == 'coco':
-        # COCO
-        # NOVEL_CLASSES = [
-        #     1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67,
-        #     72,
-        # ]
-        # BASE_CLASSES = [
-        #     8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35,
-        #     36, 37, 38, 39, 40, 41, 42, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54,
-        #     55, 56, 57, 58, 59, 60, 61, 65, 70, 73, 74, 75, 76, 77, 78, 79, 80,
-        #     81, 82, 84, 85, 86, 87, 88, 89, 90,
-        # ]
-
-        # sort base classes and novel classes ids just in case!
+    # COCO-like datasets
+    if args.dataset in ['coco', 'isaid']:
+        # Total classes of this dataset, just used for sanity checks
+        TOTAL_CLASSES = {
+            'coco': 80,
+            'isaid': 15
+        }
+        # sorting of novel class ids not necessary, but sorting of base class ids and all class ids is important!
         NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
         BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
         ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
         ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
         TAR_SIZE = len(ALL_CLASS_IDS)
-        DATASET_CLASSES = 80  # total amount of classes in this dataset
-        if TAR_SIZE != DATASET_CLASSES:
-            print("Warning: Base and novel classes add up to {} of {} total classes!".format(TAR_SIZE, DATASET_CLASSES))
-            # assert DATASET_CLASSES == len(ALL_CLASSES), "Error in category definition!"
-    elif args.dataset == 'isaid':
-        NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
-        BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
-        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
-        ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
-        TAR_SIZE = len(ALL_CLASS_IDS)
-        DATASET_CLASSES = 15  # total amount of classes in this dataset
-        if TAR_SIZE != DATASET_CLASSES:
-            print("Warning: Base and novel classes add up to {} of {} total classes!".format(TAR_SIZE, DATASET_CLASSES))
-            # assert DATASET_CLASSES == len(ALL_CLASSES), "Error in category definition!"
+        if TAR_SIZE != TOTAL_CLASSES[args.dataset]:
+            print("Warning: Base and novel classes add up to just {} of {} total classes!"
+                  .format(TAR_SIZE, TOTAL_CLASSES[args.dataset]))
     elif args.dataset == 'lvis':
         # LVIS
         NOVEL_CLASS_IDS = [
