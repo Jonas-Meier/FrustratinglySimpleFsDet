@@ -110,12 +110,16 @@ In general, it's recommended to preprocess the dataset annotations to be in the 
     2. In `fsdet/data/builtin.py`, add a new register method and call that method at the bottom of the file
     3. In `fsdet/data/__init__.py`, import the newly created register method
 4. In the surgery (`tools/ckpt_surgery.py`):
-    1. If your dataset is "coco-like", you may just add the dataset name to the first case of the main entry point (and the TOTAL_CLASSES dict - for sanity checks).
+    1. If your dataset is "coco-like", you may just add the dataset name to the first case of the main entry point (and the `TOTAL_CLASSES` dict - for sanity checks).
     2. Add the dataset to the choices of the `--dataset` argument
 5. For Training and Testing
     1. In `tools/test_net.py` and `tools/train_net.py`: add a case for the evaluator_type
-    2. In `tools/run_base_training.py`: add the dataset to choices of `--dataset` argument, add dataset-specific constants in a case at the beginning of the `get_config` method, probably adjust base training config pattern and folder structures for configs and checkpoints
+    2. In `tools/run_base_training.py`: add the dataset to choices of `--dataset` argument, add dataset-specific constants in a case at the beginning of the `get_config` method, probably adjust base training config patterns and folder structures for configs and checkpoints
     3. In `tools/run_experiments.py`: probably need to adjust config patterns and folder structures for configs and checkpoints as well.
+6. Define class splits for the new dataset (in `class_splits.py`)
+    1. Add mappings of id to category name (`<DATASET>_CATS_ID_TO_NAME`) and the inverse mapping (`<DATASET>_CATS_NAME_TO_ID`)
+    2. Add an entry to the `ALL_CLASSES` dictionary
+    3. Add your class splits to `CLASS_SPLITS[<DATASET>]`
 
 ## Training
 Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every training you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
