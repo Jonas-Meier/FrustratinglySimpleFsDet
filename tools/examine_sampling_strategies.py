@@ -38,12 +38,13 @@ def main():
     # Valid strategies: 'one', 'any', 'all_or_none', 'all_per_class_or_none'
     shots = 100
     # Sample images with many and few annotations per image (fix strategy: 'all_or_none')
-    _sample_high_annotation_ratio_per_image_and_export(shots=shots, pool_size=10000, seed_range=[0, 2], anno_count_min=None)
-    _sample_low_annotation_ratio_per_image_and_export(shots=shots, pool_size=10000, seed_range=[3, 5], anno_count_max=None)
+    _sample_high_annotation_ratio_per_image_and_export(shots=shots, pool_size=1000, seed_range=[0, 4], anno_count_min=None)
+    _sample_low_annotation_ratio_per_image_and_export(shots=shots, pool_size=1000, seed_range=[5, 9], anno_count_max=None)
     # For comparison, sample data with two different sampling strategies
-    _sample_and_export(strategy='one', shots=shots, seed_range=[6, 8])
-    _sample_and_export(strategy='any', shots=shots, seed_range=[9, 11])
-    _sample_and_export(strategy='all_per_class_or_none', shots=shots, seed_range=[12, 14])
+    _sample_and_export(strategy='one', shots=shots, seed_range=[10, 14])
+    _sample_and_export(strategy='any', shots=shots, seed_range=[15, 19])
+    _sample_and_export(strategy='all_per_class_or_none', shots=shots, seed_range=[20, 24])
+    #_get_image_count(anno_count_min=10, anno_count_max=50)
 
 
 def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=10000, seed_range=[0, 4],
@@ -62,12 +63,21 @@ def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=1000
                             anno_count_min=anno_count_min, anno_count_max=None)
         samples.append((imgs, anns))
     end = time.time()
-    samples.sort(key=lambda i: len(i[0]))
-    samples = samples[:top_k]
-    print("Top {} samples (out of a pool with {} samples) with most annotations per image (ran in {}m {}s):"
+
+    topk_imgs_samples = _get_topk_samples(samples, top_k, 'no_imgs')
+    topk_anns_samples = _get_topk_samples(samples, top_k, 'no_anns', reverse=True)
+    topk_ratio_samples = _get_topk_samples(samples, top_k, 'ratio_ann_img', reverse=True)
+
+    print("Top {} samples out of a pool with {} samples (ran in {}m {}s)"
           .format(top_k, pool_size, *divmod(int(end-start), 60)))
-    for seed, (imgs, anns) in zip(seed_range, samples):
-        print("#imgs: {}, #anns: {}".format(len(imgs), len(anns)))
+    print("With fewest images \t With most annotations \t With most annotations per image")
+    for seed, (imgs_topk_imgs, anns_topk_imgs), (imgs_topk_anns, anns_topk_anns), (imgs_topk_ratio, anns_topk_ratio) \
+            in zip(seed_range, topk_imgs_samples, topk_anns_samples, topk_ratio_samples):
+        print("#imgs: {}, #anns: {} \t #imgs: {}, #anns: {} \t #imgs: {}, #anns: {}"
+              .format(len(imgs_topk_imgs), len(anns_topk_imgs),
+                      len(imgs_topk_anns), len(anns_topk_anns),
+                      len(imgs_topk_ratio), len(anns_topk_ratio)))
+        imgs, anns = imgs_topk_imgs, anns_topk_imgs
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
 
 
@@ -87,12 +97,20 @@ def _sample_low_annotation_ratio_per_image_and_export(shots=100, pool_size=10000
                             anno_count_min=None, anno_count_max=anno_count_max)
         samples.append((imgs, anns))
     end = time.time()
-    samples.sort(key=lambda i: len(i[0]), reverse=True)
-    samples = samples[:top_k]
-    print("Top {} samples (out of a pool with {} samples) with fewest annotations per image (ran in {}m {}s):"
-          .format(top_k, pool_size, *divmod(int(end-start), 60)))
-    for seed, (imgs, anns) in zip(seed_range, samples):
-        print("#imgs: {}, #anns: {}".format(len(imgs), len(anns)))
+    topk_imgs_samples = _get_topk_samples(samples, top_k, 'no_imgs', reverse=True)
+    topk_anns_samples = _get_topk_samples(samples, top_k, 'no_anns', reverse=True)
+    topk_ratio_samples = _get_topk_samples(samples, top_k, 'ratio_ann_img')
+
+    print("Top {} samples out of a pool with {} samples (ran in {}m {}s)"
+          .format(top_k, pool_size, *divmod(int(end - start), 60)))
+    print("With most images \t With most annotations \t With fewest annotations per image")
+    for seed, (imgs_topk_imgs, anns_topk_imgs), (imgs_topk_anns, anns_topk_anns), (imgs_topk_ratio, anns_topk_ratio) \
+            in zip(seed_range, topk_imgs_samples, topk_anns_samples, topk_ratio_samples):
+        print("#imgs: {}, #anns: {} \t #imgs: {}, #anns: {} \t #imgs: {}, #anns: {}"
+              .format(len(imgs_topk_imgs), len(anns_topk_imgs),
+                      len(imgs_topk_anns), len(anns_topk_anns),
+                      len(imgs_topk_ratio), len(anns_topk_ratio)))
+        imgs, anns = imgs_topk_imgs, anns_topk_imgs
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
 
 
@@ -214,6 +232,38 @@ def analyse_sample(images, annotations):
     print("Sampled {} images and {} annotations.".format(num_imgs, num_annos))
     print("Distribution of annotations over images: {}".format(img_id_to_ann_count))
     print("Distribution of annotations over classes: {}".format(class_name_to_ann_count))
+
+
+def _get_topk_samples(samples, top_k, sort_by, reverse=False):
+    # TODO: for first two 'sort_by' rules, add different behaviors on how to sort elements on its other value
+    #  (if two elements have the same first value!)?
+    #  -> could be realized by fist sorting for the second dimension, then sorting for the main main dimension
+    assert sort_by in ['no_imgs', 'no_anns', 'ratio_ann_img']
+    if sort_by == 'no_imgs':
+        samples.sort(key=lambda s: len(s[0]), reverse=reverse)
+    elif sort_by == 'no_anns':
+        samples.sort(key=lambda s: len(s[1]), reverse=reverse)
+    else:
+        samples.sort(key=lambda s: float(len(s[1]))/len(s[0]), reverse=reverse)
+    return samples[:top_k]
+
+
+def _get_image_count(anno_count_min=None, anno_count_max=None):
+    total_images = len(img_id_to_anns)
+    msg = "Total images: {}.".format(total_images)
+    if anno_count_min:
+        ctr = 0
+        for annos in img_id_to_anns.values():
+            if len(annos) >= anno_count_min:
+                ctr += 1
+        msg += " {} images with at least {} annotations.".format(ctr, anno_count_min)
+    if anno_count_max:
+        ctr = 0
+        for annos in img_id_to_anns.values():
+            if len(annos) <= anno_count_max:
+                ctr += 1
+        msg += " {} images with at most {} annotations.".format(ctr, anno_count_max)
+    print(msg)
 
 
 def _export_sample(images, annotations, file_dir, file_name, clear_dir=False):
