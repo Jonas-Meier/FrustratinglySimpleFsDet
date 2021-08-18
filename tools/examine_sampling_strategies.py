@@ -3,6 +3,8 @@ import os
 import random
 import shutil
 import time
+from multiprocessing import Pool
+import threading
 
 from class_splits import CLASS_SPLITS
 from fsdet.config.config import get_cfg
@@ -24,8 +26,6 @@ cfg = get_cfg()
 
 dataset = "isaid"
 class_split = "experiment3"
-anno_dir = cfg.TRAIN_ANNOS[dataset]
-save_dir_base_path = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
 
 base_class_names = tuple(CLASS_SPLITS[dataset][class_split]['base'])
 novel_class_names = tuple(CLASS_SPLITS[dataset][class_split]['novel'])
@@ -54,13 +54,16 @@ def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=1000
         seed_range = list(range(seed_range[0], seed_range[1] + 1))
     top_k = len(seed_range)
     samples = []
+    start = time.time()
     for _ in range(pool_size):
         imgs, anns = sample(strategy='all_or_none', shots=shots, shuffle=True, silent=True,
                             anno_count_min=anno_count_min, anno_count_max=None)
         samples.append((imgs, anns))
+    end = time.time()
     samples.sort(key=lambda i: len(i[0]))
     samples = samples[:top_k]
-    print("Top {} samples with most annotations per image:".format(top_k))
+    print("Top {} samples (out of a pool with {} samples) with most annotations per image (ran in {}m {}s):"
+          .format(top_k, pool_size, *divmod(int(end-start), 60)))
     for seed, (imgs, anns) in zip(seed_range, samples):
         print("#imgs: {}, #anns: {}".format(len(imgs), len(anns)))
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
@@ -76,13 +79,16 @@ def _sample_low_annotation_ratio_per_image_and_export(shots=100, pool_size=10000
         seed_range = list(range(seed_range[0], seed_range[1] + 1))
     top_k = len(seed_range)
     samples = []
+    start = time.time()
     for _ in range(pool_size):
         imgs, anns = sample(strategy='all_or_none', shots=shots, shuffle=True, silent=True,
                             anno_count_min=None, anno_count_max=anno_count_max)
         samples.append((imgs, anns))
+    end = time.time()
     samples.sort(key=lambda i: len(i[0]), reverse=True)
     samples = samples[:top_k]
-    print("Top {} samples with fewest annotations per image:".format(top_k))
+    print("Top {} samples (out of a pool with {} samples) with fewest annotations per image (ran in {}m {}s):"
+          .format(top_k, pool_size, *divmod(int(end-start), 60)))
     for seed, (imgs, anns) in zip(seed_range, samples):
         print("#imgs: {}, #anns: {}".format(len(imgs), len(anns)))
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
