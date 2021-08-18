@@ -77,7 +77,7 @@ def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=1000
               .format(len(imgs_topk_imgs), len(anns_topk_imgs),
                       len(imgs_topk_anns), len(anns_topk_anns),
                       len(imgs_topk_ratio), len(anns_topk_ratio)))
-        imgs, anns = imgs_topk_imgs, anns_topk_imgs
+        imgs, anns = imgs_topk_ratio, anns_topk_ratio
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
 
 
@@ -110,7 +110,7 @@ def _sample_low_annotation_ratio_per_image_and_export(shots=100, pool_size=10000
               .format(len(imgs_topk_imgs), len(anns_topk_imgs),
                       len(imgs_topk_anns), len(anns_topk_anns),
                       len(imgs_topk_ratio), len(anns_topk_ratio)))
-        imgs, anns = imgs_topk_imgs, anns_topk_imgs
+        imgs, anns = imgs_topk_ratio, anns_topk_ratio
         _export_sample(imgs, anns, file_dir=_get_file_dir(seed), file_name=_get_file_name(shots))
 
 
