@@ -26,6 +26,8 @@ cfg = get_cfg()
 
 dataset = "isaid"
 class_split = "experiment3"
+anno_dir = cfg.TRAIN_ANNOS[dataset]
+save_dir_base_path = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
 
 base_class_names = tuple(CLASS_SPLITS[dataset][class_split]['base'])
 novel_class_names = tuple(CLASS_SPLITS[dataset][class_split]['novel'])
