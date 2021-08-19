@@ -93,10 +93,6 @@ _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 # FREEZE Parameters
 _CC.MODEL.BACKBONE.FREEZE = False
 _CC.MODEL.PROPOSAL_GENERATOR.FREEZE = False
-# Deprecated: Use two configs below.
-#  False: Activates the two configs below
-#  True: overrides the two configs below, mainly for backward-compatibility of configs
-_CC.MODEL.ROI_HEADS.FREEZE_FEAT = False
 _CC.MODEL.ROI_BOX_HEAD.FREEZE_CONVS = []  # freeze bbox head conv layers with given id (starting by 1)
 _CC.MODEL.ROI_BOX_HEAD.FREEZE_FCS = []  # freeze bbox head fc layers with given id (starting by 1)
 # Multi-Head configs

@@ -60,19 +60,7 @@ class GeneralizedRCNN(nn.Module):
                 p.requires_grad = False
             print("froze proposal generator parameters")
 
-        if cfg.MODEL.ROI_HEADS.FREEZE_FEAT:
-            # keep this case for backwards-compatibility:
-            # In old version, 'ROI_BOX_HEAD.FREEZE_*'-configs did not exist:
-            #  base-training leaves all freeze configs at default values, which is no freezing at all
-            #  fine-tuning always uses MODEL.ROI_HEADS.FREEZE_FEAT=True which leads to freezing of all
-            #   roi box heads parameters
-            # In new version, 'ROI_HEADS.FREEZE_FEAT' is never used:
-            #  base-training also leaves freeze configs at default values which defaults to no freezing
-            #  fine-tuning sets 'ROI_BOX_HEAD'-configs and leaves 'ROI_HEADS.FREEZE_FEAT' at False
-            for p in self.roi_heads.box_head.parameters():
-                p.requires_grad = False
-            print("froze roi_box_head parameters")
-        elif cfg.MODEL.ROI_HEADS.NAME == 'StandardROIDoubleHeads' and \
+        if cfg.MODEL.ROI_HEADS.NAME == 'StandardROIDoubleHeads' and \
                 cfg.MODEL.ROI_BOX_HEAD.NAME == 'FastRCNNConvFCMultiHead':
             # Custom freezing options for fine-tuning of a model with two heads (first head for base-classes and second
             #  head for novel classes), where the first head and its fc layers will be completely frozen (even
@@ -95,9 +83,14 @@ class GeneralizedRCNN(nn.Module):
                         p.requires_grad = False
                     print("Froze parameters of roi_box_predictor_1 {} module".format(k))
         else:
-            # Freeze ROI BBOX Head Parameters
+            # Freeze (some) ROI BBOX Head Parameters
+            assert cfg.MODEL.ROI_HEADS.NAME == "StandardROIHeads" and \
+                   cfg.MODEL.ROI_BOX_HEAD.NAME == "FastRCNNConvFCHead", \
+                   "Error: Unknown combination of ROI_HEAD and ROI_BOX_HEAD! Please implement your own freezing " \
+                   "scheme for this combination!"
             name_to_module = {k: v for k, v in self.roi_heads.box_head.named_modules()}
-            # could also use self.roi_heads.box_head.conv_norm_relus but we think of this solution as being more secure
+            # Note: we could instead use self.roi_heads.box_head.{conv_norm_relus|fcs} to get the conv and fc layers of
+            # the BBOX Head, but we think of this solution as being more secure
             for conv_id in cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS:
                 assert 0 < conv_id <= len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS)
                 assert len(cfg.MODEL.ROI_BOX_HEAD.FREEZE_CONVS) <= cfg.MODEL.ROI_BOX_HEAD.NUM_CONV
