@@ -74,19 +74,19 @@ _CC.MAX_SEED_VALUE = 19  # Increase if necessary. Note that a large value will b
 
 
 # BASE_SHOT_MULTIPLIER is used for both, sampling data from original annotations and used by data preparation for
-#  training. It determines how much base-class annotations are sampled since their amount is often much higher than
-#  the shot parameter K.
+#  training. It determines how much base-class annotations are sampled since their amount in the training dataset is
+#  often much higher than the shot parameter K.
 # NOVEL_OVERSAMPLING_FACTOR is just used for data preparation for training. It determines how often the sampled images,
 #  containing K annotations, are duplicated, to allow for more balanced datasets if the BASE_SHOT_MULTIPLIER was used to
 #  sample more than K annotations for base classes.
-# Following combinations of values may used in the config, X, Y and K are integers > 0
+# Following combinations of values may be used in the config, X, Y and K are integers > 0
 #  (BASE_SHOT_MULTIPLIER | NOVEL_OVERSAMPLING_FACTOR -> base class data used | novel class data used)
 #  X  |  Y  ->  X * K   | Y * K
 #  X  | -1  ->  X * K   | X * K
 #  -1 |  Y  ->  all     | Y * K      (Note: base class data remains imbalanced!)
 #  -1 | -1  ->  all classes balanced to amount of class with most annotations
 _CC.BASE_SHOT_MULTIPLIER = 5  # default: 1, -1 for using all data
-_CC.NOVEL_OVERSAMPLING_FACTOR = 1  # default: 1, -1 for same amount as base classes
+_CC.NOVEL_OVERSAMPLING_FACTOR = -1  # default: 1, -1 for same amount as base classes
 
 _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 
