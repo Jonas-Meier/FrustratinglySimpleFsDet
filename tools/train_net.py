@@ -17,6 +17,7 @@ You may want to write your own script with your datasets and other customization
 from fsdet.config import get_cfg, set_global_cfg
 from fsdet.engine import DefaultTrainer, default_argument_parser, default_setup
 
+from fsdet.data.transforms.augmentations_impl import build_augmentation
 import detectron2.utils.comm as comm
 import os
 from detectron2.checkpoint import DetectionCheckpointer
@@ -67,6 +68,10 @@ class Trainer(DefaultTrainer):
         if len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
+
+    @classmethod
+    def build_augmentations(cls, cfg):
+        return [build_augmentation(aug, cfg) for aug in cfg.INPUT.AUGMENTATIONS]
 
 
 def setup(args):

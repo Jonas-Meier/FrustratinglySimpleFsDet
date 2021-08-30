@@ -13,6 +13,12 @@ def main():
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
     explicit_seeds = False  # set to True to specify the exact seeds to train, rather than a range of seeds
     layers = 50  # 50, 101
+    # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
+    #  Default: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"]
+    augmentations = [
+        "ResizeShortestEdgeLimitLongestEdge",
+        "RandomHFlip"
+    ]
     # Set following three variables to -1 for using default hard-coded value depending on dataset and shot
     max_iter = -1  # maximum iteration
     # Force no steps by using a single value greater than max_iter, behaviour of empty list is unknown!
@@ -46,15 +52,15 @@ def main():
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr, max_iter,
-                    lr_decay_steps, ckpt_interval, explicit_seeds, double_head,
+    run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, augmentations, bs, lr,
+                    max_iter, lr_decay_steps, ckpt_interval, explicit_seeds, double_head,
                     keep_base_weights, keep_bg_weights, tfa, unfreeze, unfreeze_backbone,
                     unfreeze_proposal_generator,  unfreeze_roi_box_head_convs, unfreeze_roi_box_head_fcs,
                     classifier, override_config, override_surgery, resume)
 
 
-def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, bs, lr=-1.0, max_iter=-1,
-                    lr_decay_steps=[-1], ckpt_interval=-1, explicit_seeds=False, double_head=False,
+def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0,
+                    max_iter=-1, lr_decay_steps=[-1], ckpt_interval=-1, explicit_seeds=False, double_head=False,
                     keep_base_weights=True, keep_bg_weights=True, tfa=False, unfreeze=False, unfreeze_backbone=False,
                     unfreeze_proposal_generator=False, unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[],
                     classifier='fc', override_config=False, override_surgery=False, resume=False):
@@ -77,12 +83,12 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     override_config_str = ' --override-config' if override_config else ''
     override_surgery_str = ' --override-surgery' if override_surgery else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {}  --gpu-ids {} " \
-          "--num-threads {} --layers {} --bs {} --lr {} --max-iter {} --lr-decay-steps {}  --ckpt-interval {} " \
-          "--classifier {}{}{}{}{}{}{}"\
+          "--num-threads {} --layers {} --augmentations {} --bs {} --lr {} --max-iter {} --lr-decay-steps {}  " \
+          "--ckpt-interval {} --classifier {}{}{}{}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ' '),
-                num_threads, layers, bs, lr, max_iter, separate(lr_decay_steps, ' '), ckpt_interval,
-                classifier, surgery_str, keep_weights_str, unfreeze_str, override_config_str, override_surgery_str,
-                explicit_seeds_str)
+                num_threads, layers, separate(augmentations, ' '), bs, lr, max_iter, separate(lr_decay_steps, ' '),
+                ckpt_interval, classifier, surgery_str, keep_weights_str, unfreeze_str, override_config_str,
+                override_surgery_str, explicit_seeds_str)
     os.system(cmd)
 
 

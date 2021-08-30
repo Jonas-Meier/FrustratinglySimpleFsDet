@@ -17,12 +17,14 @@ def parse_args():
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.02, help='Learning rate. Set to -1 for automatic linear scaling')
+    parser.add_argument('--augmentations', type=str, nargs='*',
+                        default=['ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip'],
+                        help='The augmentations to be used at base training.')
     # parser.add_argument('--ckpt-freq', type=int, default=10, help='Frequency of saving checkpoints')
     parser.add_argument('--override-config', default=False, action='store_true',
                         help='Override config file if it already exists')
     parser.add_argument('--num-threads', type=int, default=1)
     parser.add_argument('--root', type=str, default='./', help='Root of data')
-
     return parser.parse_args()
 
 
@@ -63,6 +65,7 @@ def get_empty_base_config():
             'WARMUP_ITERS': 1000  # default
         },
         'INPUT': {
+            'AUGMENTATIONS': [str],
             'MIN_SIZE_TRAIN': (int,)
         },
         'TEST': {
@@ -195,6 +198,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
+    new_config['INPUT']['AUGMENTATIONS'] = str(args.augmentations)
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])

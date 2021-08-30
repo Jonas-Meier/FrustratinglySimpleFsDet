@@ -90,6 +90,13 @@ _CC.NOVEL_OVERSAMPLING_FACTOR = -1  # default: 1, -1 for same amount as base cla
 
 _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 
+# Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
+#  Note: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"] equals the Detectron2 default
+_CC.INPUT.AUGMENTATIONS = [
+    "ResizeShortestEdgeLimitLongestEdge",
+    "RandomHFlip"
+]
+
 # FREEZE Parameters
 _CC.MODEL.BACKBONE.FREEZE = False
 _CC.MODEL.PROPOSAL_GENERATOR.FREEZE = False

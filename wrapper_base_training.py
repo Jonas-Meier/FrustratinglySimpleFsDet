@@ -10,6 +10,12 @@ def main():
     bs = 16
     lr = 0.02  # 0.02 for bs=16. Set to -1 for automatic linear scaling!
     layers = 50  # 50, 101
+    # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
+    #  Default: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"]
+    augmentations = [
+        "ResizeShortestEdgeLimitLongestEdge",
+        "RandomHFlip"
+    ]
     override_config = True
     if dataset == "coco":
         class_split = coco_class_split
@@ -17,14 +23,16 @@ def main():
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_base_training(dataset, class_split, gpu_ids, num_threads, layers, bs, lr, override_config)
+    run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr, override_config)
 
 
-def run_base_training(dataset, class_split, gpu_ids, num_threads, layers, bs, lr=-1.0, override_config=False):
+def run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0, override_config=False):
     base_cmd = "python3 -m tools.run_base_training"
     override_config_str = ' --override-config' if override_config else ''
-    cmd = "{} --dataset {} --class-split {} --gpu-ids {} --num-threads {} --layers {} --bs {} --lr {}{}"\
-        .format(base_cmd, dataset, class_split, separate(gpu_ids, ' '), num_threads, layers, bs, lr, override_config_str)
+    cmd = "{} --dataset {} --class-split {} --gpu-ids {} --num-threads {} --layers {} " \
+          "--augmentations {} --bs {} --lr {}{}"\
+        .format(base_cmd, dataset, class_split, separate(gpu_ids, ' '), num_threads, layers,
+                separate(augmentations, ' '), bs, lr, override_config_str)
     os.system(cmd)
 
 

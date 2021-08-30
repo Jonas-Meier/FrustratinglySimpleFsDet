@@ -29,6 +29,7 @@ from detectron2.data import (
     MetadataCatalog,
     build_detection_test_loader,
     build_detection_train_loader,
+    DatasetMapper,
 )
 from detectron2.engine import hooks, SimpleTrainer
 from detectron2.solver import build_lr_scheduler, build_optimizer
@@ -305,7 +306,8 @@ class DefaultTrainer(SimpleTrainer):
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
         optimizer = self.build_optimizer(cfg, model)
-        data_loader = self.build_train_loader(cfg)
+        augmentations = self.build_augmentations(cfg)
+        data_loader = self.build_train_loader(cfg, augmentations=augmentations)
 
         # For training, wrap with DDP. But don't need this for inference.
         if comm.get_world_size() > 1:
@@ -483,7 +485,11 @@ class DefaultTrainer(SimpleTrainer):
         return build_lr_scheduler(cfg, optimizer)
 
     @classmethod
-    def build_train_loader(cls, cfg):
+    def build_augmentations(cls, cfg):
+        raise NotImplementedError
+
+    @classmethod
+    def build_train_loader(cls, cfg, augmentations=None):
         """
         Returns:
             iterable
@@ -491,7 +497,11 @@ class DefaultTrainer(SimpleTrainer):
         It now calls :func:`fsdet.data.build_detection_train_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        return build_detection_train_loader(cfg)
+        if augmentations is not None:
+            dataset_mapper = DatasetMapper(is_train=True, image_format=cfg.INPUT.FORMAT, augmentations=augmentations)
+        else:
+            dataset_mapper = None
+        return build_detection_train_loader(cfg, mapper=dataset_mapper)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):

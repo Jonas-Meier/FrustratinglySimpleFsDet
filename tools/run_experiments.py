@@ -60,6 +60,9 @@ def parse_args():
                         help='Specify a list of explicit seeds, rather than a range of seeds.')
     parser.add_argument('--bs', type=int, default=16, help='Total batch size, not per GPU!')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate. Set to -1 for automatic linear scaling')
+    parser.add_argument('--augmentations', type=str, nargs='*',
+                        default=['ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip'],
+                        help='The augmentations to be used at base training.')
     # Workflow settings
     parser.add_argument('--override-config', default=False, action='store_true',
                         help='Override config file if it already exists')
@@ -79,8 +82,7 @@ def parse_args():
     # PASCAL arguments
     parser.add_argument('--split', '-s', type=int, default=1, help='Data split')
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_empty_ft_config():
@@ -134,6 +136,7 @@ def get_empty_ft_config():
             'WARMUP_ITERS': int
         },
         'INPUT': {
+            'AUGMENTATIONS': [str],
             'MIN_SIZE_TRAIN': (int,)
         },
         'TEST': {
@@ -548,6 +551,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['SOLVER']['MAX_ITER'] = max_iter
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = ckpt_interval  # ITERS[shot][0] // args.ckpt_freq
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
+    new_config['INPUT']['AUGMENTATIONS'] = str(args.augmentations)
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
 
