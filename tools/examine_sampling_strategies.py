@@ -33,9 +33,13 @@ base_class_names = tuple(CLASS_SPLITS[dataset][class_split]['base'])
 novel_class_names = tuple(CLASS_SPLITS[dataset][class_split]['novel'])
 all_class_names = tuple(base_class_names + novel_class_names)
 
+force_override = False  # Force overriding of already existing datasets
+
 
 def main():
     # Valid strategies: 'one', 'any', 'all_or_none', 'all_per_class_or_none'
+    if force_override:
+        print("Warning: Overriding of already existing datasets is activated!")
     shots = 100
     # Sample images with many and few annotations per image (fix strategy: 'all_or_none')
     _sample_high_annotation_ratio_per_image_and_export(shots=shots, pool_size=1000, seed_range=[0, 4], anno_count_min=None)
@@ -45,6 +49,8 @@ def main():
     _sample_and_export(strategy='any', shots=shots, seed_range=[15, 19])
     _sample_and_export(strategy='all_per_class_or_none', shots=shots, seed_range=[20, 24])
     #_get_image_count(anno_count_min=10, anno_count_max=50)
+    #data = _read_sample(seed=0, shots=shots)
+    #analyse_sample(data["images"], data["annotations"])
 
 
 def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=10000, seed_range=[0, 4],
@@ -266,7 +272,14 @@ def _get_image_count(anno_count_min=None, anno_count_max=None):
     print(msg)
 
 
-def _export_sample(images, annotations, file_dir, file_name, clear_dir=False):
+def _read_sample(seed, shots):
+    path = os.path.join(_get_file_dir(seed), _get_file_name(shots))
+    with open(path, 'r') as f:
+        data = json.load(f)
+    return data
+
+
+def _export_sample(images, annotations, file_dir, file_name, clear_dir=force_override):
     new_data = data.copy()
     new_data['images'] = images
     new_data['annotations'] = annotations
