@@ -102,26 +102,28 @@ Following arguments are accepted by `prepare_coco_few_shot.py`:
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
 ## Custom Dataset
-In general, it's recommended to preprocess the dataset annotations to be in the same format as the MS-COCO dataset, since those restrictions allow for re-using existant code fragments. For that reason, we further assume that the dataset is already in a coco-like format.
-1. For the new dataset, add entries to following config dictionaries of `fsdet/config/defaults.py`: `DATA_DIR`, `DATA_SAVE_PATH_PATTERN`, `CONFIG_DIR_PATTERN`, `CONFIG_CKPT_DIR_PATTERN`, `TRAIN_SPLIT`, `TEST_SPLIT`, `TRAIN_IMG_DIR`, `TEST_IMG_DIR`, `TRAIN_ANNOS` and `TEST_ANNOS`
-2. For dataset preparation, at `datasets/prepare_coco_few_shot.py`, for the new dataset:
-    1. Add a case to the method `get_data_path`
-    2. Add an entry to the choices of the `--dataset` argument
-3. For setting correct Meta Datasets and mappings to annotations:
-    1. In `fsdet/data/builtin_meta.py` adjust the method `_get_builtin_metadata` to add cases for `<DATASET>` and `<DATASET>_fewshot` with the approprite call of `_get_cocolike_instances_meta` and `_get_cocolike_fewshot_instances_meta`, respectively
-    2. In `fsdet/data/builtin.py`, add a new register method and call that method at the bottom of the file
-    3. In `fsdet/data/__init__.py`, import the newly created register method
-4. In the surgery (`tools/ckpt_surgery.py`):
-    1. If your dataset is "coco-like", you may just add the dataset name to the first case of the main entry point (and the `TOTAL_CLASSES` dict - for sanity checks).
-    2. Add the dataset to the choices of the `--dataset` argument
-5. For Training and Testing
-    1. In `tools/test_net.py` and `tools/train_net.py`: add a case for the evaluator_type
-    2. In `tools/run_base_training.py`: add the dataset to choices of `--dataset` argument, add dataset-specific constants in a case at the beginning of the `get_config` method, probably adjust base training config patterns and folder structures for configs and checkpoints
-    3. In `tools/run_experiments.py`: probably need to adjust config patterns and folder structures for configs and checkpoints as well.
-6. Define class splits for the new dataset (in `class_splits.py`)
+In general, it's recommended to preprocess the dataset's annotations to be in the same format as the MS-COCO dataset, since those restrictions allow for re-using existant code fragments. 
+Following adaptions have to be made for each new dataset:
+1. For the new dataset: 
+    1. Add the dataset to the list of `DATASETS.SUPPORTED_DATASETS` and add it to `DATASETS.COCOLIKE_DATASETS` if it has coco-like annotations.
+    2. Add entries to following config dictionaries of `fsdet/config/defaults.py`: `DATA_DIR`, `DATA_SAVE_PATH_PATTERN`, `CONFIG_DIR_PATTERN`, `CONFIG_CKPT_DIR_PATTERN`, `TRAIN_SPLIT`, `TEST_SPLIT`, `TRAIN_IMG_DIR`, `TEST_IMG_DIR`, `TRAIN_ANNOS` and `TEST_ANNOS`. 
+2. For Training and Testing (`tools/run_base_training.py` and `tools/run_experiments.py`):
+    1. Probably adjust the config patterns if necessary
+    2. Set dataset-specific constants in a case at the beginning of the `get_config` method
+    3. Probably override configs dependent on the dataset, at the end of the `get_config` method
+3. Define class splits for the new dataset (in `class_splits.py`)
     1. Add mappings of id to category name (`<DATASET>_CATS_ID_TO_NAME`) and the inverse mapping (`<DATASET>_CATS_NAME_TO_ID`)
     2. Add an entry to the `ALL_CLASSES` dictionary
     3. Add your class splits to `CLASS_SPLITS[<DATASET>]`
+    4. Add a case for the new dataset in the methods `get_ids_from_names` and `get_names_from_ids`
+
+Following additional adaptions have to be made, if the datasets' annotations are NOT in a coco-like format (Note: this list is not necessarily complete!):
+1. For setting correct Meta Datasets and mappings to annotations:
+    1. In `fsdet/data/builtin_meta.py` adjust the method `_get_builtin_metadata` to add cases for `<DATASET>` and `<DATASET>_fewshot` with the approprite call of methods to create necessary metadata for that dataset
+    2. In `fsdet/data/builtin.py`, add a new register method and call that method at the bottom of the file
+    3. In `fsdet/data/__init__.py`, import the newly created register method
+2. For Training and Testing
+    1. In `tools/test_net.py` and `tools/train_net.py`: add a case for the evaluator_type
 
 ## Training
 Note: You can also download the ImageNet pretrained backbones [ResNet-50](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl), [ResNet-101](https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-101.pkl) before starting to train, so it doesn't have to be downloaded prior to every training you start. You can put it into a directory `<FSDET_ROOT>/pretrained` and then adjust the `WEIGHTS`-parameter in the training configs.
