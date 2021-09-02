@@ -47,13 +47,10 @@ class Trainer(DefaultTrainer):
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
         evaluator_list = []
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
-        if evaluator_type == "coco":
+        if evaluator_type in cfg.DATASETS.COCOLIKE_DATASETS:
+            dataset = MetadataCatalog.get(dataset_name).dataset
             evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='coco', file_suffix=file_suffix)
-            )
-        if evaluator_type == "isaid":
-            evaluator_list.append(
-                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset='isaid', file_suffix=file_suffix)
+                COCOEvaluator(dataset_name, cfg, True, output_folder, dataset=dataset, file_suffix=file_suffix)
             )
         if evaluator_type == "pascal_voc":
             return PascalVOCDetectionEvaluator(dataset_name)

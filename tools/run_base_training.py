@@ -11,7 +11,7 @@ cfg = get_cfg()
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
+    parser.add_argument('--dataset', type=str, required=True, choices=cfg.DATASETS.SUPPORTED_DATASETS)
     parser.add_argument('--class-split', type=str, required=True)
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
     parser.add_argument('--layers', type=int, default=50, choices=[50, 101], help='Layers of ResNet backbone')

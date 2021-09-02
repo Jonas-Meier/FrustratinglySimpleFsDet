@@ -75,15 +75,12 @@ _PREDEFINED_SPLITS_COCO["coco"] = {
 }
 
 
-def register_all_coco():
-    register_all_cocolike('coco')
+def register_all_cocolike():
+    for dataset in cfg.DATASETS.COCOLIKE_DATASETS:
+        register_cocolike(dataset)
 
 
-def register_all_isaid():
-    register_all_cocolike('isaid')
-
-
-def register_all_cocolike(dataset):
+def register_cocolike(dataset):
     # get the configs
     train_name = cfg.TRAIN_SPLIT[dataset]
     test_name = cfg.TEST_SPLIT[dataset]
@@ -284,7 +281,6 @@ def register_all_pascal_voc(root="datasets"):
 
 cfg = get_cfg()
 # Register them all under "./datasets"
-register_all_coco()
 register_all_lvis()
 register_all_pascal_voc()
-register_all_isaid()
+register_all_cocolike()

@@ -1,4 +1,6 @@
 from class_splits import CLASS_SPLITS, ALL_CLASSES, get_ids_from_names, get_names_from_ids
+from fsdet.config import get_cfg
+cfg = get_cfg()
 
 # All coco categories, together with their nice-looking visualization colors
 # It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
@@ -500,14 +502,12 @@ def _get_pascal_voc_fewshot_instances_meta():
 
 
 def _get_builtin_metadata(dataset_name, class_split=None):
-    if dataset_name == "coco":
-        return _get_cocolike_instances_meta(dataset='coco')
-    elif dataset_name == "coco_fewshot":
-        return _get_cocolike_fewshot_instances_meta(dataset='coco', class_split=class_split)
-    elif dataset_name == 'isaid':
-        return _get_cocolike_instances_meta(dataset='isaid')
-    elif dataset_name == 'isaid_fewshot':
-        return _get_cocolike_fewshot_instances_meta(dataset='isaid', class_split=class_split)
+    if dataset_name in cfg.DATASETS.COCOLIKE_DATASETS:
+        return _get_cocolike_instances_meta(dataset=dataset_name)
+    elif dataset_name in ["{}_fewshot".format(dataset) for dataset in cfg.DATASETS.COCOLIKE_DATASETS]:
+        dataset = dataset_name[:-len("_fewshot")]
+        assert dataset in cfg.DATASETS.COCOLIKE_DATASETS
+        return _get_cocolike_fewshot_instances_meta(dataset=dataset, class_split=class_split)
     elif dataset_name == "lvis_v0.5":
         return _get_lvis_instances_meta_v0_5()
     elif dataset_name == "lvis_v0.5_fewshot":

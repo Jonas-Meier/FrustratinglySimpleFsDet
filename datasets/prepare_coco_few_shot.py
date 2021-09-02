@@ -5,16 +5,14 @@ import random
 import shutil
 import time
 
-import sys
-sys.path.append('..')  # TODO: ugly but works for now
-print("Path: {}".format(sys.path))
 from class_splits import CLASS_SPLITS
 from fsdet.config import get_cfg
+cfg = get_cfg()  # get default config to obtain the correct load- and save paths for the created data
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, choices=["coco", "isaid"], required=True,
+    parser.add_argument("--dataset", type=str, choices=cfg.DATASETS.SUPPORTED_DATASETS, required=True,
                         help="Dataset name")
     parser.add_argument("--class-split", type=str, required=True, dest="class_split",
                         help="Split of classes into base classes and novel classes")
@@ -30,13 +28,9 @@ def parse_args():
 
 
 def get_data_path():  # get path to training data annotations
-    # probably use cfg.DATA_DIR[args.dataset] if necessary
-    if args.dataset == "coco":
-        return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS['coco'])
-    elif args.dataset == "isaid":
-        return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS['isaid'])
-    else:
-        raise ValueError("Dataset {} is not supported!".format(args.dataset))
+    # Note: either set cfg.TRAIN_ANNOS correctly or return a different value, depending on args.dataset
+    return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS[args.dataset])
+
 
 
 def generate_seeds(args):
@@ -177,5 +171,4 @@ if __name__ == '__main__':
     args = parse_args()
     print('Called with args:')
     print(args)
-    cfg = get_cfg()  # get default config to obtain the correct load- and save paths for the created data
     generate_seeds(args)

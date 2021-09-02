@@ -12,7 +12,7 @@ cfg = get_cfg()
 def parse_args():
     parser = argparse.ArgumentParser()
     # Dataset settings
-    parser.add_argument('--dataset', type=str, required=True, choices=['coco', 'voc', 'isaid'])
+    parser.add_argument('--dataset', type=str, required=True, choices=cfg.DATASETS.SUPPORTED_DATASETS)
     parser.add_argument('--class-split', type=str, required=True, dest='class_split')  # TODO: allow multiple class splits?
     # CPU and GPU settings
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
@@ -380,7 +380,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
 
     # Set some shared configs to save space
-    if args.dataset in ['coco', 'isaid']:  # TODO: to ease adding a new dataset, probably invert query 'args.dataset != 'voc''
+    if args.dataset in cfg.DATASETS.COCOLIKE_DATASETS:  # TODO: probably change to 'DATASETS.SUPPORTED_DATASETS'?
         if surgery_method == 'remove':  # fine-tuning only-novel classifier
             ITERS = NOVEL_ITERS
             mode = 'novel'

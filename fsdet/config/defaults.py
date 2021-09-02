@@ -1,6 +1,7 @@
 from detectron2.config import CfgNode as CN
 from detectron2.config.defaults import _C
 import os
+from class_splits import CLASS_SPLITS, ALL_CLASSES
 
 # adding additional default values built on top of the default values in detectron2
 
@@ -8,6 +9,10 @@ _CC = _C
 
 # Some dataset and class split specific patterns
 _CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid"]  # all supported datasets. Others won't work
+# datasets that have the same annotation format as MS COCO (those datasets are directly supported and will require the
+#  fewest amount of adaptions!)
+_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid"]
 # Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
 _CC.DATA_DIR = CN({
     "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
@@ -114,3 +119,12 @@ _CC.MODEL.ROI_HEADS.COSINE_SCALE = 20.0
 
 # Backward Compatible options.
 _CC.MUTE_HEADER = True
+
+
+assert all(dataset in _CC.DATASETS.SUPPORTED_DATASETS for dataset in _CC.DATASETS.COCOLIKE_DATASETS)
+assert all(dataset in dictionary for dataset in _CC.DATASETS.SUPPORTED_DATASETS for dictionary in [
+    _CC.DATA_DIR, _CC.DATA_SAVE_PATH_PATTERN, _CC.CONFIG_DIR_PATTERN, _CC.CKPT_DIR_PATTERN, _CC.TRAIN_SPLIT,
+    _CC.TEST_SPLIT, _CC.TRAIN_IMG_DIR, _CC.TEST_IMG_DIR, _CC.TRAIN_ANNOS, _CC.TEST_ANNOS
+])
+assert all(dataset in CLASS_SPLITS for dataset in _CC.DATASETS.SUPPORTED_DATASETS)
+assert all(dataset in ALL_CLASSES for dataset in _CC.DATASETS.SUPPORTED_DATASETS)

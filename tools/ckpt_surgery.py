@@ -5,8 +5,9 @@ import torch
 
 import argparse
 import os
-
-from class_splits import CLASS_SPLITS, get_ids_from_names
+from fsdet.config import get_cfg
+from class_splits import CLASS_SPLITS, get_ids_from_names, ALL_CLASSES
+cfg = get_cfg()
 
 
 def parse_args():
@@ -40,7 +41,7 @@ def parse_args():
     parser.add_argument('--double-head', action='store_true', default=False,
                         help="use different heads for base classes and novel classes")
     # Dataset
-    parser.add_argument('--dataset', choices=['coco', 'voc', 'lvis', 'isaid'],
+    parser.add_argument('--dataset', choices=cfg.DATASETS.SUPPORTED_DATASETS,
                         required=True, help='dataset')
     parser.add_argument('--class-split', dest='class_split',  required=True,
                         help='Class split of the dataset into base classes and novel classes')
@@ -258,71 +259,17 @@ if __name__ == '__main__':
     args = parse_args()
     print("Called with args:")
     print(args)
-    # COCO-like datasets
-    if args.dataset in ['coco', 'isaid']:
-        # Total classes of this dataset, just used for sanity checks
-        TOTAL_CLASSES = {
-            'coco': 80,
-            'isaid': 15
-        }
-        # sorting of novel class ids not necessary, but sorting of base class ids and all class ids is important!
-        NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
-        BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
-        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
-        ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
-        TAR_SIZE = len(ALL_CLASS_IDS)
-        if TAR_SIZE != TOTAL_CLASSES[args.dataset]:
-            print("Warning: Base and novel classes add up to just {} of {} total classes!"
-                  .format(TAR_SIZE, TOTAL_CLASSES[args.dataset]))
-    elif args.dataset == 'lvis':
-        # LVIS
-        NOVEL_CLASS_IDS = [
-            0, 6, 9, 13, 14, 15, 20, 21, 30, 37, 38, 39, 41, 45, 48, 50, 51, 63,
-            64, 69, 71, 73, 82, 85, 93, 99, 100, 104, 105, 106, 112, 115, 116,
-            119, 121, 124, 126, 129, 130, 135, 139, 141, 142, 143, 146, 149,
-            154, 158, 160, 162, 163, 166, 168, 172, 180, 181, 183, 195, 198,
-            202, 204, 205, 208, 212, 213, 216, 217, 218, 225, 226, 230, 235,
-            237, 238, 240, 241, 242, 244, 245, 248, 249, 250, 251, 252, 254,
-            257, 258, 264, 265, 269, 270, 272, 279, 283, 286, 290, 292, 294,
-            295, 297, 299, 302, 303, 305, 306, 309, 310, 312, 315, 316, 317,
-            319, 320, 321, 323, 325, 327, 328, 329, 334, 335, 341, 343, 349,
-            350, 353, 355, 356, 357, 358, 359, 360, 365, 367, 368, 369, 371,
-            377, 378, 384, 385, 387, 388, 392, 393, 401, 402, 403, 405, 407,
-            410, 412, 413, 416, 419, 420, 422, 426, 429, 432, 433, 434, 437,
-            438, 440, 441, 445, 453, 454, 455, 461, 463, 468, 472, 475, 476,
-            477, 482, 484, 485, 487, 488, 492, 494, 495, 497, 508, 509, 511,
-            513, 514, 515, 517, 520, 523, 524, 525, 526, 529, 533, 540, 541,
-            542, 544, 547, 550, 551, 552, 554, 555, 561, 563, 568, 571, 572,
-            580, 581, 583, 584, 585, 586, 589, 591, 592, 593, 595, 596, 599,
-            601, 604, 608, 609, 611, 612, 615, 616, 625, 626, 628, 629, 630,
-            633, 635, 642, 644, 645, 649, 655, 657, 658, 662, 663, 664, 670,
-            673, 675, 676, 682, 683, 685, 689, 695, 697, 699, 702, 711, 712,
-            715, 721, 722, 723, 724, 726, 729, 731, 733, 734, 738, 740, 741,
-            744, 748, 754, 758, 764, 766, 767, 768, 771, 772, 774, 776, 777,
-            781, 782, 784, 789, 790, 794, 795, 796, 798, 799, 803, 805, 806,
-            807, 808, 815, 817, 820, 821, 822, 824, 825, 827, 832, 833, 835,
-            836, 840, 842, 844, 846, 856, 862, 863, 864, 865, 866, 868, 869,
-            870, 871, 872, 875, 877, 882, 886, 892, 893, 897, 898, 900, 901,
-            904, 905, 907, 915, 918, 919, 920, 921, 922, 926, 927, 930, 931,
-            933, 939, 940, 944, 945, 946, 948, 950, 951, 953, 954, 955, 956,
-            958, 959, 961, 962, 963, 969, 974, 975, 988, 990, 991, 998, 999,
-            1001, 1003, 1005, 1008, 1009, 1010, 1012, 1015, 1020, 1022, 1025,
-            1026, 1028, 1029, 1032, 1033, 1046, 1047, 1048, 1049, 1050, 1055,
-            1066, 1067, 1068, 1072, 1073, 1076, 1077, 1086, 1094, 1099, 1103,
-            1111, 1132, 1135, 1137, 1138, 1139, 1140, 1144, 1146, 1148, 1150,
-            1152, 1153, 1156, 1158, 1165, 1166, 1167, 1168, 1169, 1171, 1178,
-            1179, 1180, 1186, 1187, 1188, 1189, 1203, 1204, 1205, 1213, 1215,
-            1218, 1224, 1225, 1227
-        ]
-        BASE_CLASS_IDS = [c for c in range(1230) if c not in NOVEL_CLASS_IDS]
-        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
-        ALL_CLASS_ID_TO_IND = {v:i for i, v in enumerate(ALL_CLASS_IDS)}
-        TAR_SIZE = 1230
-    elif args.dataset == 'voc':
-        # VOC
-        TAR_SIZE = 20
-    else:
-        raise ValueError("Dataset {} is not supported!".format(args.dataset))
+    # Total classes of this dataset, just used for sanity checks
+    TOTAL_CLASSES = len(ALL_CLASSES[args.dataset])
+    # sorting of novel class ids not necessary, but sorting of base class ids and all class ids is important!
+    NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+    BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+    ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+    ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
+    TAR_SIZE = len(ALL_CLASS_IDS)
+    if TAR_SIZE != TOTAL_CLASSES:
+        print("Warning: Base and novel classes add up to just {} of {} total classes!"
+              .format(TAR_SIZE, TOTAL_CLASSES))
 
     if args.method == 'combine':
         combine_ckpts(args)
