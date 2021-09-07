@@ -8,6 +8,17 @@ FsDet contains the official few-shot object detection implementation of the ICML
 
 ![TFA Figure](https://user-images.githubusercontent.com/7898443/76520006-698cc200-6438-11ea-864f-fd30b3d50cea.png)
 
+Original repository bibtex entry:
+```angular2html
+@article{wang2020few,
+    title={Frustratingly Simple Few-Shot Object Detection},
+    author={Wang, Xin and Huang, Thomas E. and  Darrell, Trevor and Gonzalez, Joseph E and Yu, Fisher}
+    booktitle = {International Conference on Machine Learning (ICML)},
+    month = {July},
+    year = {2020}
+}
+```
+
 ## Setup
 This repository has been successfully tested with following configuration:
 1. CUDA 10.1(.243) (CUDA 10.0 and 10.2 should work as well)
@@ -199,20 +210,3 @@ Due to the heavily modified repository workflow (including file and directory na
 ```bash
 python3 -m tools.collect_metrics
 ```
-
-## Legacy Notes
-We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes.
-
-We also provide benchmark results and pre-trained models for our two-stage fine-tuning approach (TFA). In TFA, we first train the entire object detector on the data-abundant base classes, and then only fine-tune the last layers of the detector on a small balanced training set.
-
-The code has been upgraded to detectron2 v0.2.1.  If you need the original released code, please checkout the release [v0.1](https://github.com/ucbdrive/few-shot-object-detection/tags) in the tag.
-
-If you find this repository useful for your publications, please consider citing our paper.
-```angular2html
-@article{wang2020few,
-    title={Frustratingly Simple Few-Shot Object Detection},
-    author={Wang, Xin and Huang, Thomas E. and  Darrell, Trevor and Gonzalez, Joseph E and Yu, Fisher}
-    booktitle = {International Conference on Machine Learning (ICML)},
-    month = {July},
-    year = {2020}
-}
