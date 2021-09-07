@@ -59,33 +59,37 @@ python3 -m pip install -r requirements.txt
 
 
 ## Dataset Preparation
-Exemplary dataset preparation for COCO. For datasets Pascal VOC and LVIS please refer to [Dataset Preparation](https://github.com/ucbdrive/few-shot-object-detection#data-preparation) of the original repository.
+This repository supports the datasets MS COCO and iSAID right away. If you want to use a different dataset, have a look at 
+[Custom Dataset](#custom-dataset).
 
-### Base Dataset
-Create symlinks of your COCO data to the `datasets` directory of the repository (`<FSDET_ROOT>/dataset/`). The expected dataset structure is:
+
+### Directory Structure
+All datasets are saved (or symlinked) to the `dataset` directory (`<FSDET_ROOT>/dataset/`).
+
+#### MS COCO
+For MS COCO, the expected structure of the `dataset` directory is:
 ```
 ├── coco
 │   ├── annotations
-│       ├── instances_train2014.json
-│       ├── instances_val2014.json
-│   ├── train2014
-│   ├── val2014
-```  
-See [here](datasets/README.md#base-datasets) for more information on base datasets.
-
-### Few-Shot Dataset
-We use COCO 2014 and extract 5k images from the val set for evaluation and use the rest for training.
-
-Create a directory `cocosplit` inside the `datasets` directory of the repository. Its expected structure is:
-```
-├── cocosplit
-│   ├── datasetplit
 │       ├── trainvalno5k.json
 │       ├── 5k.json
+│   ├── trainval2014
 ```
-See [here](datasets/README.md#few-shot-datasets) for more information on few-shot datasets.
+trainval2014 is the union of train2014 and val2014. trainvalno5k.json and 5k.json can e.g. be downloaded [here](http://dl.yf.io/fs-det/datasets/cocosplit/datasplit/).
 
-Download the [dataset split files](http://dl.yf.io/fs-det/datasets/cocosplit/datasplit/) and put them into `datasetsplit` directory.
+#### iSAID
+For iSAID, the expected structure of the `dataset` directory is:
+```
+├── isaid
+│   ├── annotations
+│       ├── instancesonly_filtered_train.json
+│       ├── instancesonly_filtered_val.json
+│   ├── images
+│       ├── train
+│       ├── val
+```
+
+### Generate Few-Shot Data
 
 To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
 
@@ -102,7 +106,7 @@ Following arguments are accepted by `prepare_coco_few_shot.py`:
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
 ## Custom Dataset
-In general, it's recommended to preprocess the dataset's annotations to be in the same format as the MS-COCO dataset, since those restrictions allow for re-using existant code fragments. 
+In general, it's recommended to preprocess the dataset's annotations to be in the same format as the MS-COCO dataset, since those restrictions allow for re-using existent code fragments. 
 Following adaptions have to be made for each new dataset:
 1. For the new dataset: 
     1. Add the dataset to the list of `DATASETS.SUPPORTED_DATASETS` and add it to `DATASETS.COCOLIKE_DATASETS` if it has coco-like annotations.
