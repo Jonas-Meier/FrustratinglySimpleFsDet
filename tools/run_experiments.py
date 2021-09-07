@@ -14,6 +14,10 @@ def parse_args():
     # Dataset settings
     parser.add_argument('--dataset', type=str, required=True, choices=cfg.DATASETS.SUPPORTED_DATASETS)
     parser.add_argument('--class-split', type=str, required=True, dest='class_split')  # TODO: allow multiple class splits?
+    # Allow performing a fine-tuning on a different dataset (with one of its class splits). Set either both
+    #  (--alt-dataset and --alt-class-split) or none for a "regular" fine-tuning.
+    parser.add_argument('--alt-dataset', type=str, default="", dest='alt_dataset')
+    parser.add_argument('--alt-class-split', type=str, default="", dest='alt_class_split')
     # CPU and GPU settings
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0])
     parser.add_argument('--num-threads', type=int, default=1)
@@ -401,6 +405,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         )
         base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
 
+    # Probably, we want to use an alternative dataset and class split to fine-tune our model on.
+    assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
+    alt_dataset = args.alt_dataset if args.alt_dataset else args.dataset
+    alt_class_split = args.alt_class_split if args.alt_class_split else args.class_split
+
     # Needed to exchange seed and shot in the example config
     seed_str = 'seed{}'.format(seed)  # also used as a directory name
     shot_str = '{}shot'.format(shot)
@@ -463,7 +472,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
 
     if not os.path.exists(surgery_ckpt) or rerun_surgery:
         # surgery model does not exist, so we have to do a surgery!
-        run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, method=surgery_method,
+        run_ckpt_surgery(dataset=alt_dataset, class_split=alt_class_split, method=surgery_method,
                          src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir,
                          double_head=args.double_head, keep_base_weights=args.keep_base_weights,
                          keep_bg_weights=args.keep_background_weights)
@@ -509,8 +518,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1000  # TODO: per batch or image?
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     new_config['MODEL']['ROI_HEADS']['NAME'] = 'StandardROIHeads' if not args.double_head else 'StandardROIDoubleHeads'
-    num_base_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['base'])
-    num_novel_classes = len(CLASS_SPLITS[args.dataset][args.class_split]['novel'])
+    num_base_classes = len(CLASS_SPLITS[alt_dataset][alt_class_split]['base'])
+    num_novel_classes = len(CLASS_SPLITS[alt_dataset][alt_class_split]['novel'])
     num_all_classes = num_base_classes + num_novel_classes
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
@@ -534,7 +543,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_FCS'] = str([i for i in all_fcs if i not in unfreeze_fcs])
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
-    (train_data, test_data) = get_ft_dataset_names(args.dataset, args.class_split, mode, shot, seed,
+    (train_data, test_data) = get_ft_dataset_names(alt_dataset, alt_class_split, mode, shot, seed,
                                                    train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))
     new_config['DATASETS']['TEST'] = str((test_data,))
