@@ -27,7 +27,7 @@ def main():
     if force_override:
         print("Warning: Overriding of already existing datasets is activated!")
     pool_size = 1000
-    proportion = 0.1
+    proportion = 0.5
     dataset1_name = "isaid_50_1"
     dataset2_name = "isaid_50_2"
     (imgs1, anns1), (imgs2, anns2) = get_uniform_dataset_split(pool_size=pool_size, proportion=proportion)
