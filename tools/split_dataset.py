@@ -100,7 +100,7 @@ def split_by_value(img_id_to_value: {int: float}, proportion, threshold):
     # Remove images that have no assigned value in the given map
     valid_img_ids = []
     for img_id in image_ids:
-        if img_id["id"] in img_id_to_value and img_id_to_value[img_id["id"]]:
+        if img_id in img_id_to_value and img_id_to_value[img_id]:
             valid_img_ids.append(img_id)
         else:
             print("Warning, no assigned value for image (id:{}, name:{}). It will be discarded!"
@@ -142,8 +142,9 @@ def _get_img_to_gsd_map(meta_dir):
                     try:
                         gsd = float(gsd_str)
                     except ValueError:
-                        print("Error, invalid gsd value: {}".format(gsd_str))
-                        exit(1)
+                        print("Invalid gsd value: {}".format(gsd_str))
+                        gsd = None
+                        # exit(1)
                     return gsd
             print("Warning: No gsd available in the file {}".format(file_name))
             return gsd
