@@ -54,17 +54,17 @@ _CC.TRAIN_IMG_DIR = CN({
 })
 
 _CC.TEST_IMG_DIR = CN({
-    "coco": os.path.join('datasets', 'coco', 'val2014'),
+    "coco": os.path.join('datasets', 'coco', 'trainval2014'),
     "isaid": os.path.join('datasets', 'isaid', 'images', 'val')
 })
 
 _CC.TRAIN_ANNOS = CN({
-    "coco": os.path.join('datasets', 'cocosplit', 'datasplit', 'trainvalno5k.json'),
+    "coco": os.path.join('datasets', 'coco', 'annotations', 'trainvalno5k.json'),
     "isaid": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_train.json')
 })
 
 _CC.TEST_ANNOS = CN({
-    "coco": os.path.join('datasets', 'cocosplit', 'datasplit', '5k.json'),
+    "coco": os.path.join('datasets', 'coco', 'annotations', '5k.json'),
     "isaid": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json')
 })
 
