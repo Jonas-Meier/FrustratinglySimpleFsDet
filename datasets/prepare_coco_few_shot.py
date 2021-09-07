@@ -32,7 +32,6 @@ def get_data_path():  # get path to training data annotations
     return os.path.join(cfg.ROOT_DIR, cfg.TRAIN_ANNOS[args.dataset])
 
 
-
 def generate_seeds(args):
     start = time.time()
     data_path = get_data_path()
@@ -156,7 +155,7 @@ def generate_seeds(args):
 
                 # Note: even if we sample more annotations for base classes we use the original 'shots' in the file
                 # name for clarity!
-                save_file = 'full_box_{}shot_{}_{}.json'.format(cat_name, shots, cfg.TRAIN_SPLIT[args.dataset])
+                save_file = 'full_box_{}shot_{}_{}.json'.format(shots, cat_name, cfg.TRAIN_SPLIT[args.dataset])
                 save_path = os.path.join(save_dir, save_file)
                 with open(save_path, 'w') as f:
                     # json.dump(new_data, f)
