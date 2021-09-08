@@ -214,7 +214,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['SOLVER']['BASE_LR'] = args.lr if args.lr != -1 else 0.02 * lr_scale_factor
     new_config['SOLVER']['STEPS'] = str(ITERS[1])
     new_config['SOLVER']['MAX_ITER'] = ITERS[0]  # TODO: increase MAX_ITER if batch size is < 16?
-    new_config['SOLVER']['CHECKPOINT_PERIOD'] = 200  # ITERS[0] // args.ckpt_freq. Old default: 5000
+    new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
