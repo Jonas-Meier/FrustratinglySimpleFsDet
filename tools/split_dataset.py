@@ -243,6 +243,6 @@ def _create_index():
 
 
 if __name__ == '__main__':
-    original_dataset = json.load(open(original_anno_dir, 'r'))
+    original_dataset = json.load(open(original_annos, 'r'))
     class_id_to_name, class_name_to_id, img_id_to_img, class_to_imgs_to_anns, img_id_to_anns = _create_index()
     main()
