@@ -1,5 +1,7 @@
 import argparse
 import os
+import shutil
+import time
 from subprocess import PIPE, STDOUT, Popen
 
 import yaml
@@ -25,6 +27,13 @@ def parse_args():
                         help='Override config file if it already exists')
     parser.add_argument('--num-threads', type=int, default=1)
     parser.add_argument('--root', type=str, default='./', help='Root of data')
+    parser.add_argument('--resume', default=False, action='store_true',
+                        help='Try to resume a training on the latest checkpoint. Do not set this argument together '
+                             'with --force-retrain!')
+    parser.add_argument('--force-retrain', default=False, action='store_true',
+                        help='If it is set to False (default) and the target directory already exists, the program '
+                             'aborts. If it is set to True, it will delete the already existent target directory and '
+                             'starts the training. Do not set this argument together with --resume!')
     return parser.parse_args()
 
 
@@ -91,17 +100,29 @@ def run_exp(config_file, config):
 
 def run_train(config_file, config):
     output_dir = config['OUTPUT_DIR']
-    model_path = os.path.join(args.root, output_dir, 'model_final.pth')
-    if not os.path.exists(model_path):
-        base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
-        train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-                    '--dist-url auto --num-gpus {} --config-file {} --resume'.\
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
-        # TODO:
-        #  --dist-url: just for obtaining a deterministic port to identify orphan processes
-        #  --resume: ??? Using resume or not results in fine-tuning starting from iteration 1
-        #  --opts: normally not necessary if we have set the config file appropriate
-        run_cmd(train_cmd)
+    save_dir = os.path.join(args.root, output_dir)
+    base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
+    train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
+                '--dist-url auto --num-gpus {} --config-file {}'. \
+        format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
+    assert not (args.resume and args.force_retrain)
+    if args.resume:
+        train_cmd += " --resume"
+
+    if os.listdir(save_dir) and not args.resume:
+        # Save directory is not empty and --resume is not set.
+        # --force-override has to be specified to clean the directory prior to training
+        if args.force_retrain:
+            print("INFO: Deleting non-empty directory '{}'".format(save_dir))
+            time.sleep(0.1)
+            shutil.rmtree(save_dir)
+            os.makedirs(save_dir)
+        else:
+            print("Error, model save path '{}' is not empty. Set '--resume' to resume to the latest checkpoint or"
+                  " '--force-override' to clean the directory and start a fresh training! Aborting..."
+                  .format(save_dir))
+            exit(1)
+    run_cmd(train_cmd)
 
 
 def run_test(config_file, config):
@@ -193,7 +214,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['SOLVER']['BASE_LR'] = args.lr if args.lr != -1 else 0.02 * lr_scale_factor
     new_config['SOLVER']['STEPS'] = str(ITERS[1])
     new_config['SOLVER']['MAX_ITER'] = ITERS[0]  # TODO: increase MAX_ITER if batch size is < 16?
-    new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
+    new_config['SOLVER']['CHECKPOINT_PERIOD'] = 200  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100

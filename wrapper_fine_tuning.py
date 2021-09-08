@@ -17,6 +17,8 @@ def main():
     seeds = [0]  # single seed or two seeds representing a range, 2nd argument inclusive!
     explicit_seeds = False  # set to True to specify the exact seeds to train, rather than a range of seeds
     layers = 50  # 50, 101
+    resume = False  # Try to resume on the latest checkpoint. So nt set together with 'force_retrain'!
+    force_retrain = False  # If the save directory is not empty, delete its content. Do not set together with 'resume'!
     # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
     #  Default: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"]
     augmentations = [
@@ -45,9 +47,9 @@ def main():
     unfreeze_roi_box_head_convs = []  # []: we have no box head conv layers!
     unfreeze_roi_box_head_fcs = []  # [2]: unfreeze the second of both fc layers (1024x1024)
     # Override existing config, force re-creation of surgery checkpoint
-    resume = False  # TODO: not yet fully supported!
     override_config = True
     override_surgery = True
+    # ---------------------------------------------------------------------------------------------------------------- #
     if resume:
         override_config = override_surgery = False
     if dataset == "coco":
@@ -63,7 +65,7 @@ def main():
                     explicit_seeds, double_head, keep_base_weights, keep_bg_weights, tfa,
                     unfreeze, unfreeze_backbone, unfreeze_proposal_generator,
                     unfreeze_roi_box_head_convs, unfreeze_roi_box_head_fcs, classifier,
-                    override_config, override_surgery, resume)
+                    override_config, override_surgery, resume, force_retrain)
 
 
 def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0,
@@ -71,7 +73,7 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
                     explicit_seeds=False, double_head=False, keep_base_weights=True, keep_bg_weights=True, tfa=False,
                     unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False,
                     unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[], classifier='fc',
-                    override_config=False, override_surgery=False, resume=False):
+                    override_config=False, override_surgery=False, resume=False, force_retrain=False):
     base_cmd = "python3 -m tools.run_experiments"
     explicit_seeds_str = ' --explicit-seeds' if explicit_seeds else ''
     surgery_str = ''  # combine different surgery settings to spare some space
@@ -90,16 +92,18 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
         unfreeze_str = unfreeze_str + ' --unfreeze-roi-box-head-fcs ' + separate(unfreeze_roi_box_head_fcs, ' ')
     alt_dataset_class_split_str = ""
     if alt_dataset:  # alt_class_split should be set as well!
-        alt_dataset_class_split_str = " --alt-dataset {} --alt-class-split {} ".format(alt_dataset, alt_class_split)
+        alt_dataset_class_split_str = " --alt-dataset {} --alt-class-split {}".format(alt_dataset, alt_class_split)
     override_config_str = ' --override-config' if override_config else ''
     override_surgery_str = ' --override-surgery' if override_surgery else ''
+    resume_str = ' --resume' if resume else ''
+    force_retrain_str = ' --force-retrain' if force_retrain else ''
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {}  --gpu-ids {} " \
           "--num-threads {} --layers {} --augmentations {} --bs {} --lr {} --max-iter {} --lr-decay-steps {}  " \
-          "--ckpt-interval {} --classifier {}{}{}{}{}{}{}{}"\
+          "--ckpt-interval {} --classifier {}{}{}{}{}{}{}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ' '),
                 num_threads, layers, separate(augmentations, ' '), bs, lr, max_iter, separate(lr_decay_steps, ' '),
                 ckpt_interval, classifier, surgery_str, keep_weights_str, unfreeze_str, override_config_str,
-                override_surgery_str, explicit_seeds_str, alt_dataset_class_split_str)
+                override_surgery_str, explicit_seeds_str, alt_dataset_class_split_str, resume_str, force_retrain_str)
     os.system(cmd)
 
 

@@ -10,6 +10,8 @@ def main():
     bs = 16
     lr = 0.02  # 0.02 for bs=16. Set to -1 for automatic linear scaling!
     layers = 50  # 50, 101
+    resume = False  # Try to resume on the latest checkpoint. So nt set together with 'force_retrain'!
+    force_retrain = False  # If the save directory is not empty, delete its content. Do not set together with 'resume'!
     # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
     #  Default: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"]
     augmentations = [
@@ -17,22 +19,27 @@ def main():
         "RandomHFlip"
     ]
     override_config = True
+    # ---------------------------------------------------------------------------------------------------------------- #
     if dataset == "coco":
         class_split = coco_class_split
     elif dataset == "isaid":
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
-    run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr, override_config)
+    run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr, override_config,
+                      resume, force_retrain)
 
 
-def run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0, override_config=False):
+def run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0,
+                      override_config=False, resume=False, force_retrain=False):
     base_cmd = "python3 -m tools.run_base_training"
     override_config_str = ' --override-config' if override_config else ''
+    resume_str = ' --resume' if resume else ''
+    force_retrain_str = ' --force-retrain' if force_retrain else ''
     cmd = "{} --dataset {} --class-split {} --gpu-ids {} --num-threads {} --layers {} " \
-          "--augmentations {} --bs {} --lr {}{}"\
+          "--augmentations {} --bs {} --lr {}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(gpu_ids, ' '), num_threads, layers,
-                separate(augmentations, ' '), bs, lr, override_config_str)
+                separate(augmentations, ' '), bs, lr, override_config_str, resume_str, force_retrain_str)
     os.system(cmd)
 
 
