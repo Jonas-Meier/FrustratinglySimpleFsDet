@@ -219,7 +219,7 @@ def _export_dataset(images, annotations, save_dir, file_name, clear_dir=force_ov
         os.makedirs(save_dir)
     file_path = os.path.join(save_dir, file_name)
     with open(file_path, 'w') as f:
-        json.dump(new_dataset, f, indent=2)
+        json.dump(new_dataset, f)
 
 
 def _create_index():
