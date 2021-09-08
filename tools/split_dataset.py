@@ -18,7 +18,9 @@ cfg = get_cfg()
 
 
 original_dataset_name = "isaid"
-original_anno_dir = cfg.TRAIN_ANNOS[original_dataset_name]
+original_annos = cfg.TRAIN_ANNOS[original_dataset_name]
+original_anno_dir = os.path.join(*original_annos.split("/")[0:-1])
+original_anno_file_name = original_annos.split("/")[-1]
 
 force_override = False  # Force overriding of already existing datasets
 
@@ -32,8 +34,8 @@ def main():
     dataset2_name = "isaid_50_2"
     (imgs1, anns1), (imgs2, anns2) = get_uniform_dataset_split(pool_size=pool_size, proportion=proportion)
     _analyse_sampled_dataset(imgs1, anns1)
-    _export_dataset(images=imgs1, annotations=anns1, save_dir=original_anno_dir.replace(original_dataset_name, dataset1_name), file_name=dataset1_name)
-    _export_dataset(images=imgs2, annotations=anns2, save_dir=original_anno_dir.replace(original_dataset_name, dataset2_name), file_name=dataset2_name)
+    _export_dataset(images=imgs1, annotations=anns1, save_dir=original_anno_dir.replace(original_dataset_name, dataset1_name), file_name=original_anno_file_name)
+    _export_dataset(images=imgs2, annotations=anns2, save_dir=original_anno_dir.replace(original_dataset_name, dataset2_name), file_name=original_anno_file_name)
 
     if False:
         samples = []
