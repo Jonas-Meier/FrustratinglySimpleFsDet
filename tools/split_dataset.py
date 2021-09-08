@@ -21,6 +21,7 @@ original_dataset_name = "isaid"
 original_annos = cfg.TRAIN_ANNOS[original_dataset_name]
 original_anno_dir = os.path.join(*original_annos.split("/")[0:-1])
 original_anno_file_name = original_annos.split("/")[-1]
+original_anno_dir = '/home/jonas/data/iSAID/iSAID_train.json'  # TODO: tmp, remove later!!!
 
 force_override = False  # Force overriding of already existing datasets
 
@@ -219,7 +220,7 @@ def _export_dataset(images, annotations, save_dir, file_name, clear_dir=force_ov
         os.makedirs(save_dir)
     file_path = os.path.join(save_dir, file_name)
     with open(file_path, 'w') as f:
-        json.dump(save_dir, f, indent=2)
+        json.dump(new_dataset, f, indent=2)
 
 
 def _create_index():
