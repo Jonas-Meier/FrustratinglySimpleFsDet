@@ -21,7 +21,6 @@ original_dataset_name = "isaid"
 original_annos = cfg.TRAIN_ANNOS[original_dataset_name]
 original_anno_dir = os.path.join(*original_annos.split("/")[0:-1])
 original_anno_file_name = original_annos.split("/")[-1]
-original_anno_dir = '/home/jonas/data/iSAID/iSAID_train.json'  # TODO: tmp, remove later!!!
 
 force_override = False  # Force overriding of already existing datasets
 
