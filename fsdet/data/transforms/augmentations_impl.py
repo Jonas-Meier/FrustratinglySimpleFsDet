@@ -1,5 +1,7 @@
 from detectron2.data.transforms.augmentation import Augmentation
-from detectron2.data.transforms.augmentation_impl import RandomRotation, RandomFlip, ResizeShortestEdge
+from detectron2.data.transforms.augmentation_impl import (
+    RandomRotation, RandomFlip, ResizeShortestEdge, RandomBrightness, RandomContrast, RandomSaturation, RandomLighting
+)
 from detectron2.utils.registry import Registry
 
 AUGMENTATIONS_REGISTRY = Registry("AUGMENTATIONS")
@@ -53,3 +55,27 @@ class RandomVFlip(AugmentationWrapper):
 class RandomFourAngleRotation(AugmentationWrapper):
     def __init__(self, cfg):
         super().__init__(RandomRotation(angle=[90.0, 180.0, 270.0, 360.0], expand=True, sample_style="choice"))
+
+
+@AUGMENTATIONS_REGISTRY.register()
+class Random50PercentContrast(AugmentationWrapper):
+    def __init__(self, cfg):
+        super().__init__(RandomContrast(intensity_min=0.5, intensity_max=1.5))
+
+
+@AUGMENTATIONS_REGISTRY.register()
+class Random50PercentBrightness(AugmentationWrapper):
+    def __init__(self, cfg):
+        super().__init__(RandomBrightness(intensity_min=0.5, intensity_max=1.5))
+
+
+@AUGMENTATIONS_REGISTRY.register()
+class Random50PercentSaturation(AugmentationWrapper):
+    def __init__(self, cfg):
+        super().__init__(RandomSaturation(intensity_min=0.5, intensity_max=1.5))
+
+
+@AUGMENTATIONS_REGISTRY.register()
+class RandomAlexNetLighting(AugmentationWrapper):
+    def __init__(self, cfg):
+        super().__init__(RandomLighting(scale=0.1))

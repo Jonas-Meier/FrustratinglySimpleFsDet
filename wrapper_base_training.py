@@ -12,7 +12,8 @@ def main():
     layers = 50  # 50, 101
     resume = False  # Try to resume on the latest checkpoint. So nt set together with 'force_retrain'!
     force_retrain = False  # If the save directory is not empty, delete its content. Do not set together with 'resume'!
-    # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
+    # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation',
+    #  'Random50PercentContrast', 'Random50PercentBrightness', 'Random50PercentSaturation', 'RandomAlexNetLighting'
     #  Default: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"]
     augmentations = [
         "ResizeShortestEdgeLimitLongestEdge",
