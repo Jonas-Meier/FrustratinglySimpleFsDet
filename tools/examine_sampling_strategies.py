@@ -5,6 +5,7 @@ import shutil
 import time
 from multiprocessing import Pool
 import threading
+from statistics import mean, stdev
 
 from class_splits import CLASS_SPLITS
 from fsdet.config.config import get_cfg
@@ -24,10 +25,14 @@ ones with the desired properties.
 
 cfg = get_cfg()
 
+mean_decimals = 1
+std_decimals = 2
+
 dataset = "isaid"
 class_split = "experiment3"
 anno_dir = cfg.TRAIN_ANNOS[dataset]
 save_dir_base_path = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
+meta_dir = ""  # TODO: set appropriately!
 
 base_class_names = tuple(CLASS_SPLITS[dataset][class_split]['base'])
 novel_class_names = tuple(CLASS_SPLITS[dataset][class_split]['novel'])
@@ -50,7 +55,7 @@ def main():
     _sample_and_export(strategy='all_per_class_or_none', shots=shots, seed_range=[20, 24])
     #_get_image_count(anno_count_min=10, anno_count_max=50)
     #data = _read_sample(seed=0, shots=shots)
-    #analyse_sample(data["images"], data["annotations"])
+    #analyse_sample(data["images"], data["annotations"], img_to_value=None)
 
 
 def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=10000, seed_range=[0, 4],
@@ -223,21 +228,46 @@ def sample(strategy, shots, shuffle=True, silent=False, anno_count_min=None, ann
     return sampled_imgs, sampled_anns
 
 
-def analyse_sample(images, annotations):
+def analyse_sample(images, annotations, img_to_value=None):
+    # img_to_value: an optional mapping of an image to any value. Can be used to compute e.g. the average value across
+    #  the different classes of the sampled annotations
     num_imgs = len(images)
     num_annos = len(annotations)
     img_id_to_ann_count = {img['id']: 0 for img in images}
-    class_name_to_ann_count = {class_name: 0 for class_name in all_class_names}
+    class_name_to_anns = {class_name: [] for class_name in all_class_names}
+    class_name_to_image_ids = {class_name: [] for class_name in all_class_names}  # unique image ids the classes appear on
     for ann in annotations:
         img_id = ann['image_id']
         class_name = class_id_to_name[ann['category_id']]
         assert img_id in img_id_to_ann_count
-        assert class_name in class_name_to_ann_count
+        assert class_name in class_name_to_anns
+        assert class_name in class_name_to_image_ids
         img_id_to_ann_count[img_id] += 1
-        class_name_to_ann_count[class_name] += 1
+        class_name_to_anns[class_name].append(ann)
+        if img_id not in class_name_to_image_ids[class_name]:
+            class_name_to_image_ids[class_name].append(img_id)
+    assert min(img_id_to_ann_count) > 0
     print("Sampled {} images and {} annotations.".format(num_imgs, num_annos))
     print("Distribution of annotations over images: {}".format(img_id_to_ann_count))
+    class_name_to_ann_count = {class_name: len(class_name_to_anns[class_name]) for class_name in all_class_names}
     print("Distribution of annotations over classes: {}".format(class_name_to_ann_count))
+    # Some more sophisticated analyses
+    class_name_to_image_count = {class_name: len(class_name_to_image_ids[class_name]) for class_name in all_class_names}
+    print("Amount of unique images each class appears on: {}".format(class_name_to_image_count))
+    class_name_to_ann_sizes = {class_name: [ann["bbox"][2] * ann["bbox"][3] for ann in class_name_to_anns[class_name]] for class_name in all_class_names}
+    class_name_to_mstd_ann_sizes = {class_name: "{} +/- {}".format(
+        round(mean(class_name_to_ann_sizes[class_name]), mean_decimals),
+        round(stdev(class_name_to_ann_sizes[class_name]), std_decimals)
+    ) for class_name in all_class_names}
+    print("Average object areas per class: {}".format(class_name_to_mstd_ann_sizes))
+    if img_to_value:
+        values = [img_to_value[img] for img in images if img in img_to_value]
+        if len(values) != len(images):
+            print("Warning: Only {} values for {} images were available!".format(len(values), len(images)))
+        print("Mean and std for the available image values: {} +/- {}".format(
+            round(mean(values), mean_decimals),
+            round(stdev(values), std_decimals)
+        ))
 
 
 def _get_topk_samples(samples, top_k, sort_by, reverse=False):
@@ -270,6 +300,37 @@ def _get_image_count(anno_count_min=None, anno_count_max=None):
                 ctr += 1
         msg += " {} images with at most {} annotations.".format(ctr, anno_count_max)
     print(msg)
+
+
+def _get_img_to_gsd_map(meta_dir):
+    """
+    meta_dir: Contains textfiles, one per image. Each textfile is asserted to have at least one line starting with
+      'gsd:' or 'GSD:' followed by a float number.
+    """
+    def _get_gsd(file_name):
+        with open(os.path.join(meta_dir, file_name), 'r') as f:
+            gsd = None
+            for line in f:
+                if line.lower().startswith("gsd:"):
+                    gsd_str = line.split(":")[1]
+                    try:
+                        gsd = float(gsd_str)
+                    except ValueError:
+                        print("Invalid gsd value: {}".format(gsd_str))
+                        gsd = None
+                        # exit(1)
+                    return gsd
+            print("Warning: No gsd available in the file {}".format(file_name))
+            return gsd
+    images = img_id_to_img.values()
+    img_id_to_gsd = {img["id"]: None for img in images}
+    for file_name in os.listdir(meta_dir):
+        gsd = _get_gsd(file_name)
+        img_name = file_name.split(".")[0]  # remove file ending
+        for img in images:  # TODO: slow solution! preprocessing images with same prefix could increase speed
+            if img["file_name"].startswith(img_name):
+                img_id_to_gsd[img["id"]] = gsd
+    return img_id_to_gsd
 
 
 def _read_sample(seed, shots):
