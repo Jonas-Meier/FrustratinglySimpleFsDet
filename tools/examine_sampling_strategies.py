@@ -261,7 +261,7 @@ def analyse_sample(images, annotations, img_to_value=None):
     ) for class_name in all_class_names}
     print("Average object areas per class: {}".format(class_name_to_mstd_ann_sizes))
     if img_to_value:
-        values = [img_to_value[img] for img in images if img in img_to_value]
+        values = [img_to_value[img['id']] for img in images if img['id'] in img_to_value]
         if len(values) != len(images):
             print("Warning: Only {} values for {} images were available!".format(len(values), len(images)))
         print("Mean and std for the available image values: {} +/- {}".format(
