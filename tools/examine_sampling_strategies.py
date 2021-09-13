@@ -346,28 +346,32 @@ def _find_overlapping_patches(images):
 
     def _overlap(x1min, x1max, y1min, y1max, x2min, x2max, y2min, y2max):
         return \
-            x2min < x1max or \
-            y2min < y1max or \
-            x1min < x2max or \
-            y1min < y2max
+            x1min < x2min < x1max or \
+            y1min < y2min < y1max or \
+            x2min < x1min < x2max or \
+            y2min < y1min < y2max
 
     for img in images:
-        patch_img_name = img["file_name"]
+        patch_img_name = img["file_name"].split(".")[0]
         base_img_name, xmin, xmax, ymin, ymax = patch_img_name.split('_')
         if base_img_name not in base_img_name_to_patches:
             base_img_name_to_patches[base_img_name] = []
         base_img_name_to_patches[base_img_name].append(patch_img_name)
         patch_img_name_to_coords[patch_img_name] = (float(xmin), float(xmax), float(ymin), float(ymax))
         patch_img_name_to_base_img_name[patch_img_name] = base_img_name
-    for base_img_name, patches in base_img_name_to_patches.items():
-        if len(patches) <= 1:
+    ctr = 0
+    for base_img_name, patch_names in base_img_name_to_patches.items():
+        if len(patch_names) <= 1:
             continue
-        for i in range(len(patches)):
-            patch1_name = patches[i]["file_name"]
-            for j in range(i + 1, len(patches)):
-                patch2_name = patches[j]["file_name"]
+        for i in range(len(patch_names)):
+            patch1_name = patch_names[i]
+            for j in range(i + 1, len(patch_names)):
+                patch2_name = patch_names[j]
                 if _overlap(*patch_img_name_to_coords[patch1_name], *patch_img_name_to_coords[patch2_name]):
+                    ctr += 1
                     print("Patches {} and {} overlap!".format(patch1_name, patch2_name))
+    print("Found {} pairs of overlapping patches in total!".format(ctr))
+    return ctr
 
 
 def _read_sample(seed, shots):
