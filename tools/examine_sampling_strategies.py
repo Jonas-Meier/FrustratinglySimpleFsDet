@@ -261,7 +261,7 @@ def analyse_sample(images, annotations, img_to_value=None):
     ) for class_name in all_class_names}
     print("Average object areas per class: {}".format(class_name_to_mstd_ann_sizes))
     if img_to_value:
-        values = [img_to_value[img['id']] for img in images if img['id'] in img_to_value]
+        values = [img_to_value[img['id']] for img in images if (img['id'] in img_to_value and img_to_value[img["id"]])]
         if len(values) != len(images):
             print("Warning: Only {} values for {} images were available!".format(len(values), len(images)))
         print("Mean and std for the available image values: {} +/- {}".format(
@@ -331,6 +331,43 @@ def _get_img_to_gsd_map(meta_dir):
             if img["file_name"].startswith(img_name):
                 img_id_to_gsd[img["id"]] = gsd
     return img_id_to_gsd
+
+
+def _find_overlapping_patches(images):
+    """
+    Takes a set of images (e.g. iSAID patches) where image["file_name"] matches the following pattern:
+     <base-image-name>_<xmin>_<xmax>_<ymin>_<ymax>.<file-ending>, and prints all pairs of images that origin from the
+      same base-image and overlap.
+    TODO: Probably add the functionality to check whether there are objects in the overlapping area or not!
+    """
+    base_img_name_to_patches = {}
+    patch_img_name_to_base_img_name = {}
+    patch_img_name_to_coords = {}
+
+    def _overlap(x1min, x1max, y1min, y1max, x2min, x2max, y2min, y2max):
+        return \
+            x2min < x1max or \
+            y2min < y1max or \
+            x1min < x2max or \
+            y1min < y2max
+
+    for img in images:
+        patch_img_name = img["file_name"]
+        base_img_name, xmin, xmax, ymin, ymax = patch_img_name.split('_')
+        if base_img_name not in base_img_name_to_patches:
+            base_img_name_to_patches[base_img_name] = []
+        base_img_name_to_patches[base_img_name].append(patch_img_name)
+        patch_img_name_to_coords[patch_img_name] = (float(xmin), float(xmax), float(ymin), float(ymax))
+        patch_img_name_to_base_img_name[patch_img_name] = base_img_name
+    for base_img_name, patches in base_img_name_to_patches.items():
+        if len(patches) <= 1:
+            continue
+        for i in range(len(patches)):
+            patch1_name = patches[i]["file_name"]
+            for j in range(i + 1, len(patches)):
+                patch2_name = patches[j]["file_name"]
+                if _overlap(*patch_img_name_to_coords[patch1_name], *patch_img_name_to_coords[patch2_name]):
+                    print("Patches {} and {} overlap!".format(patch1_name, patch2_name))
 
 
 def _read_sample(seed, shots):
