@@ -345,11 +345,7 @@ def _find_overlapping_patches(images):
     patch_img_name_to_coords = {}
 
     def _overlap(x1min, x1max, y1min, y1max, x2min, x2max, y2min, y2max):
-        return \
-            x1min < x2min < x1max or \
-            y1min < y2min < y1max or \
-            x2min < x1min < x2max or \
-            y2min < y1min < y2max
+        return not (x1max <= x2min or x2max <= x1min or y1max <= y2min or y2max <= y1min)
 
     for img in images:
         patch_img_name = img["file_name"].split(".")[0]
