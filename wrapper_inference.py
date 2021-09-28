@@ -53,9 +53,9 @@ def main():
             alternative_inference_dataset,
             alternative_inference_class_split,
             cfg.TEST_SPLIT[alternative_inference_dataset],
-            "all"
+            "all" if phase == 2 else "base"
         )
-        opts.extend(['DATASETS.TEST', test_dataset_name])
+        opts.extend(('DATASETS.TEST', '\\(\\"{}\\",\\)'.format(test_dataset_name)))
     if eval_mode != 'single':  # to prevent multiple execution of inference on all or the last checkpoint!
         iterations = [-1]
     if phase == 1:
