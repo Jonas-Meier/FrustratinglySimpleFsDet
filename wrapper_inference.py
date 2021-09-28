@@ -7,6 +7,11 @@ def main():
     dataset = "coco"  # coco, isaid
     coco_class_splits = ["voc_nonvoc"]  # voc_nonvoc, none_all
     isaid_class_splits = ["vehicle_nonvehicle"]  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
+    # Evaluate on a different dataset. TODO: it's unclear what assumptions have to be made!
+    # Defining an alternative class split is normally not necessary, since the classes to be evaluated should be the
+    # same, but the implementation requires this class split to be existent in CLASS_SPLITS[alternative_inference_dataset]!
+    alternative_inference_dataset = ""
+    alternative_inference_class_split = ""
     gpu_ids = [0]
     num_threads = 2
     phase = 2  # phase 1: base-training, phase 2: fine-tuning
@@ -40,6 +45,17 @@ def main():
         ]
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
+    # ---------------------------------------------------------------------------------------------------------------- #
+    if alternative_inference_dataset:
+        assert alternative_inference_class_split
+        # same pattern as in 'run_base_training.py' and 'run_experiments.py'
+        test_dataset_name = "{}_{}_{}_{}".format(
+            alternative_inference_dataset,
+            alternative_inference_class_split,
+            cfg.TEST_SPLIT[alternative_inference_dataset],
+            "all"
+        )
+        opts.extend(['DATASETS.TEST', test_dataset_name])
     if eval_mode != 'single':  # to prevent multiple execution of inference on all or the last checkpoint!
         iterations = [-1]
     if phase == 1:
