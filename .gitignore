@@ -16,23 +16,19 @@ install/
 fsdet/model_zoo/configs
 logger-files/
 
+# Save directories and symlinks
 exp/
 checkpoints/
+pretrained/
+exp
+checkpoints
+pretrained
 
 # datasets
-datasets/coco
-datasets/cocosplit
-datasets/VOC2007
-datasets/VOC2012
-datasets/vocsplit
-datasets/lvis
-datasets/lvissplit
-datasets/*/seed*
+datasets/*/*
 
 # configs
-configs/Test
-configs/*/seed*/*
-configs/*/*/seed*/*
+configs/*/*
 
 .vscode-upload.json
 .mypy_cache
