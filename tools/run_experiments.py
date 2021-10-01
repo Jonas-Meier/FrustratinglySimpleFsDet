@@ -222,7 +222,7 @@ def run_train(config_file, config):
     if args.resume:
         train_cmd += " --resume"
 
-    if os.listdir(save_dir) and not args.resume:
+    if os.path.exists(save_dir) and os.listdir(save_dir) and not args.resume:
         # Save directory is not empty and --resume is not set.
         # --force-override has to be specified to clean the directory prior to training
         if args.force_retrain:
@@ -479,6 +479,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
 
     train_weight = surgery_ckpt = os.path.join(surgery_ckpt_save_dir, surgery_ckpt_name)
     train_ckpt_save_dir = os.path.join(train_ckpt_base_dir, training_identifier)
+    os.makedirs(train_ckpt_save_dir, exist_ok=True)
 
     config_prefix = training_identifier
 
