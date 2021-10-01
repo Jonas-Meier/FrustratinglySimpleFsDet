@@ -56,6 +56,8 @@ def main():
     #_get_image_count(anno_count_min=10, anno_count_max=50)
     #data = _read_sample(seed=0, shots=shots)
     #analyse_sample(data["images"], data["annotations"], img_to_value=None)
+    #imgs, anns = sample("all_or_none", shots)
+    #_find_overlapping_patches(imgs)
 
 
 def _sample_high_annotation_ratio_per_image_and_export(shots=100, pool_size=10000, seed_range=[0, 4],
@@ -366,7 +368,7 @@ def _find_overlapping_patches(images):
                 if _overlap(*patch_img_name_to_coords[patch1_name], *patch_img_name_to_coords[patch2_name]):
                     ctr += 1
                     print("Patches {} and {} overlap!".format(patch1_name, patch2_name))
-    print("Found {} pairs of overlapping patches in total!".format(ctr))
+    print("From {} patches, {} pairs overlap!!".format(len(images), ctr))
     return ctr
 
 
