@@ -35,7 +35,7 @@ def main():
             'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,
             'MODEL.RPN.POST_NMS_TOPK_TEST', 1000
         ]
-    elif dataset == "isaid":
+    elif dataset.startswith("isaid"):
         class_splits = isaid_class_splits
         opts = [
             'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,

@@ -61,7 +61,7 @@ def default_per_class_dict():
 
 
 def _file_names(phase=2):
-    if dataset == 'isaid':
+    if dataset.startswith('isaid'):
         class_split = isaid_class_split
     elif dataset == 'coco':
         class_split = coco_class_split

@@ -107,6 +107,62 @@ ISAID_CATS_ID_TO_NAME = {
 # Inverse dict of iSAID category names to iSAID category IDs
 ISAID_CATS_NAME_TO_ID = {v: k for k, v in ISAID_CATS_ID_TO_NAME.items()}
 
+FAIR1M_CATS_NAME_TO_ID = {
+    "Boeing737": 0,
+    "Boeing777": 1,
+    "Boeing747": 2,
+    "Boeing787": 3,
+    "A321": 4,
+    "A220": 5,
+    "A330": 6,
+    "A350": 7,
+    "C919": 8,
+    "ARJ21": 9,
+    "other-airplane": 10,
+    "Passenger Ship": 11,
+    "Motorboat": 12,
+    "Fishing Boat": 13,
+    "Tugboat": 14,
+    "Engineering Ship": 15,
+    "Liquid Cargo Ship": 16,
+    "Dry Cargo Ship": 17,
+    "Warship": 18,
+    "other-ship": 19,
+    "Small Car": 20,
+    "Bus": 21,
+    "Cargo Truck": 22,
+    "Dump Truck": 23,
+    "Van": 24,
+    "Trailer": 25,
+    "Tractor": 26,
+    "Truck Tractor": 27,
+    "Excavator": 28,
+    "other-vehicle": 29,
+    "Baseball Field": 30,
+    "Basketball Court": 31,
+    "Football Field": 32,
+    "Tennis Court": 33,
+    "Roundabout": 34,
+    "Intersection": 35,
+    "Bridge": 36,
+}
+FAIR1M_CATS_ID_TO_NAME = {v: k for k, v in FAIR1M_CATS_NAME_TO_ID.items()}
+
+FAIR1M_GROUPCATS_NAME_TO_ID = {
+    "Airplane": 0,
+    "Ship": 1,
+    "Small Vehicle": 2,
+    "Large Vehicle": 3,
+    "Baseball Field": 4,
+    "Basketball Court": 5,
+    "Football Field": 6,
+    "Tennis Court": 7,
+    "Roundabout": 8,
+    "Intersection": 9,
+    "Bridge": 10,
+}
+FAIR1M_GROUPCATS_ID_TO_NAME = {v: k for k,v in FAIR1M_GROUPCATS_NAME_TO_ID.items()}
+
 # Note: use lists for generating a collection implicitly! With tuples we could later run into problems while
 # iterating over them!
 #####################
@@ -179,9 +235,27 @@ _ISAID_PLANE_ROUNDABOUT_NOVEL = ['Roundabout']
 _ISAID_LV_ROUNDABOUT_BASE = ['Large_Vehicle']
 _ISAID_LV_ROUNDABOUT_NOVEL = ['Roundabout']
 
+######################
+# FAIR1M class splits #
+######################
+
+_FAIR1M_NO_NAMES = []
+_FAIR1M_ALL_NAMES = [i for i in FAIR1M_CATS_ID_TO_NAME.values() if i not in _FAIR1M_NO_NAMES]
+
+_FAIR1M_GROUPCATS_NO_NAMES = []
+_FAIR1M_GROUPCATS_ALL_NAMES = [i for i in FAIR1M_GROUPCATS_ID_TO_NAME.values() if i not in _FAIR1M_GROUPCATS_NO_NAMES]
+
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
-    "isaid": _ISAID_ALL_NAMES
+    "isaid": _ISAID_ALL_NAMES,
+    "isaid_100": _ISAID_ALL_NAMES,
+    "isaid_50": _ISAID_ALL_NAMES,
+    "isaid_25": _ISAID_ALL_NAMES,
+    "isaid_10": _ISAID_ALL_NAMES,
+    "isaid_low_gsd": _ISAID_ALL_NAMES,
+    "isaid_high_gsd": _ISAID_ALL_NAMES,
+    "fair1m": _FAIR1M_ALL_NAMES,
+    "fair1m_groupcats": _FAIR1M_GROUPCATS_ALL_NAMES,
 }
 
 # Note: We mainly use category names because both, indices and specific category IDs can be ambiguous and may not be
@@ -294,6 +368,34 @@ CLASS_SPLITS["isaid"] = {
     },
 }
 
+CLASS_SPLITS["isaid_100"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_50"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_25"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_10"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_low_gsd"] = {
+    **CLASS_SPLITS["isaid"],
+    "gsd_none_all": {
+        "base": ["Small_Vehicle", "Large_Vehicle", "plane", "Ground_Track_Field", "Soccer_ball_field", "baseball_diamond"],
+        "novel": []  # finetuning is not intended!
+    }
+}
+CLASS_SPLITS["isaid_high_gsd"] = CLASS_SPLITS["isaid_low_gsd"]
+CLASS_SPLITS["isaid"]["gsd_none_all"] = CLASS_SPLITS["isaid_low_gsd"]["gsd_none_all"]
+
+CLASS_SPLITS["fair1m"] = {
+    "none_all": {
+        "base": _FAIR1M_ALL_NAMES,
+        "novel": _FAIR1M_NO_NAMES
+    }
+}
+
+CLASS_SPLITS["fair1m_groupcats"] = {
+    "none_all": {
+        "base": _FAIR1M_GROUPCATS_ALL_NAMES,
+        "novel": _FAIR1M_GROUPCATS_NO_NAMES
+    }
+}
+
 # xVIEW has 60 classes
 CLASS_SPLITS["xview"] = {
 
@@ -308,8 +410,12 @@ CLASS_SPLITS["vaid"] = {
 def get_ids_from_names(dataset, class_names):
     if dataset == 'coco':
         return [COCO_CATS_NAME_TO_ID[c] for c in class_names]
-    elif dataset == 'isaid':
+    elif dataset.startswith('isaid'):
         return [ISAID_CATS_NAME_TO_ID[c] for c in class_names]
+    elif dataset == 'fair1m':
+        return [FAIR1M_CATS_NAME_TO_ID[c] for c in class_names]
+    elif dataset == 'fair1m_groupcats':
+        return [FAIR1M_GROUPCATS_NAME_TO_ID[c] for c in class_names]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 
@@ -317,8 +423,12 @@ def get_ids_from_names(dataset, class_names):
 def get_names_from_ids(dataset, ids):
     if dataset == 'coco':
         return [COCO_CATS_ID_TO_NAME[i] for i in ids]
-    elif dataset == 'isaid':
+    elif dataset.startswith('isaid'):
         return [ISAID_CATS_ID_TO_NAME[i] for i in ids]
+    elif dataset == 'fair1m':
+        return [FAIR1M_CATS_ID_TO_NAME[i] for i in ids]
+    elif dataset == 'fair1m_groupcats':
+        return [FAIR1M_GROUPCATS_ID_TO_NAME[i] for i in ids]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 

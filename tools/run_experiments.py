@@ -367,7 +367,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             10: (160000, (144000,), 10000),  # 16000
             30: (240000, (216000,), 12000),  # 24000
         }  # To fine-tune entire classifier
-    elif args.dataset == 'isaid':  # only-isaid configs
+    elif args.dataset.startswith('isaid'):  # only-isaid configs
         # iSAID
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {}  # no values yet set, need to examine the behaviour of novel fine-tuning on iSAID dataset first
@@ -587,7 +587,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
-    elif args.dataset == 'isaid':
+    elif args.dataset.startswith('isaid'):
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500

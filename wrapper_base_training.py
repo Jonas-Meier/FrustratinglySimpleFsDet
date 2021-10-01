@@ -5,6 +5,7 @@ def main():
     dataset = "coco"  # coco, isaid
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
+    fair1m_class_split = "none_all"
     gpu_ids = [0]
     num_threads = 2  # two threads seem to be a bit faster than just one, but four threads are as fast as two threads!
     bs = 16
@@ -23,8 +24,10 @@ def main():
     # ---------------------------------------------------------------------------------------------------------------- #
     if dataset == "coco":
         class_split = coco_class_split
-    elif dataset == "isaid":
+    elif dataset.startswith("isaid"):
         class_split = isaid_class_split
+    elif dataset in ['fair1m', 'fair1m_groupcats']:
+        class_split = fair1m_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     run_base_training(dataset, class_split, gpu_ids, num_threads, layers, augmentations, bs, lr, override_config,

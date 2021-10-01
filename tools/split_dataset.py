@@ -23,6 +23,7 @@ original_anno_dir = os.path.join(*original_annos.split("/")[0:-1])
 original_anno_file_name = original_annos.split("/")[-1]
 
 force_override = False  # Force overriding of already existing datasets
+meta_dir = "/net/fulu/storage/deeplearning/datasets/DOTA-v2.0/val/meta"
 
 
 def main():
@@ -33,6 +34,7 @@ def main():
     dataset1_name = "isaid_50_1"
     dataset2_name = "isaid_50_2"
     (imgs1, anns1), (imgs2, anns2) = get_uniform_dataset_split(pool_size=pool_size, proportion=proportion)
+    #(imgs1, anns1), (imgs2, anns2) = split_by_value(img_id_to_value=_get_img_to_gsd_map(meta_dir), proportion=None, threshold=0.4)
     _analyse_sampled_dataset(imgs1, anns1)
     _export_dataset(images=imgs1, annotations=anns1, save_dir=original_anno_dir.replace(original_dataset_name, dataset1_name), file_name=original_anno_file_name)
     _export_dataset(images=imgs2, annotations=anns2, save_dir=original_anno_dir.replace(original_dataset_name, dataset2_name), file_name=original_anno_file_name)

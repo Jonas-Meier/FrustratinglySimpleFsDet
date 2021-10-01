@@ -157,7 +157,9 @@ def get_base_dataset_names(dataset, class_split, mode='base', train_split='train
 def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' to True?
     if args.dataset == 'coco':
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
-    elif args.dataset == 'isaid':
+    elif args.dataset.startswith('isaid'):
+        ITERS = (60000, (25000, 40000))
+    elif args.dataset in ['fair1m', 'fair1m_groupcats']:
         ITERS = (60000, (25000, 40000))
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
@@ -225,7 +227,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
-    elif args.dataset == 'isaid':
+    elif args.dataset.startswith('isaid'):
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
@@ -233,6 +235,14 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
+    elif args.dataset in ['fair1m', 'fair1m_groupcats']:
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
 
     # Save config and return it
     with open(config_save_file, 'w') as fp:

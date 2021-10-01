@@ -55,7 +55,7 @@ def main():
         override_config = override_surgery = False
     if dataset == "coco":
         class_split = coco_class_split
-    elif dataset == "isaid":
+    elif dataset.startswith("isaid"):
         class_split = isaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
