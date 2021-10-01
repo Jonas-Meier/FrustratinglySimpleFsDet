@@ -33,6 +33,8 @@ class_split = "experiment3"
 anno_dir = cfg.TRAIN_ANNOS[dataset]
 save_dir_base_path = cfg.DATA_SAVE_PATH_PATTERN[dataset].format(class_split)
 meta_dir = ""  # TODO: set appropriately!
+anno_dir = '/home/jonas/data/iSAID/iSAID_train.json'
+save_dir_base_path = '.'
 
 base_class_names = tuple(CLASS_SPLITS[dataset][class_split]['base'])
 novel_class_names = tuple(CLASS_SPLITS[dataset][class_split]['novel'])
@@ -349,7 +351,7 @@ def _find_overlapping_patches(images):
 
     for img in images:
         patch_img_name = img["file_name"].split(".")[0]
-        base_img_name, xmin, xmax, ymin, ymax = patch_img_name.split('_')
+        base_img_name, ymin, ymax, xmin, xmax = patch_img_name.split('_')
         if base_img_name not in base_img_name_to_patches:
             base_img_name_to_patches[base_img_name] = []
         base_img_name_to_patches[base_img_name].append(patch_img_name)
