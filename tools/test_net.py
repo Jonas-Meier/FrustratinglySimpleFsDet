@@ -13,9 +13,9 @@ Therefore, we recommend you to use FsDet as an library and take
 this file as an example of how to use the library.
 You may want to write your own script with your datasets and other customizations.
 """
-
 import numpy as np
 import torch
+from fsdet.modeling import GeneralizedRCNNWithTTA
 
 from fsdet.config import get_cfg, set_global_cfg
 from fsdet.engine import DefaultTrainer, default_argument_parser, default_setup
@@ -71,6 +71,25 @@ class Trainer(DefaultTrainer):
         if len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
+
+    @classmethod
+    def test_with_TTA(cls, cfg, model, file_suffix=""):
+        # TODO: probably also add this method to 'train_net' to register an EvalHook with it
+        #  (see Detectron2's train_net script)
+        logger = logging.getLogger("detectron2.trainer")
+        # In the end of training, run an evaluation with TTA
+        # Only support some R-CNN models.
+        logger.info("Running inference with test-time augmentation ...")
+        model = GeneralizedRCNNWithTTA(cfg, model)
+        evaluators = [
+            cls.build_evaluator(
+                cfg, name, output_folder=os.path.join(cfg.OUTPUT_DIR, "inference_TTA")
+            )
+            for name in cfg.DATASETS.TEST
+        ]
+        res = cls.test(cfg, model, evaluators, file_suffix=file_suffix)
+        res = OrderedDict({k + "_TTA": v for k, v in res.items()})
+        return res
 
 
 class Tester:
@@ -136,30 +155,35 @@ def main(args):
         model = Trainer.build_model(cfg)
         if args.eval_iter != -1:
             # load checkpoint at specified iteration
+            iteration = args.eval_iter - 1
             ckpt_file = os.path.join(
-                cfg.OUTPUT_DIR, "model_{:07d}.pth".format(args.eval_iter - 1)
+                cfg.OUTPUT_DIR, "model_{:07d}.pth".format(iteration)
             )
+            iter_str = "_iter_{}".format(iteration)
             resume = False
         else:
             # load checkpoint at last iteration
             ckpt_file = cfg.MODEL.WEIGHTS
+            iter_str = "_final"
             resume = True
         ckpt = DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             ckpt_file, resume=resume
         )
-        iteration = ckpt["iteration"]
-        res_file = "res_iter_{}.json".format(iteration)
-        res = Trainer.test(cfg, model, file_suffix="_iter_{}".format(iteration))
+        res_file = "res{}.json".format(iter_str)
+        # TODO: remove file_suffix?
+        #  -> We would then need to hard-code this file suffix here (for res*.json) and in the evaluator!
+        # TODO: (see Detectron2's train_net script) Probably run TTA additionally and not instead?
+        if cfg.TEST.AUG.ENABLED:  # Test-time Augmentation (TTA)
+            res = Trainer.test_with_TTA(cfg, model, file_suffix=iter_str)
+            save_path = os.path.join(cfg.OUTPUT_DIR, "inference_TTA")
+        else:  # "regular" inference
+            res = Trainer.test(cfg, model, file_suffix=iter_str)
+            save_path = os.path.join(cfg.OUTPUT_DIR, "inference")
         if comm.is_main_process():
             verify_results(cfg, res)
             # save evaluation results in json
-            os.makedirs(
-                os.path.join(cfg.OUTPUT_DIR, "inference"), exist_ok=True
-            )
-            with open(
-                os.path.join(cfg.OUTPUT_DIR, "inference", res_file),
-                "w",
-            ) as fp:
+            os.makedirs(save_path, exist_ok=True)
+            with open(os.path.join(save_path, res_file), "w") as fp:
                 json.dump(res, fp)
         return res
     elif args.eval_all:
