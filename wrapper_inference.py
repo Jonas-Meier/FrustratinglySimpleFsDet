@@ -27,22 +27,32 @@ def main():
     unfreeze = False  # False: freeze feature extractor while fine-tuning
     # Modify test config options (e.g. for quick test hyperparameter tuning).
     #  Note: these configs are not saved into a config file, the change is just temporary for this certain run!
+    opts = []
+    # Test-Time Augmentation (TTA) options
+    tta_min_sizes = [700, 800, 900]  # [400, 500, 600, 700, 800, 900, 1000, 1100, 1200]
+    opts.extend([
+        'TEST.AUG.ENABLED', False,  # Set to True to enable
+        'TEST.AUG.MIN_SIZES', '\\({}\\)'.format(separate(tta_min_sizes, ',', trailing_sep=True)),
+        'TEST.AUG.MAX_SIZE', 4000,
+        'TEST.AUG.FLIP', True
+    ])
+    # dataset-specific options
     if dataset == "coco":
         class_splits = coco_class_splits
-        opts = [
+        opts.extend([
             'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.05,
             'TEST.DETECTIONS_PER_IMAGE', 100,
             'MODEL.RPN.PRE_NMS_TOPK_TEST', 1000,
             'MODEL.RPN.POST_NMS_TOPK_TEST', 1000
-        ]
+        ])
     elif dataset.startswith("isaid"):
         class_splits = isaid_class_splits
-        opts = [
+        opts.extend([
             'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,
             'TEST.DETECTIONS_PER_IMAGE', 300,
             'MODEL.RPN.PRE_NMS_TOPK_TEST', 2000,
             'MODEL.RPN.POST_NMS_TOPK_TEST', 1500
-        ]
+        ])
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -108,16 +118,16 @@ def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
 
 
 # note: separate(elements, ' ') == *elements
-def separate(elements, separator):
+def separate(elements, separator, trailing_sep=False):
     res = ''
     if not isinstance(elements, (list, tuple)):
         return str(elements)
     assert len(elements) > 0, "need at least one element in the collection {}!".format(elements)
-    if len(elements) == 1:
-        return str(elements[0])
     for element in elements:
         res += '{}{}'.format(str(element), separator)
-    return res[:-1]  # remove trailing separator
+    if not trailing_sep:
+        return res[:-1]  # remove trailing separator
+    return res
 
 
 if __name__ == '__main__':
