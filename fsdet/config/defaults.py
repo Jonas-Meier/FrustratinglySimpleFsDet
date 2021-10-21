@@ -40,7 +40,7 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "isaid_10": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_10split", "isaid_10split_{}"),
     "isaid_low_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_low_gsdsplit", "isaid_low_gsd_split_{}"),
     "isaid_high_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_high_gsdsplit", "isaid_high_gsdsplit_{}"),
-    "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_no_overlap", "isaid_no_overlapsplit_{}"),
+    "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_no_overlapsplit", "isaid_no_overlapsplit_{}"),
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1msplit", "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_groupcatssplit", "fair1m_groupcatssplit_{}"),
 })
