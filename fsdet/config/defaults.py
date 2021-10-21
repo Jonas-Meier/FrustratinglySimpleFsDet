@@ -9,12 +9,13 @@ _CC = _C
 
 # Some dataset and class split specific patterns
 _CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid", "isaid_100","isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
-                                   "isaid_high_gsd", "fair1m", "fair1m_groupcats"]  # all supported datasets. Others won't work
+# all supported datasets. Others won't work
+_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
+                                   "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
 # datasets that have the same annotation format as MS COCO (those datasets are directly supported and will require the
 #  fewest amount of adaptions!)
-_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid", "isaid_100","isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
-                                  "isaid_high_gsd", "fair1m", "fair1m_groupcats"]
+_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
+                                  "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
 # Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
 _CC.DATA_DIR = CN({
     "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
@@ -25,6 +26,7 @@ _CC.DATA_DIR = CN({
     "isaid_10": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_10'),
     "isaid_low_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_low_gsd'),
     "isaid_high_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_high_gsd'),
+    "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_no_overlap'),
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m'),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m_groupcats'),
 })
@@ -38,6 +40,7 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "isaid_10": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_10split", "isaid_10split_{}"),
     "isaid_low_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_low_gsdsplit", "isaid_low_gsd_split_{}"),
     "isaid_high_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_high_gsdsplit", "isaid_high_gsdsplit_{}"),
+    "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_no_overlap", "isaid_no_overlapsplit_{}"),
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1msplit", "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_groupcatssplit", "fair1m_groupcatssplit_{}"),
 })
@@ -52,6 +55,7 @@ _CC.CONFIG_DIR_PATTERN = CN({
     "isaid_10": os.path.join('configs', 'iSAID-10-detection', "isaid_10split_{}"),
     "isaid_low_gsd": os.path.join('configs', 'iSAID-low-gsd-detection', "isaid_low_gsdsplit_{}"),
     "isaid_high_gsd": os.path.join('configs', 'iSAID-high-gsd-detection', "isaid_high_gsdsplit_{}"),
+    "isaid_no_overlap": os.path.join('configs', 'iSAID-no-overlap-detection', "isaid_no_overlapsplit_{}"),
     "fair1m": os.path.join('configs', 'FAIR1M-detection', "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join('configs', 'FAIR1M-groupcats-detection', "fair1m_groupcatssplit_{}"),
 })
@@ -66,6 +70,7 @@ _CC.CKPT_DIR_PATTERN = CN({
     "isaid_10": os.path.join('checkpoints', 'isaid_10_{}'),
     "isaid_low_gsd": os.path.join('checkpoints', 'isaid_low_gsd_{}'),
     "isaid_high_gsd": os.path.join('checkpoints', 'isaid_high_gsd_{}'),
+    "isaid_no_overlap": os.path.join('checkpoints', 'isaid_no_overlap_{}'),
     "fair1m": os.path.join('checkpoints', 'fair1m_{}'),
     "fair1m_groupcats": os.path.join('checkpoints', 'fair1m_groupcats_{}'),
 })
@@ -79,6 +84,7 @@ _CC.TRAIN_SPLIT = CN({
     "isaid_10": 'train',
     "isaid_low_gsd": 'train',
     "isaid_high_gsd": 'train',
+    "isaid_no_overlap": 'train',
     "fair1m": 'train',
     "fair1m_groupcats": 'train',
 })
@@ -92,6 +98,7 @@ _CC.TEST_SPLIT = CN({
     "isaid_10": 'test',
     "isaid_low_gsd": 'test',
     "isaid_high_gsd": 'test',
+    "isaid_no_overlap": 'test',
     "fair1m": 'test',
     "fair1m_groupcats": 'test',
 })
@@ -107,6 +114,7 @@ _CC.TRAIN_IMG_DIR = CN({
     "isaid_10": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'train'),
+    "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'train'),
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'train'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'images', 'train'),
 })
@@ -120,6 +128,7 @@ _CC.TEST_IMG_DIR = CN({
     "isaid_10": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'val'),
+    "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'val'),
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'val'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'images', 'val'),
 })
@@ -133,6 +142,7 @@ _CC.TRAIN_ANNOS = CN({
     "isaid_10": os.path.join('datasets', 'isaid_10', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid_low_gsd', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid_high_gsd', 'annotations', 'instancesonly_filtered_train.json'),
+    "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_train.json'),
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_train.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_train.json'),
 })
@@ -146,6 +156,7 @@ _CC.TEST_ANNOS = CN({
     "isaid_10": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid_low_gsd', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid_high_gsd', 'annotations', 'instancesonly_filtered_val.json'),
+    "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_val.json'),
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_val.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_val.json'),
 })
