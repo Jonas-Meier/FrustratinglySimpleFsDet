@@ -7,6 +7,7 @@ def main():
     dataset = "coco"  # coco, isaid
     coco_class_splits = ["voc_nonvoc"]  # voc_nonvoc, none_all
     isaid_class_splits = ["vehicle_nonvehicle"]  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
+    fair1m_class_splits = ["none_all"]  # none_all
     # Evaluate on a different dataset. TODO: it's unclear what assumptions have to be made!
     # Defining an alternative class split is normally not necessary, since the classes to be evaluated should be the
     # same, but the implementation requires this class split to be existent in CLASS_SPLITS[alternative_inference_dataset]!
@@ -47,6 +48,14 @@ def main():
         ])
     elif dataset.startswith("isaid"):
         class_splits = isaid_class_splits
+        opts.extend([
+            'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,
+            'TEST.DETECTIONS_PER_IMAGE', 300,
+            'MODEL.RPN.PRE_NMS_TOPK_TEST', 2000,
+            'MODEL.RPN.POST_NMS_TOPK_TEST', 1500
+        ])
+    elif dataset in ["fair1m", "fair1m_groupcats"]:
+        class_splits = fair1m_class_splits
         opts.extend([
             'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,
             'TEST.DETECTIONS_PER_IMAGE', 300,
