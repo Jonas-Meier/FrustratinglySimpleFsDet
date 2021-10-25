@@ -10,12 +10,12 @@ _CC = _C
 # Some dataset and class split specific patterns
 _CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # all supported datasets. Others won't work
-_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
-                                   "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
+_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0",
+                                   "isaid_low_gsd", "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
 # datasets that have the same annotation format as MS COCO (those datasets are directly supported and will require the
 #  fewest amount of adaptions!)
-_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_low_gsd",
-                                  "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
+_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0",
+                                  "isaid_low_gsd", "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
 # Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
 _CC.DATA_DIR = CN({
     "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
@@ -24,6 +24,7 @@ _CC.DATA_DIR = CN({
     "isaid_50": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_50'),
     "isaid_25": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_25'),
     "isaid_10": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_10'),
+    "isaid_0": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_0'),
     "isaid_low_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_low_gsd'),
     "isaid_high_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_high_gsd'),
     "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_no_overlap'),
@@ -38,6 +39,7 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "isaid_50": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_50split", "isaid_50split_{}"),
     "isaid_25": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_25split", "isaid_25split_{}"),
     "isaid_10": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_10split", "isaid_10split_{}"),
+    "isaid_0": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_0split", "isaid_0split_{}"),
     "isaid_low_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_low_gsdsplit", "isaid_low_gsd_split_{}"),
     "isaid_high_gsd": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_high_gsdsplit", "isaid_high_gsdsplit_{}"),
     "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_no_overlapsplit", "isaid_no_overlapsplit_{}"),
@@ -53,6 +55,7 @@ _CC.CONFIG_DIR_PATTERN = CN({
     "isaid_50": os.path.join('configs', 'iSAID-50-detection', "isaid_50split_{}"),
     "isaid_25": os.path.join('configs', 'iSAID-25-detection', "isaid_25split_{}"),
     "isaid_10": os.path.join('configs', 'iSAID-10-detection', "isaid_10split_{}"),
+    "isaid_0": os.path.join('configs', 'iSAID-0-detection', "isaid_0split_{}"),
     "isaid_low_gsd": os.path.join('configs', 'iSAID-low-gsd-detection', "isaid_low_gsdsplit_{}"),
     "isaid_high_gsd": os.path.join('configs', 'iSAID-high-gsd-detection', "isaid_high_gsdsplit_{}"),
     "isaid_no_overlap": os.path.join('configs', 'iSAID-no-overlap-detection', "isaid_no_overlapsplit_{}"),
@@ -68,6 +71,7 @@ _CC.CKPT_DIR_PATTERN = CN({
     "isaid_50": os.path.join('checkpoints', 'isaid_50_{}'),
     "isaid_25": os.path.join('checkpoints', 'isaid_25_{}'),
     "isaid_10": os.path.join('checkpoints', 'isaid_10_{}'),
+    "isaid_0": os.path.join('checkpoints', 'isaid_0_{}'),
     "isaid_low_gsd": os.path.join('checkpoints', 'isaid_low_gsd_{}'),
     "isaid_high_gsd": os.path.join('checkpoints', 'isaid_high_gsd_{}'),
     "isaid_no_overlap": os.path.join('checkpoints', 'isaid_no_overlap_{}'),
@@ -82,6 +86,7 @@ _CC.TRAIN_SPLIT = CN({
     "isaid_50": 'train',
     "isaid_25": 'train',
     "isaid_10": 'train',
+    "isaid_0": 'train',
     "isaid_low_gsd": 'train',
     "isaid_high_gsd": 'train',
     "isaid_no_overlap": 'train',
@@ -96,6 +101,7 @@ _CC.TEST_SPLIT = CN({
     "isaid_50": 'test',
     "isaid_25": 'test',
     "isaid_10": 'test',
+    "isaid_0": 'test',
     "isaid_low_gsd": 'test',
     "isaid_high_gsd": 'test',
     "isaid_no_overlap": 'test',
@@ -112,6 +118,7 @@ _CC.TRAIN_IMG_DIR = CN({
     "isaid_50": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_25": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_10": os.path.join('datasets', 'isaid', 'images', 'train'),
+    "isaid_0": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'train'),
@@ -126,6 +133,7 @@ _CC.TEST_IMG_DIR = CN({
     "isaid_50": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_25": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_10": os.path.join('datasets', 'isaid', 'images', 'val'),
+    "isaid_0": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'val'),
@@ -140,6 +148,7 @@ _CC.TRAIN_ANNOS = CN({
     "isaid_50": os.path.join('datasets', 'isaid_50', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_25": os.path.join('datasets', 'isaid_25', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_10": os.path.join('datasets', 'isaid_10', 'annotations', 'instancesonly_filtered_train.json'),
+    "isaid_0": os.path.join('datasets', 'isaid_0', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid_low_gsd', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid_high_gsd', 'annotations', 'instancesonly_filtered_train.json'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_train.json'),
@@ -154,6 +163,7 @@ _CC.TEST_ANNOS = CN({
     "isaid_50": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_25": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_10": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json'),
+    "isaid_0": os.path.join('datasets', 'isaid', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_low_gsd": os.path.join('datasets', 'isaid_low_gsd', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_high_gsd": os.path.join('datasets', 'isaid_high_gsd', 'annotations', 'instancesonly_filtered_val.json'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_val.json'),

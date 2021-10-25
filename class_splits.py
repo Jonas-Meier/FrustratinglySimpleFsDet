@@ -252,6 +252,7 @@ ALL_CLASSES = {
     "isaid_50": _ISAID_ALL_NAMES,
     "isaid_25": _ISAID_ALL_NAMES,
     "isaid_10": _ISAID_ALL_NAMES,
+    "isaid_0": _ISAID_ALL_NAMES,
     "isaid_low_gsd": _ISAID_ALL_NAMES,
     "isaid_high_gsd": _ISAID_ALL_NAMES,
     "isaid_no_overlap": _ISAID_ALL_NAMES,
@@ -373,6 +374,7 @@ CLASS_SPLITS["isaid_100"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_50"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_25"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_10"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_0"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_low_gsd"] = {
     **CLASS_SPLITS["isaid"],
     "gsd_none_all": {
