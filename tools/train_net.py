@@ -22,7 +22,7 @@ import detectron2.utils.comm as comm
 import os
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import MetadataCatalog
-from detectron2.engine import launch
+from detectron2.engine import launch, hooks
 from fsdet.evaluation import (
     COCOEvaluator, DatasetEvaluators, LVISEvaluator, PascalVOCDetectionEvaluator, verify_results)
 
@@ -71,6 +71,17 @@ class Trainer(DefaultTrainer):
         return [build_augmentation(aug, cfg) for aug in cfg.INPUT.AUGMENTATIONS]
 
 
+def build_model_and_export(cfg):
+    # Builds the model and directly exports it to the output directory in the configs.
+    print("Building and exporting the model...")
+    model = Trainer.build_model(cfg)
+    checkpointer = DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR)
+    # set period=1 to force checkpoint creation each time 'step' is called
+    # set max_iter=0 to force a model_final.pth to be created as well
+    periodic_checkpointer = hooks.PeriodicCheckpointer(checkpointer, period=1, max_iter=0)
+    periodic_checkpointer.step(iteration=0)
+
+
 def setup(args):
     """
     Create configs and perform basic setups.
@@ -87,7 +98,9 @@ def setup(args):
 
 def main(args):
     cfg = setup(args)
-
+    if cfg.SOLVER.MAX_ITER == 0:
+        build_model_and_export(cfg)
+        return None
     if args.eval_only:
         model = Trainer.build_model(cfg)
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
