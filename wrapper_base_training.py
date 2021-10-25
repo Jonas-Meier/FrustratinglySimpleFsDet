@@ -10,7 +10,7 @@ def main():
     bs = 16
     lr = 0.02  # 0.02 for bs=16. Set to -1 for automatic linear scaling!
     layers = 50  # 50, 101
-    resume = False  # Try to resume on the latest checkpoint. So nt set together with 'force_retrain'!
+    resume = False  # Try to resume on the latest checkpoint. Do not set together with 'force_retrain'!
     force_retrain = False  # If the save directory is not empty, delete its content. Do not set together with 'resume'!
     # Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation',
     #  'Random50PercentContrast', 'Random50PercentBrightness', 'Random50PercentSaturation', 'RandomAlexNetLighting'
