@@ -29,6 +29,7 @@ seeds = [0, 1, 2]  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 tfa = False
 classifier = 'fc'  # fc, cosine
 unfreeze = False
+tta = False
 
 
 def main():
@@ -76,7 +77,7 @@ def _file_names(phase=2):
             cfg.CKPT_DIR_PATTERN[dataset].format(class_split),
             'faster_rcnn',
             training_id.format(layers, mode),
-            'inference',
+            'inference' if not tta else 'inference_TTA',
             metrics_file_pattern.format(base_iteration - 1)
         )
     else:
@@ -96,7 +97,7 @@ def _file_names(phase=2):
                 'faster_rcnn',
                 'seed{}'.format(seed),
                 training_id.format(layers, classifier_str, mode, shot_str, unfreeze_str, tfa_str, ''),
-                'inference',
+                'inference' if not tta else 'inference_TTA',
                 metrics_file_pattern.format(fine_iteration - 1)
             )
 
