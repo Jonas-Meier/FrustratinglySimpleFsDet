@@ -68,7 +68,7 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_augmentations(cls, cfg):
-        return [build_augmentation(aug, cfg) for aug in cfg.INPUT.AUGMENTATIONS]
+        return [build_augmentation(aug, cfg) for aug in cfg.INPUT.AUG.PIPELINE]
 
 
 def build_model_and_export(cfg):
@@ -77,7 +77,7 @@ def build_model_and_export(cfg):
     model = Trainer.build_model(cfg)
     checkpointer = DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR)
     # set period=1 to force checkpoint creation each time 'step' is called
-    # set max_iter=0 to force a model_final.pth to be created as well
+    # set max_iter=iteration(=0) to force a model_final.pth to be created as well
     periodic_checkpointer = hooks.PeriodicCheckpointer(checkpointer, period=1, max_iter=0)
     periodic_checkpointer.step(iteration=0)
 

@@ -12,6 +12,7 @@ from albumentations.augmentations.transforms import (
     GaussNoise,
     ToGray,
     GaussianBlur,
+    ISONoise,
 )
 from albumentations.augmentations.geometric.rotate import RandomRotate90, SafeRotate
 from albumentations.augmentations.geometric.transforms import ShiftScaleRotate
@@ -163,13 +164,32 @@ class AlbumentationsRandom90degRotate(AlbumentationsTransformAdapter):
 @AUGMENTATIONS_REGISTRY.register()
 class AlbumentationsGaussNoise(AlbumentationsTransformAdapter):
     def __init__(self, cfg):
-        super().__init__(GaussNoise())
+        own_config = cfg.INPUT.AUG.AUGS.ALBUMENTATIONS_GAUSS_NOISE
+        assert own_config.NAME == type(self).__name__
+        p = own_config.P
+        var_limit = own_config.VAR_LIMIT
+        super().__init__(GaussNoise(var_limit=var_limit, p=p))
+
+
+@AUGMENTATIONS_REGISTRY.register()
+class AlbumentationsISONoise(AlbumentationsTransformAdapter):
+    def __init__(self, cfg):
+        own_config = cfg.INPUT.AUG.AUGS.ALBUMENTATIONS_ISO_NOISE
+        assert own_config.NAME == type(self).__name__
+        p = own_config.P
+        color_shift = own_config.COLOR_SHIFT
+        intensity = own_config.INTENSITY
+        super().__init__(ISONoise(color_shift=color_shift, intensity=intensity, p=p))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class AlbumentationsGaussBlur(AlbumentationsTransformAdapter):
     def __init__(self, cfg):
-        super().__init__(GaussianBlur())
+        own_config = cfg.INPUT.AUG.AUGS.ALBUMENTATIONS_GAUSS_BLUR
+        assert own_config.NAME == type(self).__name__
+        p = own_config.P
+        blur_limit = own_config.BLUR_LIMIT
+        super().__init__(GaussianBlur(blur_limit=blur_limit, p=p))
 
 
 @AUGMENTATIONS_REGISTRY.register()
@@ -181,22 +201,30 @@ class AlbumentationsToGrey(AlbumentationsTransformAdapter):
 @AUGMENTATIONS_REGISTRY.register()
 class ResizeShortestEdgeLimitLongestEdge(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        min_size = cfg.INPUT.MIN_SIZE_TRAIN
-        max_size = cfg.INPUT.MAX_SIZE_TRAIN
-        sample_style = cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING
+        own_config = cfg.INPUT.AUG.AUGS.RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE
+        assert own_config.NAME == type(self).__name__
+        min_size = own_config.MIN_SIZE
+        max_size = own_config.MAX_SIZE
+        sample_style = own_config.SAMPLE_STYLE
         super().__init__(ResizeShortestEdge(short_edge_length=min_size, max_size=max_size, sample_style=sample_style))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class RandomHFlip(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomFlip(prob=0.5, horizontal=True, vertical=False))
+        own_config = cfg.INPUT.AUG.AUGS.HFLIP
+        assert own_config.NAME == type(self).__name__
+        prob = own_config.PROB
+        super().__init__(RandomFlip(prob=prob, horizontal=True, vertical=False))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class RandomVFlip(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomFlip(prob=0.5, horizontal=False, vertical=True))
+        own_config = cfg.INPUT.AUG.AUGS.VFLIP
+        assert own_config.NAME == type(self).__name__
+        prob = own_config.PROB
+        super().__init__(RandomFlip(prob=prob, horizontal=False, vertical=True))
 
 
 @AUGMENTATIONS_REGISTRY.register()
@@ -205,25 +233,45 @@ class RandomFourAngleRotation(Detectron2AugmentationAdapter):
         super().__init__(RandomRotation(angle=[90.0, 180.0, 270.0, 360.0], expand=True, sample_style="choice"))
 
 
+# TODO: following augmentations are applied every time, probably wrap them into a
+#  'detectron2/data/transforms/augmentations_impl:RandomApply' s.t. we can set a probability for them as well!
+#  Note: probably the wrapping will break the '__repr__' method!
+
+
 @AUGMENTATIONS_REGISTRY.register()
 class Random50PercentContrast(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomContrast(intensity_min=0.5, intensity_max=1.5))
+        own_config = cfg.INPUT.AUG.AUGS.RANDOM_50_PERCENT_CONTRAST
+        assert own_config.NAME == type(self).__name__
+        intensity_min = own_config.INTENSITY_MIN
+        intensity_max = own_config.INTENSITY_MAX
+        super().__init__(RandomContrast(intensity_min=intensity_min, intensity_max=intensity_max))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class Random50PercentBrightness(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomBrightness(intensity_min=0.5, intensity_max=1.5))
+        own_config = cfg.INPUT.AUG.AUGS.RANDOM_50_PERCENT_BRIGHTNESS
+        assert own_config.NAME == type(self).__name__
+        intensity_min = own_config.INTENSITY_MIN
+        intensity_max = own_config.INTENSITY_MAX
+        super().__init__(RandomBrightness(intensity_min=intensity_min, intensity_max=intensity_max))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class Random50PercentSaturation(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomSaturation(intensity_min=0.5, intensity_max=1.5))
+        own_config = cfg.INPUT.AUG.AUGS.RANDOM_50_PERCENT_SATURATION
+        assert own_config.NAME == type(self).__name__
+        intensity_min = own_config.INTENSITY_MIN
+        intensity_max = own_config.INTENSITY_MAX
+        super().__init__(RandomSaturation(intensity_min=intensity_min, intensity_max=intensity_max))
 
 
 @AUGMENTATIONS_REGISTRY.register()
 class RandomAlexNetLighting(Detectron2AugmentationAdapter):
     def __init__(self, cfg):
-        super().__init__(RandomLighting(scale=0.1))
+        own_config = cfg.INPUT.AUG.AUGS.RANDOM_ALEX_NET_LIGHTING
+        assert own_config.NAME == type(self).__name__
+        scale = own_config.SCALE
+        super().__init__(RandomLighting(scale=scale))

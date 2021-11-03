@@ -198,12 +198,69 @@ _CC.NOVEL_OVERSAMPLING_FACTOR = -1  # default: 1, -1 for same amount as base cla
 
 _CC.EVENT_WRITER_PERIOD = 100  # default: 20
 
-# Choose from 'ResizeShortestEdgeLimitLongestEdge', 'RandomHFlip', 'RandomVFlip', 'RandomFourAngleRotation'
-#  Note: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"] equals the Detectron2 default
-_CC.INPUT.AUGMENTATIONS = [
+
+_CC.INPUT.AUG = CN()
+# Define a separate pipeline to enforce the execution order of augmentations
+# Note: Make sure that the names used are the same as the class names in 'fsdet/data/transforms/augmentations_impl.py'
+# Note: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"] equals the Detectron2 default
+_CC.INPUT.AUG.PIPELINE = [
     "ResizeShortestEdgeLimitLongestEdge",
     "RandomHFlip"
 ]
+_CC.INPUT.AUG.AUGS = CN()
+# Define a config node for each augmentation to allow changing parameters
+# Note: Do not change the NAME and make sure the NAME is the same as used in the PIPELINE!
+_CC.INPUT.AUG.AUGS.RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE = CN({
+    "NAME": "ResizeShortestEdgeLimitLongestEdge",  # Do not change!
+    "MIN_SIZE": _CC.INPUT.MIN_SIZE_TRAIN,  # for backwards compatibility
+    "MAX_SIZE": _CC.INPUT.MAX_SIZE_TRAIN,  # for backwards compatibility
+    "SAMPLE_STYLE": _CC.INPUT.MIN_SIZE_TRAIN_SAMPLING  # for backwards compatibility
+})
+# TODO: probably delete the configs 'INPUT.MIN_SIZE_TRAIN', 'INPUT.MAX_SIZE_TRAIN' and
+#  'INPUT.MIN_SIZE_TRAIN_SAMPLING' since we will now just use 'MIN_SIZE', 'MAX_SIZE' and 'SAMPLE_STYLE'
+_CC.INPUT.AUG.AUGS.HFLIP = CN({
+    "NAME": "RandomHFlip",  # Do not change!
+    "PROB": 0.5
+})
+_CC.INPUT.AUG.AUGS.VFLIP = CN({
+    "NAME": "RandomVFlip",  # Do not change!
+    "PROB": 0.5
+})
+_CC.INPUT.AUG.AUGS.RANDOM_50_PERCENT_CONTRAST = CN({
+    "NAME": "Random50PercentContrast",  # Do not change!
+    "INTENSITY_MIN": 0.5,
+    "INTENSITY_MAX": 1.5
+})
+_CC.INPUT.AUG.AUGS.RANDOM_50_PERCENT_BRIGHTNESS = CN({
+    "NAME": "Random50PercentBrightness",  # Do not change!
+    "INTENSITY_MIN": 0.5,
+    "INTENSITY_MAX": 1.5
+})
+_CC.INPUT.AUG.AUGS.RANDOM_50_PERCENT_SATURATION = CN({
+    "NAME": "Random50PercentSaturation",  # Do not change!
+    "INTENSITY_MIN": 0.5,
+    "INTENSITY_MAX": 1.5
+})
+_CC.INPUT.AUG.AUGS.RANDOM_ALEX_NET_LIGHTING = CN({
+    "NAME": "RandomAlexNetLighting",  # Do not change!
+    "SCALE": 0.1
+})
+_CC.INPUT.AUG.AUGS.ALBUMENTATIONS_GAUSS_NOISE = CN({
+    "NAME": "AlbumentationsGaussNoise",  # Do not change!
+    "P": 0.5,
+    "VAR_LIMIT": (10, 50)
+})
+_CC.INPUT.AUG.AUGS.ALBUMENTATIONS_ISO_NOISE = CN({
+    "NAME": "AlbumentationsISONoise",  # Do not change!
+    "P": 0.5,
+    "COLOR_SHIFT": (0.01, 0.05),
+    "INTENSITY": (0.1, 0.5)
+})
+_CC.INPUT.AUG.AUGS.ALBUMENTATIONS_GAUSS_BLUR = CN({
+    "NAME": "AlbumentationsGaussBlur",  # Do not change!
+    "P": 0.5,
+    "BLUR_LIMIT": (3, 7)
+})
 
 # FREEZE Parameters
 _CC.MODEL.BACKBONE.FREEZE = False
