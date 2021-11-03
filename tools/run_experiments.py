@@ -1,5 +1,6 @@
 import argparse
 import os
+import shlex
 import shutil
 import time
 
@@ -87,6 +88,8 @@ def parse_args():
     parser.add_argument('--suffix', type=str, default='', help='Suffix of path')
     parser.add_argument('--ckpt-freq', type=int, default=10, # TODO: add an argument to enable or disable? (either fix amount of iterations or fix total amount of checkpoints)
                         help='Frequency of saving checkpoints')
+    parser.add_argument('--opts', nargs='*', default=[],
+                        help='Override configs for this very call.')
     # TODO: add argument --eval-only which will just execute evaluations!
     #  -> How can we tell get_cfg that we just want the correct config without doing a surgery?
     # PASCAL arguments
@@ -146,7 +149,9 @@ def get_empty_ft_config():
             'WARMUP_ITERS': int
         },
         'INPUT': {
-            'AUGMENTATIONS': [str],
+            'AUG': {
+                'PIPELINE': [str]
+            },
             'MIN_SIZE_TRAIN': (int,)
         },
         'TEST': {
@@ -215,12 +220,13 @@ def run_train(config_file, config):
     output_dir = config['OUTPUT_DIR']
     save_dir = os.path.join(args.root, output_dir)
     base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
+    resume_str = '' if not args.resume else ' --resume'
+    opts_str = '' if not args.opts else ' --opts ' + separate(args.opts, ' ')
     train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-                '--dist-url auto --num-gpus {} --config-file {}'. \
-        format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
+                '--dist-url auto --num-gpus {} --config-file {}{}{}'. \
+        format(args.num_threads, separate(args.gpu_ids, ','), base_cmd, len(args.gpu_ids), config_file,
+               resume_str, opts_str)
     assert not (args.resume and args.force_retrain)
-    if args.resume:
-        train_cmd += " --resume"
 
     if os.path.exists(save_dir) and os.listdir(save_dir) and not args.resume:
         # Save directory is not empty and --resume is not set.
@@ -245,7 +251,7 @@ def run_test(config_file, config):
         base_cmd = 'python3 -m tools.test_net'  # 'python tools/test_net.py' or 'python3 -m tools.test_net'
         test_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                    '--dist-url auto --num-gpus {} --config-file {} --resume --eval-only'. \
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
+            format(args.num_threads, separate(args.gpu_ids, ','), base_cmd, len(args.gpu_ids), config_file)
         run_cmd(test_cmd)
 
 
@@ -265,7 +271,7 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
     command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
               '--dataset {} --class-split {} --method {} --src1 {} --save-dir {}{}{}{}'\
-        .format(args.num_threads, comma_sep(args.gpu_ids), base_command,
+        .format(args.num_threads, separate(args.gpu_ids, ','), base_command,
                 dataset, class_split, method, src1, save_dir, src2_str, double_head_str, keep_weights_str)
     run_cmd(command)
 
@@ -579,7 +585,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['SOLVER']['MAX_ITER'] = max_iter
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = ckpt_interval  # ITERS[shot][0] // args.ckpt_freq
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
-    new_config['INPUT']['AUGMENTATIONS'] = str(args.augmentations)
+    new_config['INPUT']['AUG']['PIPELINE'] = str(args.augmentations)
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
 
@@ -602,16 +608,16 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     return config_save_file, new_config
 
 
-def comma_sep(elements):
+def separate(elements, separator, trailing_sep=False):
     res = ''
     if not isinstance(elements, (list, tuple)):
-        return str(elements)
+        return shlex.quote(str(elements))
     assert len(elements) > 0, "need at least one element in the collection {}!".format(elements)
-    if len(elements) == 1:
-        return str(elements[0])
     for element in elements:
-        res += '{},'.format(str(element))
-    return res[:-1]  # remove trailing space
+        res += '{}{}'.format(shlex.quote(str(element)), separator)
+    if not trailing_sep:
+        return res[:-1]  # remove trailing separator
+    return res
 
 
 def main(args):

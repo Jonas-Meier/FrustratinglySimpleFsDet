@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import shlex
 import time
 from subprocess import PIPE, STDOUT, Popen
 
@@ -34,6 +35,8 @@ def parse_args():
                         help='If it is set to False (default) and the target directory already exists, the program '
                              'aborts. If it is set to True, it will delete the already existent target directory and '
                              'starts the training. Do not set this argument together with --resume!')
+    parser.add_argument('--opts', nargs='*', default=[],
+                        help='Override configs for this very call.')
     return parser.parse_args()
 
 
@@ -74,7 +77,9 @@ def get_empty_base_config():
             'WARMUP_ITERS': 1000  # default
         },
         'INPUT': {
-            'AUGMENTATIONS': [str],
+            'AUG': {
+                'PIPELINE': [str]
+            },
             'MIN_SIZE_TRAIN': (int,)
         },
         'TEST': {
@@ -102,12 +107,13 @@ def run_train(config_file, config):
     output_dir = config['OUTPUT_DIR']
     save_dir = os.path.join(args.root, output_dir)
     base_cmd = 'python3 -m tools.train_net'  # 'python tools/train_net.py' or 'python3 -m tools.train_net'
+    resume_str = '' if not args.resume else ' --resume'
+    opts_str = '' if not args.opts else ' --opts ' + separate(args.opts, ' ')
     train_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-                '--dist-url auto --num-gpus {} --config-file {}'. \
-        format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
+                '--dist-url auto --num-gpus {} --config-file {}{}{}'. \
+        format(args.num_threads, separate(args.gpu_ids, ','), base_cmd, len(args.gpu_ids), config_file,
+               resume_str, opts_str)
     assert not (args.resume and args.force_retrain)
-    if args.resume:
-        train_cmd += " --resume"
 
     if os.listdir(save_dir) and not args.resume:
         # Save directory is not empty and --resume is not set.
@@ -132,7 +138,7 @@ def run_test(config_file, config):
         base_cmd = 'python3 -m tools.test_net'  # 'python tools/test_net.py' or 'python3 -m tools.test_net'
         test_cmd = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
                    '--dist-url auto --num-gpus {} --config-file {} --resume --eval-only'. \
-            format(args.num_threads, comma_sep(args.gpu_ids), base_cmd, len(args.gpu_ids), config_file)
+            format(args.num_threads, separate(args.gpu_ids, ','), base_cmd, len(args.gpu_ids), config_file)
         run_cmd(test_cmd)
 
 
@@ -219,7 +225,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
-    new_config['INPUT']['AUGMENTATIONS'] = str(args.augmentations)
+    new_config['INPUT']['AUG']['PIPELINE'] = str(args.augmentations)
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
@@ -241,16 +247,16 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     return config_save_file, new_config
 
 
-def comma_sep(elements):
+def separate(elements, separator, trailing_sep=False):
     res = ''
     if not isinstance(elements, (list, tuple)):
-        return str(elements)
+        return shlex.quote(str(elements))
     assert len(elements) > 0, "need at least one element in the collection {}!".format(elements)
-    if len(elements) == 1:
-        return str(elements[0])
     for element in elements:
-        res += '{},'.format(str(element))
-    return res[:-1]  # remove trailing space
+        res += '{}{}'.format(shlex.quote(str(element)), separator)
+    if not trailing_sep:
+        return res[:-1]  # remove trailing separator
+    return res
 
 
 def main():
