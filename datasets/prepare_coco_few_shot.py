@@ -191,7 +191,7 @@ def generate_seeds(args):
                     json.dump(new_data, f, indent=2)  # Easier to check files manually
     end = time.time()
     m, s = divmod(int(end-start), 60)
-    print("Created few-shot data for {} shot and {} seeds in {}m {}s"
+    print("Created few-shot data for {} shots and {} seeds in {}m {}s"
           .format(len(args.shots), len(seeds), m, s))
 
 
