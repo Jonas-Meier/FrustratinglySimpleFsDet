@@ -69,7 +69,7 @@ def main():
         class_split = coco_class_split
     elif dataset.startswith("isaid"):
         class_split = isaid_class_split
-    elif dataset in ['fair1m', 'fair1m_groupcats']:
+    elif dataset.startswith("fair1m"):
         class_split = fair1m_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))

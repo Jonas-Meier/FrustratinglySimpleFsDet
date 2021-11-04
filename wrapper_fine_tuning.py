@@ -8,6 +8,7 @@ def main():
     dataset = "coco"  # coco, isaid
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
+    fair1m_class_split = "none_all"
     # Set both (FT on different dataset and classes) or none.
     # Warning: If the alternative dataset does not use the same classes than the "regular" dataset, you probably should
     #  at least discard the base class predictor weights (keep_base_weights = False)!
@@ -100,6 +101,8 @@ def main():
         class_split = coco_class_split
     elif dataset.startswith("isaid"):
         class_split = isaid_class_split
+    elif dataset.startswith("fair1m"):
+        class_split = fair1m_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     assert (alternative_dataset and alternative_class_split) or \

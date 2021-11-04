@@ -161,7 +161,26 @@ FAIR1M_GROUPCATS_NAME_TO_ID = {
     "Intersection": 9,
     "Bridge": 10,
 }
-FAIR1M_GROUPCATS_ID_TO_NAME = {v: k for k,v in FAIR1M_GROUPCATS_NAME_TO_ID.items()}
+FAIR1M_GROUPCATS_ID_TO_NAME = {v: k for k, v in FAIR1M_GROUPCATS_NAME_TO_ID.items()}
+
+FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID = {
+    "Airplane": 0,
+    "C919": 1,
+    "Ship": 2,
+    "Warship": 3,
+    "Small Vehicle": 4,
+    "Large Vehicle": 5,
+    "Bus": 6,
+    "Baseball Field": 7,
+    "Basketball Court": 8,
+    "Football Field": 9,
+    "Tennis Court": 10,
+    "Roundabout": 11,
+    "Intersection": 12,
+    "Bridge": 13,
+}
+FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME = {v: k for k, v in FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID.items()}
+
 
 # Note: use lists for generating a collection implicitly! With tuples we could later run into problems while
 # iterating over them!
@@ -242,8 +261,19 @@ _ISAID_LV_ROUNDABOUT_NOVEL = ['Roundabout']
 _FAIR1M_NO_NAMES = []
 _FAIR1M_ALL_NAMES = [i for i in FAIR1M_CATS_ID_TO_NAME.values() if i not in _FAIR1M_NO_NAMES]
 
+_FAIR1M_EXPERIMENT1_NOVEL = ['C919', 'Warship', 'Bus']
+_FAIR1M_EXPERIMENT1_BASE = [i for i in FAIR1M_CATS_ID_TO_NAME.values() if i not in _FAIR1M_EXPERIMENT1_NOVEL]
+
+
 _FAIR1M_GROUPCATS_NO_NAMES = []
 _FAIR1M_GROUPCATS_ALL_NAMES = [i for i in FAIR1M_GROUPCATS_ID_TO_NAME.values() if i not in _FAIR1M_GROUPCATS_NO_NAMES]
+
+
+_FAIR1M_PARTLYGROUPCATS1_NO_NAMES = []
+_FAIR1M_PARTLYGROUPCATS1_ALL_NAMES = [i for i in FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME.values() if i not in _FAIR1M_PARTLYGROUPCATS1_NO_NAMES]
+
+_FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL = ['C919', 'Warship', 'Bus']
+_FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_BASE = [i for i in FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME.values() if i not in _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL]
 
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
@@ -258,6 +288,7 @@ ALL_CLASSES = {
     "isaid_no_overlap": _ISAID_ALL_NAMES,
     "fair1m": _FAIR1M_ALL_NAMES,
     "fair1m_groupcats": _FAIR1M_GROUPCATS_ALL_NAMES,
+    "fair1m_partlygroupcats1": _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES,
 }
 
 # Note: We mainly use category names because both, indices and specific category IDs can be ambiguous and may not be
@@ -390,6 +421,10 @@ CLASS_SPLITS["fair1m"] = {
     "none_all": {
         "base": _FAIR1M_ALL_NAMES,
         "novel": _FAIR1M_NO_NAMES
+    },
+    "experiment1": {
+        "base": _FAIR1M_EXPERIMENT1_BASE,
+        "novel": _FAIR1M_EXPERIMENT1_NOVEL
     }
 }
 
@@ -397,6 +432,17 @@ CLASS_SPLITS["fair1m_groupcats"] = {
     "none_all": {
         "base": _FAIR1M_GROUPCATS_ALL_NAMES,
         "novel": _FAIR1M_GROUPCATS_NO_NAMES
+    }
+}
+
+CLASS_SPLITS["fair1m_partlygroupcats1"] = {
+    "none_all": {
+        "base": _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES,
+        "novel": _FAIR1M_PARTLYGROUPCATS1_NO_NAMES
+    },
+    "experiment1": {
+        "base": _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_BASE,
+        "novel": _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL
     }
 }
 
@@ -420,6 +466,8 @@ def get_ids_from_names(dataset, class_names):
         return [FAIR1M_CATS_NAME_TO_ID[c] for c in class_names]
     elif dataset == 'fair1m_groupcats':
         return [FAIR1M_GROUPCATS_NAME_TO_ID[c] for c in class_names]
+    elif dataset == 'fair1m_partlygroupcats1':
+        return [FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID[c] for c in class_names]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 
@@ -433,6 +481,8 @@ def get_names_from_ids(dataset, ids):
         return [FAIR1M_CATS_ID_TO_NAME[i] for i in ids]
     elif dataset == 'fair1m_groupcats':
         return [FAIR1M_GROUPCATS_ID_TO_NAME[i] for i in ids]
+    elif dataset == 'fair1m_partlygroupcats1':
+        return [FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME[i] for i in ids]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 

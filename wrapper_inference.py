@@ -54,7 +54,7 @@ def main():
             'MODEL.RPN.PRE_NMS_TOPK_TEST', 2000,
             'MODEL.RPN.POST_NMS_TOPK_TEST', 1500
         ])
-    elif dataset in ["fair1m", "fair1m_groupcats"]:
+    elif dataset.startswith("fair1m"):
         class_splits = fair1m_class_splits
         opts.extend([
             'MODEL.ROI_HEADS.SCORE_THRESH_TEST', 0.01,

@@ -382,6 +382,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             50: (100000, (85000,), 10000),
             100: (100000, (85000,), 10000)
         }
+    elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
+        # TODO: probably adjust iterations and steps for FAIR1M datasets!
+        ALL_ITERS = {  # for now, we just support 10, 50 and 100 shot!
+            100: (100000, (85000,), 10000)
+        }
     elif args.dataset == 'voc':
         # PASCAL VOC
         # Note: we could as well support all types of surgery here, but we do not intend to use PASCAL VOC dataset!
@@ -601,6 +606,15 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
+    elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
+        # TODO: probably adjust for FAIR1M datasets!
+        new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500
+        new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
+        new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
+        new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
+        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
 
     with open(config_save_file, 'w') as fp:
         yaml.dump(new_config, fp, sort_keys=False)  # TODO: 'sort_keys=False' requires pyyaml >= 5.1

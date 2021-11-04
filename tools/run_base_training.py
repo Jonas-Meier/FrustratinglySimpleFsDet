@@ -165,7 +165,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         ITERS = (110000, (85000, 100000))  # tuple(max_iter, tuple(<steps>))
     elif args.dataset.startswith('isaid'):
         ITERS = (60000, (25000, 40000))
-    elif args.dataset in ['fair1m', 'fair1m_groupcats']:
+    elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
         ITERS = (60000, (25000, 40000))
     else:
         raise ValueError("Dataset {} is not supported!".format(args.dataset))
@@ -241,7 +241,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
-    elif args.dataset in ['fair1m', 'fair1m_groupcats']:
+    elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500

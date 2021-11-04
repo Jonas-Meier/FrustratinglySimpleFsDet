@@ -10,12 +10,16 @@ _CC = _C
 # Some dataset and class split specific patterns
 _CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # all supported datasets. Others won't work
-_CC.DATASETS.SUPPORTED_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0",
-                                   "isaid_low_gsd", "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
+_CC.DATASETS.SUPPORTED_DATASETS = ["coco",
+                                   "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0", "isaid_low_gsd",
+                                   "isaid_high_gsd", "isaid_no_overlap",
+                                   "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1"]
 # datasets that have the same annotation format as MS COCO (those datasets are directly supported and will require the
 #  fewest amount of adaptions!)
-_CC.DATASETS.COCOLIKE_DATASETS = ["coco", "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0",
-                                  "isaid_low_gsd", "isaid_high_gsd", "isaid_no_overlap", "fair1m", "fair1m_groupcats"]
+_CC.DATASETS.COCOLIKE_DATASETS = ["coco",
+                                  "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0", "isaid_low_gsd",
+                                  "isaid_high_gsd", "isaid_no_overlap",
+                                  "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1"]
 # Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
 _CC.DATA_DIR = CN({
     "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
@@ -30,6 +34,7 @@ _CC.DATA_DIR = CN({
     "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', 'isaid_no_overlap'),
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m'),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m_groupcats'),
+    "fair1m_partlygroupcats1": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m_partlygroupcats1'),
 })
 
 _CC.DATA_SAVE_PATH_PATTERN = CN({
@@ -45,6 +50,7 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "isaid_no_overlap": os.path.join(_CC.ROOT_DIR, 'datasets', "isaid_no_overlapsplit", "isaid_no_overlapsplit_{}"),
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1msplit", "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_groupcatssplit", "fair1m_groupcatssplit_{}"),
+    "fair1m_partlygroupcats1": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_partlygroupcats1split", "fair1m_partlygroupcats1split_{}"),
 })
 
 # relative to repository root
@@ -61,6 +67,7 @@ _CC.CONFIG_DIR_PATTERN = CN({
     "isaid_no_overlap": os.path.join('configs', 'iSAID-no-overlap-detection', "isaid_no_overlapsplit_{}"),
     "fair1m": os.path.join('configs', 'FAIR1M-detection', "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join('configs', 'FAIR1M-groupcats-detection', "fair1m_groupcatssplit_{}"),
+    "fair1m_partlygroupcats1": os.path.join('configs', 'FAIR1M-partlygroupcats1-detection', "fair1m_partlygroupcats1split_{}"),
 })
 
 # relative to repository root
@@ -77,6 +84,7 @@ _CC.CKPT_DIR_PATTERN = CN({
     "isaid_no_overlap": os.path.join('checkpoints', 'isaid_no_overlap_{}'),
     "fair1m": os.path.join('checkpoints', 'fair1m_{}'),
     "fair1m_groupcats": os.path.join('checkpoints', 'fair1m_groupcats_{}'),
+    "fair1m_partlygroupcats1": os.path.join('checkpoints', 'fair1m_partlygroupcats1_{}'),
 })
 
 _CC.TRAIN_SPLIT = CN({
@@ -92,6 +100,7 @@ _CC.TRAIN_SPLIT = CN({
     "isaid_no_overlap": 'train',
     "fair1m": 'train',
     "fair1m_groupcats": 'train',
+    "fair1m_partlygroupcats1": 'train',
 })
 
 _CC.TEST_SPLIT = CN({
@@ -107,6 +116,7 @@ _CC.TEST_SPLIT = CN({
     "isaid_no_overlap": 'test',
     "fair1m": 'test',
     "fair1m_groupcats": 'test',
+    "fair1m_partlygroupcats1": 'test',
 })
 
 
@@ -123,7 +133,8 @@ _CC.TRAIN_IMG_DIR = CN({
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'train'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'train'),
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'train'),
-    "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'images', 'train'),
+    "fair1m_groupcats": os.path.join('datasets', 'fair1m', 'images', 'train'),
+    "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m', 'images', 'train'),
 })
 
 _CC.TEST_IMG_DIR = CN({
@@ -138,7 +149,8 @@ _CC.TEST_IMG_DIR = CN({
     "isaid_high_gsd": os.path.join('datasets', 'isaid', 'images', 'val'),
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'images', 'val'),
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'val'),
-    "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'images', 'val'),
+    "fair1m_groupcats": os.path.join('datasets', 'fair1m', 'images', 'val'),
+    "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m', 'images', 'val'),
 })
 
 _CC.TRAIN_ANNOS = CN({
@@ -154,6 +166,7 @@ _CC.TRAIN_ANNOS = CN({
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_train.json'),
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_train.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_train.json'),
+    "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m_partlygroupcats1', 'annotations', 'instancesonly_filtered_HBB_partlygroupcats1_train.json'),
 })
 
 _CC.TEST_ANNOS = CN({
@@ -169,6 +182,7 @@ _CC.TEST_ANNOS = CN({
     "isaid_no_overlap": os.path.join('datasets', 'isaid_no_overlap', 'annotations', 'instancesonly_filtered_val.json'),
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_val.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_val.json'),
+    "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m_partlygroupcats1', 'annotations', 'instancesonly_filtered_HBB_partlygroupcats1_val.json'),
 })
 
 # How many annotations to use per image while fine-tuning:
@@ -178,7 +192,7 @@ _CC.FT_ANNOS_PER_IMAGE = 'all'  # 'all' or 'one'. Default: 'one'
 
 _CC.VALID_FEW_SHOTS = [1, 2, 3, 5, 10, 20, 30, 50, 100]
 
-_CC.MAX_SEED_VALUE = 100  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
+_CC.MAX_SEED_VALUE = 200  # Increase if necessary. Note that a large value will blow up the DatasetCatalog!
 
 
 # BASE_SHOT_MULTIPLIER is used for both, sampling data from original annotations and used by data preparation for
