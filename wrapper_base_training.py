@@ -5,10 +5,11 @@ cfg = get_cfg()
 
 
 def main():
-    dataset = "coco"  # coco, isaid
+    dataset = "coco"  # coco, isaid{...}, fair1m{...}, fairsaid
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
-    fair1m_class_split = "none_all"
+    fair1m_class_split = "none_all"  # none_all, experiment1
+    fairsaid_class_split = "none_all"  # none_all
     gpu_ids = [0]
     num_threads = 2  # two threads seem to be a bit faster than just one, but four threads are as fast as two threads!
     bs = 16
@@ -71,6 +72,8 @@ def main():
         class_split = isaid_class_split
     elif dataset.startswith("fair1m"):
         class_split = fair1m_class_split
+    elif dataset == "fairsaid":
+        class_split = fairsaid_class_split
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     opts.extend(get_augmentation_opts_list(augmentations, augmentation_params))

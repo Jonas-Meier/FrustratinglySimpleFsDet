@@ -181,6 +181,21 @@ FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID = {
 }
 FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME = {v: k for k, v in FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID.items()}
 
+FAIRSAID_NAME_TO_ID = {
+    "Small Vehicle": 0,
+    "Large Vehicle": 1,
+    "Plane": 2,
+    "Ship": 3,
+    "Tennis Court": 4,
+    "Soccer Ball Field": 5,
+    "Baseball Diamond": 6,
+    "Bridge": 7,
+    "Basketball Court": 8,
+    "Roundabout": 9
+}
+
+FAIRSAID_ID_TO_NAME = {v: k for k, v in FAIRSAID_NAME_TO_ID}
+
 
 # Note: use lists for generating a collection implicitly! With tuples we could later run into problems while
 # iterating over them!
@@ -254,26 +269,48 @@ _ISAID_PLANE_ROUNDABOUT_NOVEL = ['Roundabout']
 _ISAID_LV_ROUNDABOUT_BASE = ['Large_Vehicle']
 _ISAID_LV_ROUNDABOUT_NOVEL = ['Roundabout']
 
-######################
+_ISAID_GSD_NONE_ALL_BASE = ["Small_Vehicle", "Large_Vehicle", "plane", "Ground_Track_Field", "Soccer_ball_field",
+                            "baseball_diamond"]
+_ISAID_GSD_NONE_ALL_NOVEL = []  # finetuning is not intended!
+
+_ISAID_FAIRSAID_NONE_ALL_BASE = ["Small_Vehicle", "Large_Vehicle", "plane", "ship", "tennis_court", "Soccer_ball_field",
+                                 "baseball_diamond", "Bridge", "basketball_court", "Roundabout"]
+_ISAID_FAIRSAID_NONE_ALL_NOVEL = []  # finetuning is not intended!
+
+
+#######################
 # FAIR1M class splits #
-######################
+#######################
 
 _FAIR1M_NO_NAMES = []
 _FAIR1M_ALL_NAMES = [i for i in FAIR1M_CATS_ID_TO_NAME.values() if i not in _FAIR1M_NO_NAMES]
 
-_FAIR1M_EXPERIMENT1_NOVEL = ['C919', 'Warship', 'Bus']
+_FAIR1M_EXPERIMENT1_NOVEL = ["C919", "Warship", "Bus"]
 _FAIR1M_EXPERIMENT1_BASE = [i for i in FAIR1M_CATS_ID_TO_NAME.values() if i not in _FAIR1M_EXPERIMENT1_NOVEL]
 
 
 _FAIR1M_GROUPCATS_NO_NAMES = []
 _FAIR1M_GROUPCATS_ALL_NAMES = [i for i in FAIR1M_GROUPCATS_ID_TO_NAME.values() if i not in _FAIR1M_GROUPCATS_NO_NAMES]
 
+_FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_BASE = ["Small Vehicle", "Large Vehicle", "Airplane", "Ship", "Tennis Court",
+                                            "Football Field", "Baseball Field", "Bridge", "Basketball Court",
+                                            "Roundabout"]
+_FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_NOVEL = []  # finetuning is not intended!
+
 
 _FAIR1M_PARTLYGROUPCATS1_NO_NAMES = []
 _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES = [i for i in FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME.values() if i not in _FAIR1M_PARTLYGROUPCATS1_NO_NAMES]
 
-_FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL = ['C919', 'Warship', 'Bus']
+_FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL = ["C919", "Warship", "Bus"]
 _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_BASE = [i for i in FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME.values() if i not in _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL]
+
+
+###########################################################
+# FAIRSAID (combination of FAIR1M and iSAID) class splits #
+###########################################################
+
+_FAIRSAID_NO_NAMES = []
+_FAIRSAID_ALL_NAMES = [i for i in FAIRSAID_ID_TO_NAME.values() if i not in _FAIRSAID_NO_NAMES]
 
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
@@ -289,6 +326,7 @@ ALL_CLASSES = {
     "fair1m": _FAIR1M_ALL_NAMES,
     "fair1m_groupcats": _FAIR1M_GROUPCATS_ALL_NAMES,
     "fair1m_partlygroupcats1": _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES,
+    "fairsaid": _FAIRSAID_ALL_NAMES,
 }
 
 # Note: We mainly use category names because both, indices and specific category IDs can be ambiguous and may not be
@@ -399,6 +437,14 @@ CLASS_SPLITS["isaid"] = {
         "base": _ISAID_EXPERIMENT3_BASE,
         "novel": _ISAID_EXPERIMENT3_SOCCER_NOVEL
     },
+    "gsd_none_all": {
+        "base":  _ISAID_GSD_NONE_ALL_BASE,
+        "novel": _ISAID_GSD_NONE_ALL_NOVEL
+    },
+    "fairsaid_none_all": {
+        "base": _ISAID_FAIRSAID_NONE_ALL_BASE,
+        "novel": _ISAID_FAIRSAID_NONE_ALL_NOVEL
+    }
 }
 
 CLASS_SPLITS["isaid_100"] = CLASS_SPLITS["isaid"]
@@ -406,15 +452,8 @@ CLASS_SPLITS["isaid_50"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_25"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_10"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_0"] = CLASS_SPLITS["isaid"]
-CLASS_SPLITS["isaid_low_gsd"] = {
-    **CLASS_SPLITS["isaid"],
-    "gsd_none_all": {
-        "base": ["Small_Vehicle", "Large_Vehicle", "plane", "Ground_Track_Field", "Soccer_ball_field", "baseball_diamond"],
-        "novel": []  # finetuning is not intended!
-    }
-}
-CLASS_SPLITS["isaid_high_gsd"] = CLASS_SPLITS["isaid_low_gsd"]
-CLASS_SPLITS["isaid"]["gsd_none_all"] = CLASS_SPLITS["isaid_low_gsd"]["gsd_none_all"]
+CLASS_SPLITS["isaid_low_gsd"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_high_gsd"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_no_overlap"] = CLASS_SPLITS["isaid"]
 
 CLASS_SPLITS["fair1m"] = {
@@ -432,6 +471,10 @@ CLASS_SPLITS["fair1m_groupcats"] = {
     "none_all": {
         "base": _FAIR1M_GROUPCATS_ALL_NAMES,
         "novel": _FAIR1M_GROUPCATS_NO_NAMES
+    },
+    "fairsaid_none_all": {
+        "base": _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_BASE,
+        "novel": _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_NOVEL
     }
 }
 
@@ -443,6 +486,13 @@ CLASS_SPLITS["fair1m_partlygroupcats1"] = {
     "experiment1": {
         "base": _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_BASE,
         "novel": _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_NOVEL
+    }
+}
+
+CLASS_SPLITS["fairsaid"] = {
+    "none_all": {
+        "base": _FAIRSAID_ALL_NAMES,
+        "novel": _FAIRSAID_NO_NAMES
     }
 }
 
@@ -468,6 +518,8 @@ def get_ids_from_names(dataset, class_names):
         return [FAIR1M_GROUPCATS_NAME_TO_ID[c] for c in class_names]
     elif dataset == 'fair1m_partlygroupcats1':
         return [FAIR1M_PARTLYGROUPCATS1_NAME_TO_ID[c] for c in class_names]
+    elif dataset == 'fairsaid':
+        return [FAIRSAID_NAME_TO_ID[c] for c in class_names]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 
@@ -483,6 +535,8 @@ def get_names_from_ids(dataset, ids):
         return [FAIR1M_GROUPCATS_ID_TO_NAME[i] for i in ids]
     elif dataset == 'fair1m_partlygroupcats1':
         return [FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME[i] for i in ids]
+    elif dataset == 'fairsaid':
+        return [FAIRSAID_ID_TO_NAME[i] for i in ids]
     else:
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 

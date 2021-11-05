@@ -13,13 +13,15 @@ _CC.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 _CC.DATASETS.SUPPORTED_DATASETS = ["coco",
                                    "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0", "isaid_low_gsd",
                                    "isaid_high_gsd", "isaid_no_overlap",
-                                   "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1"]
+                                   "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1",
+                                   "fairsaid"]
 # datasets that have the same annotation format as MS COCO (those datasets are directly supported and will require the
 #  fewest amount of adaptions!)
 _CC.DATASETS.COCOLIKE_DATASETS = ["coco",
                                   "isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0", "isaid_low_gsd",
                                   "isaid_high_gsd", "isaid_no_overlap",
-                                  "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1"]
+                                  "fair1m", "fair1m_groupcats", "fair1m_partlygroupcats1",
+                                  "fairsaid"]
 # Note: We need to create a dictionary within a new config node CN(), otherwise, dicts won't work!
 _CC.DATA_DIR = CN({
     "coco": os.path.join(_CC.ROOT_DIR, 'datasets', 'coco'),
@@ -35,6 +37,7 @@ _CC.DATA_DIR = CN({
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m'),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m_groupcats'),
     "fair1m_partlygroupcats1": os.path.join(_CC.ROOT_DIR, 'datasets', 'fair1m_partlygroupcats1'),
+    "fairsaid": os.path.join(_CC.ROOT_DIR, 'datasets', 'fairsaid'),
 })
 
 _CC.DATA_SAVE_PATH_PATTERN = CN({
@@ -51,6 +54,7 @@ _CC.DATA_SAVE_PATH_PATTERN = CN({
     "fair1m": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1msplit", "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_groupcatssplit", "fair1m_groupcatssplit_{}"),
     "fair1m_partlygroupcats1": os.path.join(_CC.ROOT_DIR, 'datasets', "fair1m_partlygroupcats1split", "fair1m_partlygroupcats1split_{}"),
+    "fairsaid": os.path.join(_CC.ROOT_DIR, 'datasets', "fairsaidsplit", "fairsaidsplit_{}"),
 })
 
 # relative to repository root
@@ -68,6 +72,7 @@ _CC.CONFIG_DIR_PATTERN = CN({
     "fair1m": os.path.join('configs', 'FAIR1M-detection', "fair1msplit_{}"),
     "fair1m_groupcats": os.path.join('configs', 'FAIR1M-groupcats-detection', "fair1m_groupcatssplit_{}"),
     "fair1m_partlygroupcats1": os.path.join('configs', 'FAIR1M-partlygroupcats1-detection', "fair1m_partlygroupcats1split_{}"),
+    "fairsaid": os.path.join('configs', 'FAIRSAID-detection', "fairsaidsplit_{}"),
 })
 
 # relative to repository root
@@ -85,6 +90,7 @@ _CC.CKPT_DIR_PATTERN = CN({
     "fair1m": os.path.join('checkpoints', 'fair1m_{}'),
     "fair1m_groupcats": os.path.join('checkpoints', 'fair1m_groupcats_{}'),
     "fair1m_partlygroupcats1": os.path.join('checkpoints', 'fair1m_partlygroupcats1_{}'),
+    "fairsaid": os.path.join('checkpoints', 'fairsaid_{}'),
 })
 
 _CC.TRAIN_SPLIT = CN({
@@ -101,6 +107,7 @@ _CC.TRAIN_SPLIT = CN({
     "fair1m": 'train',
     "fair1m_groupcats": 'train',
     "fair1m_partlygroupcats1": 'train',
+    "fairsaid": "train",
 })
 
 _CC.TEST_SPLIT = CN({
@@ -117,6 +124,7 @@ _CC.TEST_SPLIT = CN({
     "fair1m": 'test',
     "fair1m_groupcats": 'test',
     "fair1m_partlygroupcats1": 'test',
+    "fairsaid": "test",
 })
 
 
@@ -135,6 +143,7 @@ _CC.TRAIN_IMG_DIR = CN({
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'train'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m', 'images', 'train'),
     "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m', 'images', 'train'),
+    "fairsaid": os.path.join('datasets', 'fairsaid', 'images', 'train'),
 })
 
 _CC.TEST_IMG_DIR = CN({
@@ -151,6 +160,7 @@ _CC.TEST_IMG_DIR = CN({
     "fair1m": os.path.join('datasets', 'fair1m', 'images', 'val'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m', 'images', 'val'),
     "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m', 'images', 'val'),
+    "fairsaid": os.path.join('datasets', 'fairsaid', 'images', 'val'),
 })
 
 _CC.TRAIN_ANNOS = CN({
@@ -167,6 +177,7 @@ _CC.TRAIN_ANNOS = CN({
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_train.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_train.json'),
     "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m_partlygroupcats1', 'annotations', 'instancesonly_filtered_HBB_partlygroupcats1_train.json'),
+    "fairsaid": os.path.join('datasets', 'fairsaid', 'annotations', 'instancesonly_filtered_train.json'),
 })
 
 _CC.TEST_ANNOS = CN({
@@ -183,6 +194,7 @@ _CC.TEST_ANNOS = CN({
     "fair1m": os.path.join('datasets', 'fair1m', 'annotations', 'instancesonly_filtered_HBB_val.json'),
     "fair1m_groupcats": os.path.join('datasets', 'fair1m_groupcats', 'annotations', 'instancesonly_filtered_HBB_groupcats_val.json'),
     "fair1m_partlygroupcats1": os.path.join('datasets', 'fair1m_partlygroupcats1', 'annotations', 'instancesonly_filtered_HBB_partlygroupcats1_val.json'),
+    "fairsaid": os.path.join('datasets', 'fairsaid', 'annotations', 'instancesonly_filtered_val.json'),
 })
 
 # How many annotations to use per image while fine-tuning:
