@@ -194,7 +194,7 @@ FAIRSAID_NAME_TO_ID = {
     "Roundabout": 9
 }
 
-FAIRSAID_ID_TO_NAME = {v: k for k, v in FAIRSAID_NAME_TO_ID}
+FAIRSAID_ID_TO_NAME = {v: k for k, v in FAIRSAID_NAME_TO_ID.items()}
 
 
 # Note: use lists for generating a collection implicitly! With tuples we could later run into problems while
