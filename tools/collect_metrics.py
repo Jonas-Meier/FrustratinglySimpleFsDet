@@ -15,9 +15,11 @@ class_subsets = ['base', 'novel', 'all']
 ious = ['0.50:0.95', '0.50', '0.75']
 areas = ['small', 'medium', 'large', 'all']
 
-dataset = 'isaid'  # isaid, coco
-isaid_class_split = 'vehicle_nonvehicle'  # vehicle_nonvehicle, none_all, experiment{1|2|3}
+dataset = 'isaid'  # coco, isaid, fair1m, fairsaid
 coco_class_split = 'voc_nonvoc'  # voc_nonvoc, none_all
+isaid_class_split = 'vehicle_nonvehicle'  # vehicle_nonvehicle, none_all, experiment{1|2|3}
+fair1m_class_split = 'none_all'
+fairsaid_class_split = 'none_all'
 # general architecture
 layers = 50  # 50, 101
 # for base-training
@@ -66,6 +68,10 @@ def _file_names(phase=2):
         class_split = isaid_class_split
     elif dataset == 'coco':
         class_split = coco_class_split
+    elif dataset.startswith('fair1m'):
+        class_split = fair1m_class_split
+    elif dataset == 'fairsaid':
+        class_split = fairsaid_class_split
     else:
         return
     metrics_file_pattern = 'summary_results_iter_{}.txt'
