@@ -83,7 +83,12 @@ class Trainer(DefaultTrainer):
         model = GeneralizedRCNNWithTTA(cfg, model)
         evaluators = [
             cls.build_evaluator(
-                cfg, name, output_folder=os.path.join(cfg.OUTPUT_DIR, "inference_TTA")
+                # TODO: why do we need to pass a file suffix to both, the test method AND the evaluators?
+                #  -> test normally calls cls.build_evaluators, but only if the passed evaluators are none.
+                #     since we build evaluators and then pass them to test, we would rather need to set the file_suffix
+                #     in th evaluators and would then not need to pass them to test!
+                #  --> probably adjust the strange call flow of the file_suffix!
+                cfg, name, output_folder=os.path.join(cfg.OUTPUT_DIR, "inference_TTA"), file_suffix=file_suffix
             )
             for name in cfg.DATASETS.TEST
         ]
