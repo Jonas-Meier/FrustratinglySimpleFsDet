@@ -78,9 +78,14 @@ def get_empty_base_config():
         },
         'INPUT': {
             'AUG': {
-                'PIPELINE': [str]
-            },
-            'MIN_SIZE_TRAIN': (int,)
+                'TYPE': str,
+                'PIPELINE': [str],
+                'AUGS': {
+                    'RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE': {
+                        'MIN_SIZE_TRAIN': (int,)
+                    }
+                }
+            }
         },
         'TEST': {
             'DETECTIONS_PER_IMAGE': int
@@ -226,15 +231,18 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
     new_config['SOLVER']['MAX_ITER'] = ITERS[0]  # TODO: increase MAX_ITER if batch size is < 16?
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = 10000  # ITERS[0] // args.ckpt_freq. Old default: 5000
     new_config['SOLVER']['WARMUP_ITERS'] = 1000  # TODO: ???
-    new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
+    # custom activates the custom pipeline, new augmentation configs and disables configs that were needed for the
+    # Detectron2 default augmentations
+    new_config['INPUT']['AUG']['TYPE'] = 'custom'
+    new_config['INPUT']['AUG']['PIPELINE'] = str(args.augmentations)
+    new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
     new_config['OUTPUT_DIR'] = base_ckpt_save_dir
-    new_config['INPUT']['AUG']['PIPELINE'] = str(args.augmentations)
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset.startswith('isaid'):
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
@@ -242,7 +250,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
     elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
@@ -250,7 +258,7 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
     elif args.dataset == 'fairsaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
@@ -258,7 +266,12 @@ def get_config(override_if_exists=False):  # TODO: default 'override_if_exists' 
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  #  (608, 672, 736, 800, 864, 928, 992)
+
+    # TODO: add all opts to the dictionary new_config? (the type probably does not matter because we will write it to
+    #  a file, where it is read and parsed again!)
+    #  -> it could cause confusion if we here set a config which is effectively overridden by args.opts but is not
+    #     updated here!
 
     # Save config and return it
     with open(config_save_file, 'w') as fp:

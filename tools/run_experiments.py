@@ -150,9 +150,14 @@ def get_empty_ft_config():
         },
         'INPUT': {
             'AUG': {
-                'PIPELINE': [str]
-            },
-            'MIN_SIZE_TRAIN': (int,)
+                'TYPE': str,
+                'PIPELINE': [str],
+                'AUGS': {
+                    'RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE': {
+                        'MIN_SIZE_TRAIN': (int,)
+                    }
+                }
+            }
         },
         'TEST': {
             'DETECTIONS_PER_IMAGE': int
@@ -595,14 +600,17 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['SOLVER']['MAX_ITER'] = max_iter
     new_config['SOLVER']['CHECKPOINT_PERIOD'] = ckpt_interval  # ITERS[shot][0] // args.ckpt_freq
     new_config['SOLVER']['WARMUP_ITERS'] = 0 if args.unfreeze or surgery_method == 'remove' else 10  # TODO: ???
+    # custom activates the custom pipeline, new augmentation configs and disables configs that were needed for the
+    # Detectron2 default augmentations
+    new_config['INPUT']['AUG']['TYPE'] = 'custom'
     new_config['INPUT']['AUG']['PIPELINE'] = str(args.augmentations)
-    new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
+    new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
 
     if args.dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
     elif args.dataset.startswith('isaid'):
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
@@ -610,7 +618,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
     elif args.dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
         # TODO: probably adjust for FAIR1M datasets!
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
@@ -619,7 +627,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
     elif args.dataset == 'fairsaid':
         # TODO: probably adjust
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
@@ -628,7 +636,12 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
+
+    # TODO: add all opts to the dictionary new_config? (the type probably does not matter because we will write it to
+    #  a file, where it is read and parsed again!)
+    #  -> it could cause confusion if we here set a config which is effectively overridden by args.opts but is not
+    #     updated here!
 
     with open(config_save_file, 'w') as fp:
         yaml.dump(new_config, fp, sort_keys=False)  # TODO: 'sort_keys=False' requires pyyaml >= 5.1

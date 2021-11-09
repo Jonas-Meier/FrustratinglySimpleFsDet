@@ -15,6 +15,8 @@ You may want to write your own script with your datasets and other customization
 """
 import numpy as np
 import torch
+
+from fsdet.data.transforms.augmentations_impl import build_augmentation
 from fsdet.modeling import GeneralizedRCNNWithTTA
 
 from fsdet.config import get_cfg, set_global_cfg
@@ -73,6 +75,20 @@ class Trainer(DefaultTrainer):
         return DatasetEvaluators(evaluator_list)
 
     @classmethod
+    def build_augmentations(cls, cfg, is_train):
+        if cfg.INPUT.AUG.TYPE == 'default':
+            return None  # Trigger detectron2's creation of default augmentations
+        else:
+            assert cfg.INPUT.AUG.TYPE == 'custom'
+        if is_train:
+            return [build_augmentation(aug, cfg, is_train) for aug in cfg.INPUT.AUG.PIPELINE]
+        else:
+            # Similar to Detectron2, we hard-code the resize transform to be the only transform used during testing
+            #  (see detectron2/data/dataset_mapper.py:from_config and
+            #  detectron2/data/detection_utils.py:build_augmentation)
+            return [build_augmentation("ResizeShortestEdgeLimitLongestEdge", cfg, is_train)]
+
+    @classmethod
     def test_with_TTA(cls, cfg, model, file_suffix=""):
         # TODO: probably also add this method to 'train_net' to register an EvalHook with it
         #  (see Detectron2's train_net script)
@@ -83,7 +99,12 @@ class Trainer(DefaultTrainer):
         model = GeneralizedRCNNWithTTA(cfg, model)
         evaluators = [
             cls.build_evaluator(
-                cfg, name, output_folder=os.path.join(cfg.OUTPUT_DIR, "inference_TTA")
+                # TODO: why do we need to pass a file suffix to both, the test method AND the evaluators?
+                #  -> test normally calls cls.build_evaluators, but only if the passed evaluators are none.
+                #     since we build evaluators and then pass them to test, we would rather need to set the file_suffix
+                #     in th evaluators and would then not need to pass them to test!
+                #  --> probably adjust the strange call flow of the file_suffix!
+                cfg, name, output_folder=os.path.join(cfg.OUTPUT_DIR, "inference_TTA"), file_suffix=file_suffix
             )
             for name in cfg.DATASETS.TEST
         ]

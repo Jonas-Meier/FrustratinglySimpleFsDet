@@ -67,8 +67,18 @@ class Trainer(DefaultTrainer):
         return DatasetEvaluators(evaluator_list)
 
     @classmethod
-    def build_augmentations(cls, cfg):
-        return [build_augmentation(aug, cfg) for aug in cfg.INPUT.AUG.PIPELINE]
+    def build_augmentations(cls, cfg, is_train):
+        if cfg.INPUT.AUG.TYPE == 'default':
+            return None  # Trigger detectron2's creation of default augmentations
+        else:
+            assert cfg.INPUT.AUG.TYPE == 'custom'
+        if is_train:
+            return [build_augmentation(aug, cfg, is_train) for aug in cfg.INPUT.AUG.PIPELINE]
+        else:
+            # Similar to Detectron2, we hard-code the resize transform to be the only transform used during testing
+            #  (see detectron2/data/dataset_mapper.py:from_config and
+            #  detectron2/data/detection_utils.py:build_augmentation)
+            return [build_augmentation("ResizeShortestEdgeLimitLongestEdge", cfg, is_train)]
 
 
 def build_model_and_export(cfg):
