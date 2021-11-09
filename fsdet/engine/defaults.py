@@ -306,8 +306,7 @@ class DefaultTrainer(SimpleTrainer):
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
         optimizer = self.build_optimizer(cfg, model)
-        augmentations = self.build_augmentations(cfg)
-        data_loader = self.build_train_loader(cfg, augmentations=augmentations)
+        data_loader = self.build_train_loader(cfg)
 
         # For training, wrap with DDP. But don't need this for inference.
         if comm.get_world_size() > 1:
@@ -485,11 +484,11 @@ class DefaultTrainer(SimpleTrainer):
         return build_lr_scheduler(cfg, optimizer)
 
     @classmethod
-    def build_augmentations(cls, cfg):
+    def build_augmentations(cls, cfg, is_train):
         raise NotImplementedError
 
     @classmethod
-    def build_train_loader(cls, cfg, augmentations=None):
+    def build_train_loader(cls, cfg):
         """
         Returns:
             iterable
@@ -497,7 +496,8 @@ class DefaultTrainer(SimpleTrainer):
         It now calls :func:`fsdet.data.build_detection_train_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        if augmentations is not None:
+        augmentations = cls.build_augmentations(cfg, is_train=True)
+        if augmentations is not None:  # should return True for augmentations = []
             dataset_mapper = DatasetMapper(is_train=True, image_format=cfg.INPUT.FORMAT, augmentations=augmentations)
         else:
             dataset_mapper = None
@@ -512,7 +512,12 @@ class DefaultTrainer(SimpleTrainer):
         It now calls :func:`fsdet.data.build_detection_test_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        return build_detection_test_loader(cfg, dataset_name)
+        augmentations = cls.build_augmentations(cfg, is_train=False)
+        if augmentations is not None:  # should return True for augmentations = []
+            dataset_mapper = DatasetMapper(is_train=False, image_format=cfg.INPUT.FORMAT, augmentations=augmentations)
+        else:
+            dataset_mapper = None
+        return build_detection_test_loader(cfg, dataset_name, mapper=dataset_mapper)
 
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None, file_suffix=""):

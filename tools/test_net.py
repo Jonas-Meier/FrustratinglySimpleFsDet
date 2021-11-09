@@ -15,6 +15,8 @@ You may want to write your own script with your datasets and other customization
 """
 import numpy as np
 import torch
+
+from fsdet.data.transforms.augmentations_impl import build_augmentation
 from fsdet.modeling import GeneralizedRCNNWithTTA
 
 from fsdet.config import get_cfg, set_global_cfg
@@ -71,6 +73,20 @@ class Trainer(DefaultTrainer):
         if len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
+
+    @classmethod
+    def build_augmentations(cls, cfg, is_train):
+        if cfg.INPUT.AUG.TYPE == 'default':
+            return None  # Trigger detectron2's creation of default augmentations
+        else:
+            assert cfg.INPUT.AUG.TYPE == 'custom'
+        if is_train:
+            return [build_augmentation(aug, cfg, is_train) for aug in cfg.INPUT.AUG.PIPELINE]
+        else:
+            # Similar to Detectron2, we hard-code the resize transform to be the only transform used during testing
+            #  (see detectron2/data/dataset_mapper.py:from_config and
+            #  detectron2/data/detection_utils.py:build_augmentation)
+            return [build_augmentation("ResizeShortestEdgeLimitLongestEdge", cfg, is_train)]
 
     @classmethod
     def test_with_TTA(cls, cfg, model, file_suffix=""):
