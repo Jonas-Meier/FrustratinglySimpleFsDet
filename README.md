@@ -145,7 +145,27 @@ Note: You can also download the ImageNet pretrained backbones [ResNet-50](https:
 
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
 
-Note: The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+Note: 
+* The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+
+### Augmentations
+
+This repository fully integrates [Albumentations](https://albumentations.ai/) into Detectron2. To this end, the behaviour of Detectron2's augmentation pipeline had to be adjusted in order for both types of augmentations (Albumentations and Detectron2) to work side by side. Among others, Detectron2's default augmentations (ResizeShortestEdge and RandomFlip) are re-implemented (still triggering the same Transformation underneath) and most of Detectron2's augmentation configs (INPUT.\*) are deleted to not cause confusion between new and old configs.
+
+#### New Augmentation Pipeline
+
+The new augmentation pipeline aims at allowing to quickly examine different augmentations with different parametrization. It mainly consists of following parts:
+* `fsdet/data/transforms/augmentations_impl.py`: Contains all augmentations (based on either Detectron2's Augmentation or Albumentation's BasicTransform/DualTransform). All augmentations are accessible by the `build_augmentation` method. Detectron2's default augmentations ResizeShortestEdge and RandomFlip are re-implemented and replaced by ResizeShortestEdgeLimitLongestEdge and RandomHFlip, respectively.
+* `fsdet/config/defaults.py`: Contains the most important parameters of all augmentations (read by augmentations_impl.py).
+  * INPUT.AUG.TYPE = "custom" activates the new augmentation pipeline (set by default). If it is set to "default", Detectron2's old augmentation pipeline is used instead. The latter setting is not recommended for new trainings but can help for a better backwards compatibility of old models. Note that all trainining scripots (run_base_training.py and run_experiments.py) will set it to "custom" by default.
+  * INPUT.AUG.PIPELINE contains the augmentations to be executed (in that very order)
+  * INPUT.AUG.AUGS contains parameters for the augmentations
+* `fsdet/engine/defaults.py:DefaultTrainer`: build_train_loader and build_test_loader trigger the creation of augmentations (by calling the abstract method build_augmentations) and pass those augmentations to a detectron2/data/dataset_mapper.py:DatasetMapper
+* `train_net.py` and `test_net.py`: implement the abstract method build_augmentations and trigger the creation of augmentations by calling augmentations_impl.py:build_augmentation for all augmentations in INPUT.AUG.PIPELINE
+* `wrapper_base_training.py` and `wrapper_fine_tuning.py`: pass the augmentations pipeline and augmentation params to run_base_training.py and run_experiments.py, respectively, which will then override the config INPUT.AUG.PIPELINE and then pass the augmentation parameters via --opts argument to train_net.py to override the corresponding configs.
+
+#### Add a new Custom Augmentation
+
 
 ### Pre-trained Models
 Benchmark results and pretrained models are available [here](docs/MODEL_ZOO.md). More models and configs are available [here](fsdet/model_zoo/model_zoo.py)
