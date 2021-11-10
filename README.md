@@ -156,15 +156,23 @@ This repository fully integrates [Albumentations](https://albumentations.ai/) in
 
 The new augmentation pipeline aims at allowing to quickly examine different augmentations with different parametrization. It mainly consists of following parts:
 * `fsdet/data/transforms/augmentations_impl.py`: Contains all augmentations (based on either Detectron2's Augmentation or Albumentation's BasicTransform/DualTransform). All augmentations are accessible by the `build_augmentation` method. Detectron2's default augmentations ResizeShortestEdge and RandomFlip are re-implemented and replaced by ResizeShortestEdgeLimitLongestEdge and RandomHFlip, respectively.
-* `fsdet/config/defaults.py`: Contains the most important parameters of all augmentations (read by augmentations_impl.py).
-  * INPUT.AUG.TYPE = "custom" activates the new augmentation pipeline (set by default). If it is set to "default", Detectron2's old augmentation pipeline is used instead. The latter setting is not recommended for new trainings but can help for a better backwards compatibility of old models. Note that all trainining scripots (run_base_training.py and run_experiments.py) will set it to "custom" by default.
-  * INPUT.AUG.PIPELINE contains the augmentations to be executed (in that very order)
-  * INPUT.AUG.AUGS contains parameters for the augmentations
-* `fsdet/engine/defaults.py:DefaultTrainer`: build_train_loader and build_test_loader trigger the creation of augmentations (by calling the abstract method build_augmentations) and pass those augmentations to a detectron2/data/dataset_mapper.py:DatasetMapper
-* `train_net.py` and `test_net.py`: implement the abstract method build_augmentations and trigger the creation of augmentations by calling augmentations_impl.py:build_augmentation for all augmentations in INPUT.AUG.PIPELINE
-* `wrapper_base_training.py` and `wrapper_fine_tuning.py`: pass the augmentations pipeline and augmentation params to run_base_training.py and run_experiments.py, respectively, which will then override the config INPUT.AUG.PIPELINE and then pass the augmentation parameters via --opts argument to train_net.py to override the corresponding configs.
+* `fsdet/config/defaults.py`: Contains the most important parameters of all augmentations (read by `augmentations_impl.py`).
+  * `INPUT.AUG.TYPE`: "custom" activates the new augmentation pipeline (set by default). If it is set to "default", Detectron2's old augmentation pipeline is used instead. The latter setting is not recommended for new trainings but can help for a better backwards compatibility of old models. Note that all trainining scripts (run_base_training.py and run_experiments.py) will set it to "custom" by default.
+  * `INPUT.AUG.PIPELINE` contains the augmentations to be executed (in that very order)
+  * `INPUT.AUG.AUGS` contains parameters for the augmentations
+* `fsdet/engine/defaults.py:DefaultTrainer`: `build_train_loader` and `build_test_loader` trigger the creation of augmentations (by calling the abstract method build_augmentations) and pass those augmentations to a `detectron2/data/dataset_mapper.py:DatasetMapper`
+* `train_net.py` and `test_net.py`: implement the abstract method `build_augmentations` and trigger the creation of augmentations by calling `augmentations_impl.py:build_augmentation` for all augmentations in `INPUT.AUG.PIPELINE`
+* `wrapper_base_training.py` and `wrapper_fine_tuning.py`: pass the augmentations pipeline and augmentation params to `run_base_training.py` and `run_experiments.py`, respectively, which will then override the config `INPUT.AUG.PIPELINE` and then pass the augmentation parameters via --opts argument to `train_net.py` to override the corresponding configs.
 
 #### Add a new Custom Augmentation
+
+To add a new augmentation:
+* Define that augmentation inside `fsdet/data/transforms/augmentations_impl.py`
+  * For a Detectron2 Augmentation let your class inherit from `Detectron2AugmentationAdapter`, for an Albumentations Augmentation, inherit from `AlbumentationsTransformAdapter`.
+  * Register the new Augmentation class by adding `@AUGMENTATIONS_REGISTRY.register()` directly above the class definition
+* (optional) If you want variable parameters, add a ConfigNode to `INPUT.AUG.AUGS` inside `fsdet/config/defaults.py`. Watch out to add a key `NAME` whose value is set to the class name of the new augmentation class in `fsdet/data/transforms/augmentations_impl.py`. This ensures that the correct parameters for this augmentation can be read automatically.
+
+The new augmentation can now be used by either directly modifying `INPUT.AUG.PIPELINE` (in `fsdet/config/defaults.py`) or by using `augmentations` and `augmentation_params` (in `wrapper_base_training.py` and `wrapper_fine_tuning.py`) to override the corresponding configs.
 
 
 ### Pre-trained Models
