@@ -100,7 +100,13 @@ _CC.INPUT.AUG = CN()
 # "default" (for backwards compatibility and mainly for inference on checkpoints trained with old configs) or
 # "custom" (standard for all new trainings, executed by any 'run_*'-script, will use 'AUG.PIPELINE' and 'AUG.AUGS' over
 #  Detectron2's default augmentations)
-_CC.INPUT.AUG.TYPE = "default"
+_CC.INPUT.AUG.TYPE = "custom"
+# If we use our custom augmentation pipeline, we delete all deprecated Detectron2 configs to make sure they cannot be
+#  used unintentionally.
+if _CC.INPUT.AUG.TYPE == "custom":
+    for config in ["MIN_SIZE_TRAIN", "MIN_SIZE_TRAIN_SAMPLING", "MAX_SIZE_TRAIN", "MIN_SIZE_TEST", "MAX_SIZE_TEST",
+                   "CROP"]:
+        _CC.INPUT.pop(config)
 # Define a separate pipeline to enforce the execution order of augmentations
 # Note: Make sure that the names used are the same as the class names in 'fsdet/data/transforms/augmentations_impl.py'
 # Note: ["ResizeShortestEdgeLimitLongestEdge", "RandomHFlip"] equals the Detectron2 default
@@ -119,8 +125,7 @@ _CC.INPUT.AUG.AUGS.RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE = CN({
     "MIN_SIZE_TEST": 800,
     "MAX_SIZE_TEST": 1333,
 })
-# TODO: probably delete the configs 'INPUT.MIN_SIZE_TRAIN', 'INPUT.MAX_SIZE_TRAIN' and
-#  'INPUT.MIN_SIZE_TRAIN_SAMPLING' since we will now just use 'MIN_SIZE', 'MAX_SIZE' and 'SAMPLE_STYLE'
+# TODO: probably delete all "old" and deprecated INPUT-configs which we override here!
 _CC.INPUT.AUG.AUGS.HFLIP = CN({
     "NAME": "RandomHFlip",  # Do not change!
     "PROB": 0.5
