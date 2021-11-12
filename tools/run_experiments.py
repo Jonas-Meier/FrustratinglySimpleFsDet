@@ -610,10 +610,16 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
 
-    # TODO: add all opts to the dictionary new_config? (the type probably does not matter because we will write it to
-    #  a file, where it is read and parsed again!)
-    #  -> it could cause confusion if we here set a config which is effectively overridden by args.opts but is not
-    #     updated here!
+    # Add all opts to the dictionary file, because:
+    #  1. Otherwise they would only be written into ./checkpoints/.../config.yaml but not into ./configs/.../xxx.yaml
+    #     which could cause confusion to the user
+    #  2. When the inference is executed, the config file is passed to test_net.py which first reads in the default
+    #     configs and then merges the config file into them. If the opts are not present in the config file
+    #     (./configs/.../xxx.yaml) but only in ./checkpoints/.../config.yaml, the latter is overridden (by the method
+    #     fsdet/engine/defaults.py:default_setup) which causes the opts to be present nowhere which makes later
+    #     debugging of training configs difficult.
+    for keys, value in zip(args.opts[0::2], args.opts[1::2]):
+        set_nested_value(new_config, keys.split('.'), value)
 
     with open(config_save_file, 'w') as fp:
         yaml.dump(new_config, fp, sort_keys=False)  # TODO: 'sort_keys=False' requires pyyaml >= 5.1
@@ -631,6 +637,25 @@ def separate(elements, separator, trailing_sep=False):
     if not trailing_sep:
         return res[:-1]  # remove trailing separator
     return res
+
+
+def set_nested_value(dic: dict, keys: [str], value: str):
+    """
+    Note: This method is much simpler than Detectron's ConfigNode merge methods. For that reason, this method has currently
+     no capabilities for checking the type of the passed values, so it's the user's responsibility to pass the correct
+     types to --opts argument. Possibly wrong config value type are nonetheless detected by the training, when Detectron
+     merges this config file into the default configs.
+    """
+    if not keys:
+        return
+    if len(keys) == 1:
+        # TODO: probably check for existence of the key -> the old value will be overridden
+        dic[keys[0]] = value
+        return
+    else:
+        if keys[0] not in dic:
+            dic[keys[0]] = {}
+        set_nested_value(dic[keys[0]], keys[1:], value)
 
 
 def main(args):
