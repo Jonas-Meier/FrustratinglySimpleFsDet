@@ -6,7 +6,7 @@ import torch
 import argparse
 import os
 from fsdet.config import get_cfg
-from class_splits import CLASS_SPLITS, get_ids_from_names, ALL_CLASSES
+from class_splits import CLASS_SPLITS, get_ids_from_names, ALL_CLASSES, COMPATIBLE_DATASETS, CLASS_NAME_TRANSFORMS
 cfg = get_cfg()
 
 
@@ -45,6 +45,11 @@ def parse_args():
                         required=True, help='dataset')
     parser.add_argument('--class-split', dest='class_split',  required=True,
                         help='Class split of the dataset into base classes and novel classes')
+    parser.add_argument('--alt-dataset', dest='alt_dataset', choices=cfg.DATASETS.SUPPORTED_DATASETS, default='',
+                        help='alternative dataset to fine-tune on. In this case, --dataset is used to correctly map '
+                             'the predictor weights from the base training model to the target model for fine-tuning.')
+    parser.add_argument('--alt-class-split', dest='alt_class_split', default='',
+                        help='alternative class split of the --alternative-dataset')
     args = parser.parse_args()
     return args
 
@@ -85,11 +90,13 @@ def ckpt_surgery(args):
             if args.keep_base_weights:
                 for i, c in enumerate(BASE_CLASS_IDS):
                     idx = c if args.dataset == 'lvis' else i
+                    src_ind = tar_to_src_base_class_ind[idx]
+                    tar_ind = ALL_CLASS_ID_TO_IND[c]
                     if 'cls_score' in param_name:
-                        new_weight[ALL_CLASS_ID_TO_IND[c]] = pretrained_weight[idx]
+                        new_weight[tar_ind] = pretrained_weight[src_ind]
                     else:
-                        new_weight[ALL_CLASS_ID_TO_IND[c] * 4:(ALL_CLASS_ID_TO_IND[c] + 1) * 4] = \
-                            pretrained_weight[idx*4:(idx+1)*4]
+                        new_weight[tar_ind * 4:(tar_ind + 1) * 4] = \
+                            pretrained_weight[src_ind*4:(src_ind+1)*4]
         if 'cls_score' in param_name and args.keep_background_weights:
             new_weight[-1] = pretrained_weight[-1]  # bg class
         ckpt['model'][weight_name] = new_weight
@@ -259,11 +266,55 @@ if __name__ == '__main__':
     args = parse_args()
     print("Called with args:")
     print(args)
-    # Total classes of this dataset, just used for sanity checks
-    TOTAL_CLASSES = len(ALL_CLASSES[args.dataset])
-    # sorting of novel class ids not necessary, but sorting of base class ids and all class ids is important!
-    NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
-    BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+    # Note:
+    #  - TOTAL_CLASSES is just used for sanity checks
+    #  - sorting of novel class ids not necessary (or just necessary for 'combine' surgery), but sorting of base class
+    #      ids and all class ids is important!
+    assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
+    if args.alt_dataset:
+        # We do not allow 'combine' surgery. (Problematic code parts: access to NOVEL_CLASS_IDS in method combine_ckpt)
+        assert args.method != 'combine', "alternative dataset is currently not supported for combine surgeries. " \
+                                         "Correctly mapping the novel categories as well would be required for that!"
+        if args.dataset == args.alt_dataset or \
+                any(args.dataset in comp_dsets and args.alt_dataset in comp_dsets for comp_dsets in COMPATIBLE_DATASETS):
+            src_base_classes = CLASS_SPLITS[args.dataset][args.class_split]['base']
+            tar_base_classes = CLASS_SPLITS[args.alt_dataset][args.alt_class_split]['base']
+            assert set(src_base_classes) == set(tar_base_classes)
+            TOTAL_CLASSES = len(ALL_CLASSES[args.alt_dataset])
+            BASE_CLASS_IDS = sorted(get_ids_from_names(args.alt_dataset, tar_base_classes))
+            NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.alt_dataset, CLASS_SPLITS[args.alt_dataset][args.alt_class_split]['novel']))
+            tar_to_src_base_class_ind = {i: i for i in range(len(BASE_CLASS_IDS))}  # dummy-identity-map
+        else:
+            # very ugly case where the alternative probably has different class names and ids and we now have to
+            #  correctly map the base trained weights to the corresponding base class weights of the alternative dataset
+            # TODO: probably we just need to make sure that the base classes are compatible. Novel classes probably
+            #  don't matter at all!
+            assert ((args.alt_dataset, args.alt_class_split), (args.dataset, args.class_split)) in CLASS_NAME_TRANSFORMS
+            src_base_classes = CLASS_SPLITS[args.dataset][args.class_split]['base']
+            tar_base_classes = CLASS_SPLITS[args.alt_dataset][args.alt_class_split]['base']
+            src_base_class_ids = sorted(get_ids_from_names(args.dataset, src_base_classes))
+            tar_base_class_ids = sorted(get_ids_from_names(args.alt_dataset, tar_base_classes))
+            src_id_to_ind = {src_id: ind for ind, src_id in enumerate(src_base_class_ids)}
+            tar_id_to_ind = {tar_id: ind for ind, tar_id in enumerate(tar_base_class_ids)}
+            tar_classes_to_src_classes = CLASS_NAME_TRANSFORMS[((args.alt_dataset, args.alt_class_split), (args.dataset, args.class_split))]
+            tar_to_src_base_classes = {tar_cls: src_cls
+                                       for tar_cls, src_cls in tar_classes_to_src_classes.items()
+                                       if tar_cls in tar_base_classes and src_cls in src_base_classes}
+            assert set(tar_to_src_base_classes.keys()) == set(tar_base_classes)
+            assert set(tar_to_src_base_classes.values()) == set(src_base_classes)
+            tar_to_src_base_id = {get_ids_from_names(args.alt_dataset, tar_cls): get_ids_from_names(args.dataset, src_cls)
+                                  for tar_cls, src_cls in tar_to_src_base_classes.items()}
+            tar_to_src_base_class_ind = {tar_id_to_ind[tar_id]: src_id_to_ind[src_id]
+                                         for tar_id, src_id in tar_to_src_base_id.items()}
+            TOTAL_CLASSES = len(ALL_CLASSES[args.alt_dataset])
+            BASE_CLASS_IDS = tar_base_class_ids
+            NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.alt_dataset, CLASS_SPLITS[args.alt_dataset][args.alt_class_split]['novel']))
+    else:
+        TOTAL_CLASSES = len(ALL_CLASSES[args.dataset])
+        BASE_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['base']))
+        NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
+
+        tar_to_src_base_class_ind = {i: i for i in range(len(BASE_CLASS_IDS))}  # dummy-identity-map (since tar==src)
     ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
     ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
     TAR_SIZE = len(ALL_CLASS_IDS)

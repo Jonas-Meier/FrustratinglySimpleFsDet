@@ -9,8 +9,11 @@ def main():
     coco_class_split = "voc_nonvoc"  # voc_nonvoc, none_all
     isaid_class_split = "vehicle_nonvehicle"  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
     # Set both (FT on different dataset and classes) or none.
-    # Warning: If the alternative dataset does not use the same classes than the "regular" dataset, you probably should
-    #  at least discard the base class predictor weights (keep_base_weights = False)!
+    # WARNING: Use this experimental feature with care, since it is unknown what possible side effects are possible
+    #  since it is unknown what exact assumptions have to be made for certain setups (of datasets and class splits ...)
+    # If the alternative dataset does not use the same classes than the "regular" dataset, you probably should
+    #  at least discard the base class predictor weights (keep_base_weights = False) or, if the classes are the same,
+    #  except for the name and id, set a bijective mapping between those classes in 'class_splits:CLASS_NAME_TRANSFORMS'
     alternative_dataset, alternative_class_split = "", ""
     gpu_ids = [0]
     num_threads = 2  # two threads seem to be a bit faster than just one, but four threads are as fast as two threads!

@@ -261,7 +261,8 @@ def run_test(config_file, config):
 
 
 def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
-                     double_head=False, keep_base_weights=True, keep_bg_weights=True):
+                     double_head=False, keep_base_weights=True, keep_bg_weights=True,
+                     alt_dataset="", alt_class_split=""):
     assert method in ['randinit', 'remove', 'combine'], 'Wrong method: {}'.format(method)
     if double_head:
         assert method == 'randinit', "Currently, double head is just supported together with 'combine' surgery!"
@@ -270,14 +271,17 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
     keep_weights_str = ''
     keep_weights_str = keep_weights_str + ' --discard-base-weights' if not keep_base_weights else keep_weights_str
     keep_weights_str = keep_weights_str + ' --discard-bg-weights' if not keep_bg_weights else keep_weights_str
+    alt_dataset_str = " --alt-dataset {}".format(alt_dataset) if alt_dataset else ""
+    alt_class_split_str = " --alt-class-split {}".format(alt_class_split) if alt_class_split else ""
     if method == 'combine':
         assert src2 is not None, 'Need a second source for surgery method \'combine\'!'
         src2_str = ' --src2 {}'.format(src2)
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
     command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {}{}{}{}'\
+              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {}{}{}{}{}{}'\
         .format(args.num_threads, separate(args.gpu_ids, ','), base_command,
-                dataset, class_split, method, src1, save_dir, src2_str, double_head_str, keep_weights_str)
+                dataset, class_split, method, src1, save_dir, src2_str, double_head_str, keep_weights_str,
+                alt_dataset_str, alt_class_split_str)
     run_cmd(command)
 
 
@@ -359,7 +363,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         - '_TFA':   Non-TFA(===Fine-tuning on 'model_reset_combine.pth' weights)
     """
     assert surgery_method in ['randinit', 'remove', 'combine'], 'Wrong surgery method: {}'.format(surgery_method)
-    if args.dataset == 'coco':  # only-coco configs
+    # Probably, we want to use an alternative dataset and class split to fine-tune our model on.
+    assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
+    tar_dataset = args.alt_dataset if args.alt_dataset else args.dataset
+    tar_class_split = args.alt_class_split if args.alt_class_split else args.class_split
+    if tar_dataset == 'coco':  # only-coco configs
         # COCO
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {
@@ -378,7 +386,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             10: (160000, (144000,), 10000),  # 16000
             30: (240000, (216000,), 12000),  # 24000
         }  # To fine-tune entire classifier
-    elif args.dataset == 'isaid':  # only-isaid configs
+    elif tar_dataset == 'isaid':  # only-isaid configs
         # iSAID
         # (max_iter, (<steps>), checkpoint_period)
         NOVEL_ITERS = {}  # no values yet set, need to examine the behaviour of novel fine-tuning on iSAID dataset first
@@ -387,7 +395,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             50: (100000, (85000,), 10000),
             100: (100000, (85000,), 10000)
         }
-    elif args.dataset == 'voc':
+    elif tar_dataset == 'voc':
         # PASCAL VOC
         # Note: we could as well support all types of surgery here, but we do not intend to use PASCAL VOC dataset!
         raise NotImplementedError("Fine-Tuning logic changed! Please refer to "
@@ -410,10 +418,10 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         ckpt_dir = 'checkpoints/voc/faster_rcnn'
         base_cfg = '../../../Base-RCNN-FPN.yaml'
     else:
-        raise ValueError("Dataset {} is not supported!".format(args.dataset))
+        raise ValueError("Target dataset {} is not supported!".format(tar_dataset))
 
     # Set some shared configs to save space
-    if args.dataset in cfg.DATASETS.COCOLIKE_DATASETS:  # TODO: probably change to 'DATASETS.SUPPORTED_DATASETS'?
+    if tar_dataset in cfg.DATASETS.COCOLIKE_DATASETS:  # TODO: probably change to 'DATASETS.SUPPORTED_DATASETS'?
         if surgery_method == 'remove':  # fine-tuning only-novel classifier
             ITERS = NOVEL_ITERS
             mode = 'novel'
@@ -425,19 +433,16 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             mode = 'all'
         split = temp_split = ''
         temp_mode = mode
-        train_split = cfg.TRAIN_SPLIT[args.dataset]
-        test_split = cfg.TEST_SPLIT[args.dataset]
+        # use train and test splits from the target dataset (either args.dataset or, if set, args.alt_dataset)
+        train_split = cfg.TRAIN_SPLIT[tar_dataset]
+        test_split = cfg.TEST_SPLIT[tar_dataset]
+        # always save the config and checkpoint files at args.dataset (even if args.alt_dataset is set)
         config_dir = cfg.CONFIG_DIR_PATTERN[args.dataset].format(args.class_split)
         ckpt_dir = os.path.join(
             cfg.CKPT_DIR_PATTERN[args.dataset].format(args.class_split),
             'faster_rcnn'
         )
         base_cfg = '../../../../Base-RCNN-FPN.yaml'  # adjust depth to 'config_save_dir'
-
-    # Probably, we want to use an alternative dataset and class split to fine-tune our model on.
-    assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
-    alt_dataset = args.alt_dataset if args.alt_dataset else args.dataset
-    alt_class_split = args.alt_class_split if args.alt_class_split else args.class_split
 
     # Needed to exchange seed and shot in the example config
     seed_str = 'seed{}'.format(seed)  # also used as a directory name
@@ -502,10 +507,10 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
 
     if not os.path.exists(surgery_ckpt) or rerun_surgery:
         # surgery model does not exist, so we have to do a surgery!
-        run_ckpt_surgery(dataset=alt_dataset, class_split=alt_class_split, method=surgery_method,
-                         src1=base_ckpt, src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir,
-                         double_head=args.double_head, keep_base_weights=args.keep_base_weights,
-                         keep_bg_weights=args.keep_background_weights)
+        run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, alt_dataset=args.alt_dataset,
+                         alt_class_split=args.alt_class_split, method=surgery_method, src1=base_ckpt,
+                         src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir, double_head=args.double_head,
+                         keep_base_weights=args.keep_base_weights, keep_bg_weights=args.keep_background_weights)
         assert os.path.exists(surgery_ckpt)
         print("Finished creating surgery checkpoint {}".format(surgery_ckpt))
     else:
@@ -548,8 +553,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1000  # TODO: per batch or image?
     new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000  # TODO: per batch or image?
     new_config['MODEL']['ROI_HEADS']['NAME'] = 'StandardROIHeads' if not args.double_head else 'StandardROIDoubleHeads'
-    num_base_classes = len(CLASS_SPLITS[alt_dataset][alt_class_split]['base'])
-    num_novel_classes = len(CLASS_SPLITS[alt_dataset][alt_class_split]['novel'])
+    num_base_classes = len(CLASS_SPLITS[tar_dataset][tar_class_split]['base'])
+    num_novel_classes = len(CLASS_SPLITS[tar_dataset][tar_class_split]['novel'])
     num_all_classes = num_base_classes + num_novel_classes
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
         num_novel_classes if surgery_method == 'remove' else num_all_classes
@@ -573,7 +578,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['MODEL']['ROI_BOX_HEAD']['FREEZE_FCS'] = str([i for i in all_fcs if i not in unfreeze_fcs])
     new_config['MODEL']['BACKBONE']['FREEZE'] = not (args.unfreeze or args.unfreeze_backbone)
     new_config['MODEL']['PROPOSAL_GENERATOR']['FREEZE'] = not (args.unfreeze or args.unfreeze_proposal_generator)
-    (train_data, test_data) = get_ft_dataset_names(alt_dataset, alt_class_split, mode, shot, seed,
+    (train_data, test_data) = get_ft_dataset_names(tar_dataset, tar_class_split, mode, shot, seed,
                                                    train_split, test_split)
     new_config['DATASETS']['TRAIN'] = str((train_data,))
     new_config['DATASETS']['TEST'] = str((test_data,))
@@ -597,11 +602,11 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))  # scales for multi-scale training
     new_config['OUTPUT_DIR'] = train_ckpt_save_dir
 
-    if args.dataset == 'coco':
+    if tar_dataset == 'coco':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[32], [64], [128], [256], [512]])
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
         new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((640, 672, 704, 736, 768, 800))
-    elif args.dataset == 'isaid':
+    elif tar_dataset == 'isaid':
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TRAIN'] = 3000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TRAIN'] = 1500

@@ -20,7 +20,7 @@ from detectron2.structures import BoxMode
 from detectron2.utils.logger import create_small_table
 
 from fsdet.evaluation.evaluator import DatasetEvaluator
-from class_splits import CLASS_SPLITS, get_ids_from_names
+from class_splits import CLASS_SPLITS, COMPATIBLE_DATASETS, CLASS_NAME_TRANSFORMS, get_ids_from_names
 
 
 class COCOEvaluator(DatasetEvaluator):
@@ -64,14 +64,53 @@ class COCOEvaluator(DatasetEvaluator):
 
             cache_path = convert_to_coco_json(dataset_name, output_dir)
             self._metadata.json_file = cache_path
-        # TODO: problematic when using class_split 'none_all'
+        ### handle the rare case where train dataset (and/or class split) differ ###
+        train_dataset_name = cfg.DATASETS.TRAIN[0]
+        train_metadata = MetadataCatalog.get(train_dataset_name)
+        # Note: the class names and ids in 'self._metadata' are the same as is the dataset we evaluate on.
+        # However, the model was trained on the dataset and class split as in 'train_metadata'
+        if self._metadata.dataset == train_metadata.dataset:
+            if self._metadata.class_split == train_metadata.class_split:
+                # Nothing to do!
+                self._train_ind_to_test_ind = {i: i for i in self._metadata.thing_dataset_id_to_contiguous_id.values()}
+            else:
+                # TODO: would we want to allow an inference on only base classes (base training) where base classes are
+                #  the same, but ft-classes differ?
+                raise ValueError("Cannot evaluate when the model was trained on dataset {} and class split {}, but the "
+                                 "evaluation is to be done on dataset {} and class split {}"
+                                 .format(self._metadata.dataset, self._metadata.class_split,
+                                         train_metadata.dataset, train_metadata.class_split))
+        else:
+            # Case 1: Both datasets are different but are compatible (e.g. have exact same classes)
+            if any(self._metadata.dataset in comp_dsets and train_metadata.dataset in comp_dsets
+                   for comp_dsets in COMPATIBLE_DATASETS):
+                self._train_ind_to_test_ind = {i: i for i in self._metadata.thing_dataset_id_to_contiguous_id.values()}
+            # Case 2: Both datasets are different but in some sense incompatible (e.g. have same underlying classes but
+            #  probably different names and/or order). In this case, we need a deposited mapping of the one dataset's
+            #  classes to the other dataset's classes.
+            else:
+                assert ((train_metadata.dataset, train_metadata.class_split),
+                        (self._metadata.dataset, self._metadata.class_split)) in CLASS_NAME_TRANSFORMS
+                train_classes_to_test_classes = \
+                    CLASS_NAME_TRANSFORMS[((train_metadata.dataset, train_metadata.class_split),
+                                           (self._metadata.dataset, self._metadata.class_split))]
+                train_ids_to_test_ids = {
+                    get_ids_from_names(train_metadata.dataset, train_cls): get_ids_from_names(self._metadata.dataset, test_cls)
+                    for train_cls, test_cls in train_classes_to_test_classes.items()
+                }
+                self._train_ind_to_test_ind = {
+                    train_metadata.thing_dataset_id_to_contiguous_id[train_id]: self._metadata.thing_dataset_id_to_contiguous_id[test_id]
+                    for train_id, test_id in train_ids_to_test_ids.items()
+                }
+        ###
+        # TODO: problematic when using class_split 'none_all' (or one containing 'baseball'...)
         self._is_splits = "all" in dataset_name or "base" in dataset_name \
             or "novel" in dataset_name
         self._class_split = self._metadata.class_split
         # Note: we use 'thing_ids' over 'all_ids' because 'meta_coco' will override 'thing_ids' appropriately
         self._all_class_ids = self._metadata.thing_ids
         self._base_class_ids = self._metadata.get("base_ids", None)
-        self._novel_class_ids = self._metadata.get("novel_ids",  None)
+        self._novel_class_ids = self._metadata.get("novel_ids", None)
         json_file = PathManager.get_local_path(self._metadata.json_file)
         with contextlib.redirect_stdout(io.StringIO()):
             self._coco_api = COCO(json_file)
@@ -101,6 +140,12 @@ class COCOEvaluator(DatasetEvaluator):
                 instances = output["instances"].to(self._cpu_device)
                 prediction["instances"] = instances_to_coco_json(
                     instances, input["image_id"])
+                # The prediction's category_id is one of the classes of the training dataset. If the training
+                # and testing dataset differ, we have to adjust this category_id to match the test dataset.
+                # Note: The category_id here is merely just an index and is later (by method '_eval_predictions')
+                # transformed to an actual id
+                for inst in prediction["instances"]:
+                    inst["category_id"] = self._train_ind_to_test_ind[inst["category_id"]]
             self._predictions.append(prediction)
 
     def evaluate(self):

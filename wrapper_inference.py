@@ -7,7 +7,9 @@ def main():
     dataset = "coco"  # coco, isaid
     coco_class_splits = ["voc_nonvoc"]  # voc_nonvoc, none_all
     isaid_class_splits = ["vehicle_nonvehicle"]  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
-    # Evaluate on a different dataset. TODO: it's unclear what assumptions have to be made!
+    # Evaluate on a different dataset.
+    # WARNING: Use this experimental feature with care, since it is not fully clear what assumptions have to be made
+    #  (depending on e.g. dataset, class_split and phase ...)!
     # Defining an alternative class split is normally not necessary, since the classes to be evaluated should be the
     # same, but the implementation requires this class split to be existent in CLASS_SPLITS[alternative_inference_dataset]!
     alternative_inference_dataset = ""
