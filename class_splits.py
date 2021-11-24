@@ -541,6 +541,34 @@ def get_names_from_ids(dataset, ids):
         raise ValueError("Error, no mapping available for dataset {}!".format(dataset))
 
 
+# Directly compatible datasets (can be thought of as equivalence classes), e.g. when the base dataset is the same but
+#  images were sampled or cropped differently which will leave the dataset's classes stay the exact same.
+COMPATIBLE_DATASETS = [
+    [],
+]
+
+# Possibly different datasets but certain class splits were build s.t. these datasets contain the exact same classes.
+#  These classes might be the same, but probably are in different order or even have a different name. So here deposited
+#  are ways of transforming the class names of one dataset to the class names of another dataset (the symmetric mapping
+#  in the other way is computed automatically). The mappings have to always contain all base and novel classes of a
+#  specified class split (of a certain dataset).
+# ((src_dataset_name,src_class_split),(tar_dataset_name,tar_class_split)): {src_class_name: tar_class_name, ...},
+# ((tar_dataset_name,tar_class_split),(src_dataset_name,src_class_split)): {tar_class_name: src_class_name, ...}
+CLASS_NAME_TRANSFORMS = {  # TODO: need to differ base classes and novel classes?
+
+}
+
+
+for ((src_dset, src_cls_split), (tar_dset, tar_cls_split)), class_name_map in CLASS_NAME_TRANSFORMS.items():
+    # some validity checks...
+    assert all(src_cat_name in class_name_map.keys() for src_cat_name in CLASS_SPLITS[src_dset][src_cls_split]["base"])
+    assert all(src_cat_name in class_name_map.keys() for src_cat_name in CLASS_SPLITS[src_dset][src_cls_split]["novel"])
+    assert all(tar_cat_name in class_name_map.values() for tar_cat_name in CLASS_SPLITS[tar_dset][tar_cls_split]["base"])
+    assert all(tar_cat_name in class_name_map.values() for tar_cat_name in CLASS_SPLITS[tar_dset][tar_cls_split]["novel"])
+    # create the inverse entry
+    CLASS_NAME_TRANSFORMS[((tar_dset, tar_cls_split), (src_dset, src_cls_split))] = {v: k for k, v in class_name_map.items()}
+
+
 def check_splits():
     print("checking all class splits for consistency...")
     for (dataset, num_cls) in [("coco", 80), ("xview", 60), ("isaid", 15), ("vaid", 7)]:
