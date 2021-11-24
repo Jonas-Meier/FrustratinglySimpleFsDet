@@ -544,7 +544,8 @@ def get_names_from_ids(dataset, ids):
 # Directly compatible datasets (can be thought of as equivalence classes), e.g. when the base dataset is the same but
 #  images were sampled or cropped differently which will leave the dataset's classes stay the exact same.
 COMPATIBLE_DATASETS = [
-    [],
+    ["isaid", "isaid_100", "isaid_50", "isaid_25", "isaid_10", "isaid_0"],
+    ["isaid", "isaid_low_gsd", "isaid_high_gsd"],
 ]
 
 # Possibly different datasets but certain class splits were build s.t. these datasets contain the exact same classes.
@@ -555,7 +556,42 @@ COMPATIBLE_DATASETS = [
 # ((src_dataset_name,src_class_split),(tar_dataset_name,tar_class_split)): {src_class_name: tar_class_name, ...},
 # ((tar_dataset_name,tar_class_split),(src_dataset_name,src_class_split)): {tar_class_name: src_class_name, ...}
 CLASS_NAME_TRANSFORMS = {  # TODO: need to differ base classes and novel classes?
-
+    (("isaid", "fairsaid_none_all"), ("fair1m_groupcats", "fairsaid_none_all")): {
+        "Small_Vehicle": "Small Vehicle",
+        "Large_Vehicle": "Large Vehicle",
+        "plane": "Airplane",
+        "ship": "Ship",
+        "tennis_court": "Tennis Court",
+        "Soccer_ball_field": "Football Field",
+        "baseball_diamond": "Baseball Field",
+        "Bridge": "Bridge",
+        "basketball_court": "Basketball Court",
+        "Roundabout": "Roundabout",
+    },
+    (("fair1m_groupcats", "fairsaid_none_all"), ("fairsaid", "none_all")): {
+        "Small Vehicle": "Small Vehicle",
+        "Large Vehicle": "Large Vehicle",
+        "Airplane": "Plane",
+        "Ship": "Ship",
+        "Tennis Court": "Tennis Court",
+        "Football Field": "Soccer Ball Field",
+        "Baseball Field": "Baseball Diamond",
+        "Bridge": "Bridge",
+        "Basketball Court": "Basketball Court",
+        "Roundabout": "Roundabout",
+    },
+    (("fairsaid", "none_all"), ("isaid", "fairsaid_none_all")): {
+        "Small Vehicle": "Small_Vehicle",
+        "Large Vehicle": "Large_Vehicle",
+        "Plane": "plane",
+        "Ship": "ship",
+        "Tennis Court": "tennis_court",
+        "Soccer Ball Field": "Soccer_ball_field",
+        "Baseball Diamond": "baseball_diamond",
+        "Bridge": "Bridge",
+        "Basketball Court": "basketball_court",
+        "Roundabout": "Roundabout",
+    },
 }
 
 
