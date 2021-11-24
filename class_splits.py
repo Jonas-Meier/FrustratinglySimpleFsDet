@@ -340,7 +340,7 @@ CLASS_NAME_TRANSFORMS = {  # TODO: need to differ base classes and novel classes
 
 }
 
-
+tmp_dict = {}
 for ((src_dset, src_cls_split), (tar_dset, tar_cls_split)), class_name_map in CLASS_NAME_TRANSFORMS.items():
     # some validity checks...
     assert all(src_cat_name in class_name_map.keys() for src_cat_name in CLASS_SPLITS[src_dset][src_cls_split]["base"])
@@ -348,7 +348,9 @@ for ((src_dset, src_cls_split), (tar_dset, tar_cls_split)), class_name_map in CL
     assert all(tar_cat_name in class_name_map.values() for tar_cat_name in CLASS_SPLITS[tar_dset][tar_cls_split]["base"])
     assert all(tar_cat_name in class_name_map.values() for tar_cat_name in CLASS_SPLITS[tar_dset][tar_cls_split]["novel"])
     # create the inverse entry
-    CLASS_NAME_TRANSFORMS[((tar_dset, tar_cls_split), (src_dset, src_cls_split))] = {v: k for k, v in class_name_map.items()}
+    tmp_dict[((tar_dset, tar_cls_split), (src_dset, src_cls_split))] = {v: k for k, v in class_name_map.items()}
+CLASS_NAME_TRANSFORMS.update(tmp_dict)
+del tmp_dict
 
 
 def check_splits():

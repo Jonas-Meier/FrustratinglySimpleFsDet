@@ -95,7 +95,7 @@ class COCOEvaluator(DatasetEvaluator):
                     CLASS_NAME_TRANSFORMS[((train_metadata.dataset, train_metadata.class_split),
                                            (self._metadata.dataset, self._metadata.class_split))]
                 train_ids_to_test_ids = {
-                    get_ids_from_names(train_metadata.dataset, train_cls): get_ids_from_names(self._metadata.dataset, test_cls)
+                    get_ids_from_names(train_metadata.dataset, [train_cls])[0]: get_ids_from_names(self._metadata.dataset, [test_cls])[0]
                     for train_cls, test_cls in train_classes_to_test_classes.items()
                 }
                 self._train_ind_to_test_ind = {

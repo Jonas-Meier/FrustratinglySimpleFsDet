@@ -302,7 +302,7 @@ if __name__ == '__main__':
                                        if tar_cls in tar_base_classes and src_cls in src_base_classes}
             assert set(tar_to_src_base_classes.keys()) == set(tar_base_classes)
             assert set(tar_to_src_base_classes.values()) == set(src_base_classes)
-            tar_to_src_base_id = {get_ids_from_names(args.alt_dataset, tar_cls): get_ids_from_names(args.dataset, src_cls)
+            tar_to_src_base_id = {get_ids_from_names(args.alt_dataset, [tar_cls])[0]: get_ids_from_names(args.dataset, [src_cls])[0]
                                   for tar_cls, src_cls in tar_to_src_base_classes.items()}
             tar_to_src_base_class_ind = {tar_id_to_ind[tar_id]: src_id_to_ind[src_id]
                                          for tar_id, src_id in tar_to_src_base_id.items()}
