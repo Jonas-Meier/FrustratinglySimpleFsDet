@@ -1,6 +1,6 @@
 # TODO: probably rename to something like "collect Detectron2 style COCO metrics"
 
-# TODO: make sure that this script works with all approaches absed on detectron!
+# TODO: make sure that this script works with all approaches based on detectron!
 #  -> it should especially work with 3rd approach. so look at its format and either adjust this script or adjust
 #  evaluation of 3rd approach
 import os.path
@@ -11,9 +11,41 @@ cfg = get_cfg()
 mean_decimals = 1
 std_decimals = 2
 
-class_subsets = ['base', 'novel', 'all']
-ious = ['0.50:0.95', '0.50', '0.75']
-areas = ['small', 'medium', 'large', 'all']
+class_subsets = ["base", "novel", "all"]
+
+metric_to_iou = {
+    **{metric: "0.50:0.95" for metric in ["AP", "APs", "APm", "APl"]},
+    "AP5": "0.05",
+    "AP10": "0.10",
+    "AP15": "0.15",
+    "AP20": "0.20",
+    "AP25": "0.25",
+    "AP30": "0.30",
+    "AP35": "0.35",
+    "AP40": "0.40",
+    "AP45": "0.45",
+    "AP50": "0.50",
+    "AP55": "0.55",
+    "AP60": "0.60",
+    "AP65": "0.65",
+    "AP70": "0.70",
+    "AP75": "0.75",
+    "AP80": "0.80",
+    "AP85": "0.85",
+    "AP90": "0.90",
+    "AP95": "0.95",
+}
+
+metric_to_area = {
+    "APs": "small",
+    "APm": "medium",
+    "APl": "large",
+    **{metric: "all" for metric in ["AP", "AP5", "AP10", "AP15", "AP20", "AP25", "AP30", "AP35", "AP40", "AP45", "AP50",
+                                    "AP55", "AP60", "AP65", "AP70", "AP75", "AP80", "AP85", "AP90", "AP95"]}
+}
+
+ious = metric_to_iou.values()
+areas = set(metric_to_area.values())
 
 dataset = 'isaid'  # coco, isaid, fair1m, fairsaid
 coco_class_split = 'voc_nonvoc'  # voc_nonvoc, none_all
@@ -209,20 +241,8 @@ def _parse_summary_metrics(open_file, current_line, per_class_metrics, summary_m
     assert len(metric_names) == len(metric_values)
     for name, value in zip(metric_names, metric_values):
         value = float(value)
-        if name == 'AP':
-            summary_metrics[split]['0.50:0.95']['all'].append(value)
-        elif name == 'AP50':
-            summary_metrics[split]['0.50']['all'].append(value)
-        elif name == 'AP75':
-            summary_metrics[split]['0.75']['all'].append(value)
-        elif name == 'APs':
-            summary_metrics[split]['0.50:0.95']['small'].append(value)
-        elif name == 'APm':
-            summary_metrics[split]['0.50:0.95']['medium'].append(value)
-        elif name == 'APl':
-            summary_metrics[split]['0.50:0.95']['large'].append(value)
-        else:
-            raise ValueError('Error at parsing, unknown metric name {}'.format(name))
+        assert name in metric_to_area and name in metric_to_iou, "Error at parsing, unknown metric name {}".format(name)
+        summary_metrics[split][metric_to_iou[name]][metric_to_area[name]].append(value)
     # move to next line until we reach a return condition
     while current_line:
         if _return(current_line):
@@ -259,12 +279,8 @@ def _parse_per_class_metrics(open_file, current_line, per_class_metrics, summary
     metrics = [metric.strip() for metric in split_line[1::2]]
     assert len(set(metrics)) == 1
     metric = metrics[0]
-    if metric == 'AP':
-        iou = '0.50:0.95'
-    elif metric == 'AP50':
-        iou = '0.50'
-    else:
-        raise ValueError("Error at parsing, unknown metric {}".format(metric))
+    assert metric in metric_to_iou, "Error at parsing, unknown metric {}".format(metric)
+    iou = metric_to_iou[metric]
     # skip separator
     current_line = open_file.readline()
     assert not _return(current_line)
