@@ -22,6 +22,39 @@ from detectron2.utils.logger import create_small_table
 from fsdet.evaluation.evaluator import DatasetEvaluator
 from class_splits import CLASS_SPLITS, COMPATIBLE_DATASETS, CLASS_NAME_TRANSFORMS, get_ids_from_names
 
+PRECISION_METRIC_TO_IOU_THR = {
+    "AP": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+    "APs": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+    "APm": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+    "APl": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+    "AP5": [0.05],
+    "AP10": [0.10],
+    "AP15": [0.15],
+    "AP20": [0.20],
+    "AP25": [0.25],
+    "AP30": [0.30],
+    "AP35": [0.35],
+    "AP40": [0.40],
+    "AP45": [0.45],
+    "AP50": [0.50],
+    "AP55": [0.55],
+    "AP60": [0.60],
+    "AP65": [0.65],
+    "AP70": [0.70],
+    "AP75": [0.75],
+    "AP80": [0.80],
+    "AP85": [0.85],
+    "AP90": [0.90],
+    "AP95": [0.95],
+}
+PRECISION_METRIC_TO_AREA = {
+    "APs": "small",
+    "APm": "medium",
+    "APl": "large",
+    **{m: "all" for m in ["AP", "AP5", "AP10", "AP15", "AP20", "AP25", "AP30", "AP35", "AP40", "AP45", "AP50",
+                          "AP55", "AP60", "AP65", "AP70", "AP75", "AP80", "AP85", "AP90", "AP95"]}
+}
+
 
 class COCOEvaluator(DatasetEvaluator):
     """
@@ -42,6 +75,8 @@ class COCOEvaluator(DatasetEvaluator):
                 Otherwise, will evaluate the results in the current process.
             output_dir (str): optional, an output directory to dump results.
         """
+        self._precision_summary_metrics = cfg.TEST.METRICS.PRECISION.SUMMARY
+        self._precision_per_class_metrics = cfg.TEST.METRICS.PRECISION.PER_CLASS
         self._distributed = distributed
         self._output_dir = output_dir
         os.makedirs(self._output_dir, exist_ok=True)  # just to be sure
@@ -212,7 +247,7 @@ class COCOEvaluator(DatasetEvaluator):
                     continue
                 coco_eval = (
                     _evaluate_predictions_on_coco(
-                        self._coco_api, self._coco_results, "bbox", classes,
+                        self._coco_api, self._coco_results, "bbox", classes, precision_metrics=self._precision_summary_metrics
                     )
                     if len(self._coco_results) > 0
                     else None  # cocoapi does not handle empty results very well
@@ -240,7 +275,7 @@ class COCOEvaluator(DatasetEvaluator):
         else:
             coco_eval = (
                 _evaluate_predictions_on_coco(
-                    self._coco_api, self._coco_results, "bbox",
+                    self._coco_api, self._coco_results, "bbox", precision_metrics=self._precision_summary_metrics
                 )
                 if len(self._coco_results) > 0
                 else None  # cocoapi does not handle empty results very well
@@ -310,7 +345,7 @@ class COCOEvaluator(DatasetEvaluator):
             )
             return results_per_category, table
 
-        metrics = ["AP", "AP50", "AP75", "APs", "APm", "APl"]
+        metrics = self._precision_summary_metrics  # ["AP", "AP50", "AP75", "APs", "APm", "APl"]
         split_str = '({} classes)'.format(split) if split != '' else split
         if coco_eval is None:
             self._logger.warn("No predictions from the model! Set scores to -1")
@@ -327,19 +362,14 @@ class COCOEvaluator(DatasetEvaluator):
         if not class_names:
             return results
 
-        # get per-class AP@0.5:0.95, log result, append to file and update 'results'
-        results_per_category, table = get_per_category_ap_table(coco_eval, class_names, iou_low=0.5, iou_high=0.95)
-        tmp_str = "Per-category {} AP {}: \n".format(iou_type, split_str) + table
-        log_info_and_append(self._summary_file, tmp_str)
-        results.update({"AP-" + name: ap for name, ap in results_per_category})
-
-        # get per-class AP@0.5, log result, append to file and update 'results'
-        # TODO: probably just do this if 'class_names' are all class names
-        #  -> What's with the case of base training? We then wouldn't have any per-class AP@50 results
-        results_per_category, table = get_per_category_ap_table(coco_eval, class_names, iou_low=0.5, iou_high=0.5)
-        tmp_str = "Per-category {} AP50 {}: \n".format(iou_type, split_str) + table
-        log_info_and_append(self._summary_file, tmp_str)
-        results.update({"AP@0.5-" + name: ap for name, ap in results_per_category})  # TODO: necessary for AP@0.5?
+        # get per-class metrics, log the results, append them to the log file and update 'results'
+        for metric in self._precision_per_class_metrics:
+            iou_low = PRECISION_METRIC_TO_IOU_THR[metric][0]
+            iou_high = PRECISION_METRIC_TO_IOU_THR[metric][-1]
+            results_per_category, table = get_per_category_ap_table(coco_eval, class_names, iou_low, iou_high)
+            tmp_str = "Per-category {} {} {}: \n".format(iou_type, metric, split_str) + table
+            log_info_and_append(self._summary_file, tmp_str)
+            results.update({"{}-".format(metric) + name: ap for name, ap in results_per_category})
 
         return results
 
@@ -377,20 +407,54 @@ def instances_to_coco_json(instances, img_id):
     return results
 
 
-def _evaluate_predictions_on_coco(coco_gt, coco_results, iou_type, catIds=None):
+def _evaluate_predictions_on_coco(coco_gt, coco_results, iou_type, catIds=None,
+                                  precision_metrics=None, recall_metrics=None):
     """
     Evaluate the coco results using COCOEval API.
     """
     assert len(coco_results) > 0
 
+    if recall_metrics:
+        raise NotImplementedError("Custom Recall metrics are not supported yet!")
+
+    def _get_thr_ind(coco_eval, thr):
+        ind = np.where((coco_eval.params.iouThrs > thr - 1e-5) & (coco_eval.params.iouThrs < thr + 1e-5))[0][0]
+        iou_thr = coco_eval.params.iouThrs[ind]
+        assert np.isclose(iou_thr, thr)
+        return ind
+
     coco_dt = coco_gt.loadRes(coco_results)
     coco_eval = COCOeval(coco_gt, coco_dt, iou_type)
     if catIds is not None:
         coco_eval.params.catIds = catIds
+
+    # Set just the needed iou thresholds to speed up evaluation
+    all_iou_thrs = [elem for sublist in list(map(lambda x: PRECISION_METRIC_TO_IOU_THR[x], precision_metrics)) for elem in sublist]
+    iou_thr = sorted(set(all_iou_thrs))  # unique and sorted iou thresholds
+    coco_eval.params.iouThrs = np.array(iou_thr)
+
     coco_eval.evaluate()
     coco_eval.accumulate()
     # TODO: probably redirect stdout to self._summary_file, in order to also get the output of coco_eval.summarize()
     #  into the text file?
-    coco_eval.summarize()
+    precisions = coco_eval.eval["precision"]
+    stats = np.zeros((len(precision_metrics),))
+    for i, precision_metric in enumerate(precision_metrics):
+        lo_iou_ind = _get_thr_ind(coco_eval, PRECISION_METRIC_TO_IOU_THR[precision_metric][0])
+        hi_iou_ind = _get_thr_ind(coco_eval, PRECISION_METRIC_TO_IOU_THR[precision_metric][-1])
+        area_ind = [i for i, aRng in enumerate(coco_eval.params.areaRngLbl) if aRng == PRECISION_METRIC_TO_AREA[precision_metric]]
+        max_dets_ind = [i for i, mDet in enumerate(coco_eval.params.maxDets) if mDet == coco_eval.params.maxDets[2]]
+        precision = precisions[lo_iou_ind:(hi_iou_ind + 1), :, :, area_ind, max_dets_ind]
+        if len(precision[precision > -1]) == 0:
+            mean_prec = -1
+        else:
+            mean_prec = np.mean(precision[precision > -1])
+        stats[i] = mean_prec
+    coco_eval.stats = stats
+
+    # Note: we don't call 'summarize' but, instead, compute the metrics, given by the config still saving them in the
+    # same order in coco_eval.stats, s.t. the caller of this method can obtain the metrics he wants by accessing the
+    # elements of coco_eval.stats in the same order as in the config
+    # coco_eval.summarize()
 
     return coco_eval

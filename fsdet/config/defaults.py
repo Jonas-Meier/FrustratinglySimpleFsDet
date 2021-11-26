@@ -185,6 +185,16 @@ _CC.MODEL.ROI_HEADS.OUTPUT_LAYER = "FastRCNNOutputLayers"
 # scale of cosine similarity (set to -1 for learnable scale)
 _CC.MODEL.ROI_HEADS.COSINE_SCALE = 20.0
 
+# Metrics to evaluate, default: ["AP", "AP50", "AP75", "APs", "APm", "APl"]
+# Supports AP (=AP@0.5:0.95:0.05), AP5, AP10, ..., AP95, APs, APm and APl
+_CC.TEST.METRICS = CN()
+_CC.TEST.METRICS.PRECISION = CN({  # Note: PER_CLASS has to be a subset or equal to SUMMARY!
+    "SUMMARY": ["AP", "AP50", "AP75", "APs", "APm", "APl"],
+    "PER_CLASS": ["AP", "AP50"]
+})
+
+_CC.TEST.METRICS.RECALL = []  # TODO: not implemented yet!
+
 # Backward Compatible options.
 _CC.MUTE_HEADER = True
 
@@ -196,3 +206,4 @@ assert all(dataset in dictionary for dataset in _CC.DATASETS.SUPPORTED_DATASETS 
 ])
 assert all(dataset in CLASS_SPLITS for dataset in _CC.DATASETS.SUPPORTED_DATASETS)
 assert all(dataset in ALL_CLASSES for dataset in _CC.DATASETS.SUPPORTED_DATASETS)
+assert all(per_class_metric in _CC.TEST.METRICS.PRECISION.SUMMARY for per_class_metric in _CC.TEST.METRICS.PRECISION.PER_CLASS)
