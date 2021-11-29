@@ -44,7 +44,7 @@ metric_to_area = {
                                     "AP55", "AP60", "AP65", "AP70", "AP75", "AP80", "AP85", "AP90", "AP95"]}
 }
 
-ious = metric_to_iou.values()
+ious = set(metric_to_iou.values())
 areas = set(metric_to_area.values())
 
 dataset = 'isaid'  # isaid, coco
