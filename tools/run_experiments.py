@@ -623,7 +623,16 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         new_config['MODEL']['RPN']['PRE_NMS_TOPK_TEST'] = 1000
         new_config['MODEL']['RPN']['POST_NMS_TOPK_TEST'] = 1000
         new_config['TEST']['DETECTIONS_PER_IMAGE'] = 100
-        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str((600, 700, 800, 900, 1000))  # (608, 672, 736, 800, 864, 928, 992)
+        min_size_train = (600, 700, 800, 900, 1000)  # (608, 672, 736, 800, 864, 928, 992)
+        if args.dataset == 'isaid_gsd_01':
+            min_size_train = (1056,)
+        elif args.dataset == 'isaid_gsd_02':
+            min_size_train = (528,)
+        elif args.dataset == 'isaid_gsd_03':
+            min_size_train = (352,)
+        elif args.dataset == 'isaid_gsd_04':
+            min_size_train = (264,)
+        new_config['INPUT']['AUG']['AUGS']['RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE']['MIN_SIZE_TRAIN'] = str(min_size_train)
     elif tar_dataset in ['fair1m', 'fair1m_groupcats', 'fair1m_partlygroupcats1']:
         # TODO: probably adjust for FAIR1M datasets!
         new_config['MODEL']['ANCHOR_GENERATOR']['SIZES'] = str([[16], [32], [64], [128], [256]])

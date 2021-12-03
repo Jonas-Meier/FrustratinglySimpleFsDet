@@ -323,6 +323,10 @@ ALL_CLASSES = {
     "isaid_low_gsd": _ISAID_ALL_NAMES,
     "isaid_high_gsd": _ISAID_ALL_NAMES,
     "isaid_no_overlap": _ISAID_ALL_NAMES,
+    "isaid_gsd_01": _ISAID_ALL_NAMES,
+    "isaid_gsd_02": _ISAID_ALL_NAMES,
+    "isaid_gsd_03": _ISAID_ALL_NAMES,
+    "isaid_gsd_04": _ISAID_ALL_NAMES,
     "fair1m": _FAIR1M_ALL_NAMES,
     "fair1m_groupcats": _FAIR1M_GROUPCATS_ALL_NAMES,
     "fair1m_partlygroupcats1": _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES,
@@ -455,6 +459,10 @@ CLASS_SPLITS["isaid_0"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_low_gsd"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_high_gsd"] = CLASS_SPLITS["isaid"]
 CLASS_SPLITS["isaid_no_overlap"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_gsd_01"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_gsd_02"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_gsd_03"] = CLASS_SPLITS["isaid"]
+CLASS_SPLITS["isaid_gsd_04"] = CLASS_SPLITS["isaid"]
 
 CLASS_SPLITS["fair1m"] = {
     "none_all": {
