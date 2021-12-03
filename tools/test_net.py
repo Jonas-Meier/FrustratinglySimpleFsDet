@@ -21,6 +21,7 @@ from fsdet.modeling import GeneralizedRCNNWithTTA
 
 from fsdet.config import get_cfg, set_global_cfg
 from fsdet.engine import DefaultTrainer, default_argument_parser, default_setup
+from fsdet.evaluation.evaluator import inference_context
 
 import detectron2.utils.comm as comm
 import json
@@ -33,6 +34,9 @@ from detectron2.data import MetadataCatalog
 from detectron2.engine import hooks, launch
 from fsdet.evaluation import (
     COCOEvaluator, DatasetEvaluators, LVISEvaluator, PascalVOCDetectionEvaluator, verify_results)
+
+from sklearn.manifold import TSNE
+from matplotlib import pyplot as plt
 
 
 class Trainer(DefaultTrainer):
@@ -112,6 +116,80 @@ class Trainer(DefaultTrainer):
         res = OrderedDict({k + "_TTA": v for k, v in res.items()})
         return res
 
+    @classmethod
+    def export_t_sne_features(cls, cfg, model):
+        debug = False
+        ##########
+        dataset_name = cfg.DATASETS.TEST[0]  # ugly but should be ok for first experiments with t-sne
+        data_loader = cls.build_test_loader(cfg, dataset_name)
+        all_box_features = []  # Tensors of size [TEST.DETECTIONS_PER_IMAGE, MODEL.ROI_BOX_HEAD.FC_DIM]
+        all_gt_classes = []  # Tensors of size [TEST.DETECTIONS_PER_IMAGE]
+        # similar to fsdet.evaluation.evaluator:inference_on_dataset
+        with inference_context(model), torch.no_grad():
+            for idx, inputs in enumerate(data_loader, start=1):
+                if cfg.TEST.TSNE.MAX_NUM_IMGS and idx > cfg.TEST.TSNE.MAX_NUM_IMGS:
+                    break
+                if debug:
+                    print("Processing image {}".format(inputs[0]["file_name"]))
+                if idx % 50 == 0:
+                    print("Processing image {}/{}".format(idx, len(data_loader)))
+                outputs = model(inputs)
+                torch.cuda.synchronize()
+                box_features, gt_classes = outputs
+                all_box_features.append(box_features)
+                all_gt_classes.append(gt_classes)
+        # TODO: save all box_features and all gt_classes to a file (which format? text format?)
+        #  -> for now, we directly create a t-SNE plot instead of saving the features and gt's beforehand
+        # (see https://github.com/spmallick/learnopencv/blob/master/TSNE/tsne.py)
+        # collect features (only fc features, gt labels are needed later) (stack as np.arrays)
+        features = all_box_features[0].cpu().numpy()
+        for current_features in all_box_features[1:]:
+            features = np.concatenate((features, current_features.cpu().numpy()), axis=0)
+        labels = all_gt_classes[0].cpu().numpy()
+        for current_labels in all_gt_classes[1:]:
+            labels = np.concatenate((labels, current_labels.cpu().numpy()), axis=0)
+        assert features.shape[0] == labels.shape[0]
+        # call tsne -> returns x and y coordinates
+        start = time.time()
+        tsne = TSNE(n_components=2).fit_transform(features)
+        end = time.time()
+        print("Created t-SNE from {} features in {}m {}s".format(features.shape[0], *divmod(int(end - start), 60)))
+        tx = tsne[:, 0]
+        ty = tsne[:, 1]
+        # normalize x- and y- tsne-coordinates to [0,1] range
+        tx = (tx - np.min(tx)) / (np.max(tx) - np.min(tx))
+        ty = (ty - np.min(ty)) / (np.max(ty) - np.min(ty))
+        # visualize normalized tsne points together with the gt labels
+        metadata = MetadataCatalog.get(dataset_name)
+        class_names = metadata.thing_classes
+        colors = plt.cm.hsv(np.linspace(0, 1, len(class_names))).tolist()
+        if cfg.TEST.TSNE.WITH_BG:
+            class_names.append("Background")  # add it later because we hard-code a color for this class
+            colors.append([0, 0, 0])  # black color
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for ind, label in enumerate(class_names):  # add a separate scatter plot for each class
+            indices = np.where(labels == ind)
+            if debug:
+                print("label: {}, #indices: {}".format(label, len(indices[0])))
+            current_tx = np.take(tx, indices)
+            current_ty = np.take(ty, indices)
+            color = np.array(colors[ind])  # should already be in correct format...
+            ax.scatter(current_tx, current_ty, color=color, label=label)
+        # ncol/nrow useful for datasets with many classes (as coco)
+        # loc=best
+        ax.legend(bbox_to_anchor=(1.04, 0), loc="lower left", borderaxespad=0, ncol=3)  # place right of the figure, start on lower left
+        if cfg.TEST.TSNE.SAVE:
+            save_path = cfg.TEST.TSNE.SAVE_PATH
+            if not save_path:
+                print("Error, cannot save figure to an empty path!")
+                exit(1)
+            os.makedirs(save_path, exist_ok=True)
+            fig.savefig(os.path.join(save_path, "t_sne_{}.png".format(dataset_name)), bbox_inches="tight")
+        if cfg.TEST.TSNE.SHOW:
+            plt.subplots_adjust(right=0.7)  # leave space on the right side of the figure for the legend
+            plt.show()
+
 
 class Tester:
     def __init__(self, cfg):
@@ -190,6 +268,9 @@ def main(args):
         ckpt = DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             ckpt_file, resume=resume
         )
+        if cfg.TEST.TSNE.ENABLED:
+            Trainer.export_t_sne_features(cfg, model)
+            return
         res_file = "res{}.json".format(iter_str)
         # TODO: remove file_suffix?
         #  -> We would then need to hard-code this file suffix here (for res*.json) and in the evaluator!

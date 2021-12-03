@@ -324,6 +324,16 @@ _CC.TEST.METRICS.PRECISION = CN({  # Note: PER_CLASS has to be a subset or equal
 
 _CC.TEST.METRICS.RECALL = []  # TODO: not implemented yet!
 
+# export fc-features and ground truths for a T-SNE visualization
+_CC.TEST.TSNE = CN({
+    "ENABLED": False,
+    "WITH_BG": True,  # embed FP background features as well
+    "MAX_NUM_IMGS": 100,  # set to prevent using the whole testing dataset
+    "SHOW": True,
+    "SAVE": False,
+    "SAVE_PATH": '.',
+})
+
 # Backward Compatible options.
 _CC.MUTE_HEADER = True
 
