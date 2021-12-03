@@ -15,7 +15,6 @@ from fvcore.common.file_io import PathManager
 from fvcore.nn.precise_bn import get_bn_modules
 from torch.nn.parallel import DistributedDataParallel
 
-import detectron2.data.transforms as T
 from fsdet.checkpoint import DetectionCheckpointer
 from fsdet.engine.hooks import EvalHookFsdet
 from fsdet.evaluation import (
@@ -25,6 +24,8 @@ from fsdet.evaluation import (
     verify_results,
 )
 from fsdet.modeling import build_model
+
+import detectron2.data.transforms as T
 from detectron2.data import (
     MetadataCatalog,
     build_detection_test_loader,
@@ -41,7 +42,6 @@ from detectron2.utils.events import (
     JSONWriter,
     TensorboardXWriter,
 )
-
 from detectron2.utils.logger import setup_logger
 
 # triggers fsdet.data.__init__.py which initiates dataset registration at fsdet.data.builtin.py
@@ -512,9 +512,10 @@ class DefaultTrainer(SimpleTrainer):
         It now calls :func:`fsdet.data.build_detection_test_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        augmentations = cls.build_augmentations(cfg, is_train=False)
+        augmentations = cls.build_augmentations(cfg, is_train=False)  # always use test augmentations
         if augmentations is not None:  # should return True for augmentations = []
-            dataset_mapper = DatasetMapper(is_train=False, image_format=cfg.INPUT.FORMAT, augmentations=augmentations)
+            # we need gt labels when creating a t-SNE visualization
+            dataset_mapper = DatasetMapper(is_train=cfg.TEST.TSNE.ENABLED, image_format=cfg.INPUT.FORMAT, augmentations=augmentations)
         else:
             dataset_mapper = None
         return build_detection_test_loader(cfg, dataset_name, mapper=dataset_mapper)

@@ -34,6 +34,7 @@ class GeneralizedRCNN(nn.Module):
             cfg, self.backbone.output_shape()
         )
         self.roi_heads = build_roi_heads(cfg, self.backbone.output_shape())
+        self.tsne = cfg.TEST.TSNE.ENABLED
 
         assert len(cfg.MODEL.PIXEL_MEAN) == len(cfg.MODEL.PIXEL_STD)
         num_channels = len(cfg.MODEL.PIXEL_MEAN)
@@ -205,7 +206,24 @@ class GeneralizedRCNN(nn.Module):
                 proposals = [
                     x["proposals"].to(self.device) for x in batched_inputs
                 ]
-
+            if self.tsne:
+                if "instances" in batched_inputs[0]:
+                    gt_instances = [
+                        x["instances"].to(self.device) for x in batched_inputs
+                    ]
+                elif "targets" in batched_inputs[0]:
+                    log_first_n(
+                        logging.WARN,
+                        "'targets' in the model inputs is now renamed to 'instances'!",
+                        n=10,
+                    )
+                    gt_instances = [
+                        x["targets"].to(self.device) for x in batched_inputs
+                    ]
+                else:
+                    gt_instances = None
+                _, box_features, gt_classes = self.roi_heads(images, features, proposals, gt_instances, self.tsne)
+                return box_features, gt_classes
             results, _ = self.roi_heads(images, features, proposals, None)
         else:
             detected_instances = [

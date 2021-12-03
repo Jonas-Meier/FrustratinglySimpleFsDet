@@ -15,7 +15,7 @@ from detectron2.modeling.poolers import ROIPooler
 from detectron2.modeling.proposal_generator.proposal_utils import add_ground_truth_to_proposals
 from detectron2.modeling.sampling import subsample_labels
 from detectron2.structures import Boxes, Instances, pairwise_iou
-from detectron2.utils.events import get_event_storage
+from detectron2.utils.events import EventStorage, get_event_storage
 from detectron2.utils.registry import Registry
 from typing import Dict, List
 
@@ -436,25 +436,39 @@ class StandardROIHeads(ROIHeads):
             self.cls_agnostic_bbox_reg,
         )
 
-    def forward(self, images, features, proposals, targets=None):
+    def forward(self, images, features, proposals, targets=None, tsne=False):
         """
         See :class:`ROIHeads.forward`.
         """
         del images
+        assert not (tsne and self.training)
         if self.training:
             proposals = self.label_and_sample_proposals(proposals, targets)
+        if tsne:
+            # this is ugly, but the method 'label_and_sample_proposals' has to be executed inside an EventStorage
+            # context (as it puts fg/bg proposal counts to this event storage), although we do not really need the
+            # put into this event storage. Otherwise, we would need to copy parts of this method into this place...
+            with EventStorage(-1) as _:
+                proposals = self.label_and_sample_proposals(proposals, targets)
         del targets
 
         features_list = [features[f] for f in self.in_features]
 
         if self.training:
-            losses = self._forward_box(features_list, proposals)
+            assert not tsne
+            losses, _, _ = self._forward_box(features_list, proposals, tsne)
             return proposals, losses
         else:
-            pred_instances = self._forward_box(features_list, proposals)
-            return pred_instances, {}
+            if tsne:
+                pred_instances, box_features, inds = self._forward_box(features_list, proposals, tsne)
+                gt_classes = torch.cat([x.gt_classes for x in proposals])  # cat shouldn't be necessary...
+                gt_classes = gt_classes[inds]
+                return pred_instances, box_features, gt_classes
+            else:
+                pred_instances, _, _ = self._forward_box(features_list, proposals, tsne)
+                return pred_instances, {}
 
-    def _forward_box(self, features, proposals):
+    def _forward_box(self, features, proposals, tsne=False):
         """
         Forward logic of the box prediction branch.
 
@@ -469,6 +483,8 @@ class StandardROIHeads(ROIHeads):
             In training, a dict of losses.
             In inference, a list of `Instances`, the predicted instances.
         """
+        if tsne:
+            assert not self.training
         box_features = self.box_pooler(
             features, [x.proposal_boxes for x in proposals]
         )
@@ -476,7 +492,8 @@ class StandardROIHeads(ROIHeads):
         pred_class_logits, pred_proposal_deltas = self.box_predictor(
             box_features
         )
-        del box_features
+        if not tsne:
+            del box_features
 
         outputs = FastRCNNOutputs(
             self.box2box_transform,
@@ -486,14 +503,22 @@ class StandardROIHeads(ROIHeads):
             self.smooth_l1_beta,
         )
         if self.training:
-            return outputs.losses()
+            return outputs.losses(), None, None
         else:
-            pred_instances, _ = outputs.inference(
+            pred_instances, inds = outputs.inference(  # Tuple[List[Instances], List[Tensor]]
                 self.test_score_thresh,
                 self.test_nms_thresh,
                 self.test_detections_per_img,
             )
-            return pred_instances
+            if tsne:
+                # Note:
+                # - At inference, box_features is a Tensor of size
+                #    [MODEL.RPN.POST_NMS_TOPK_TEST, MODEL.ROI_BOX_HEAD.FC_DIM]
+                # - We use 'inds' to get the 'self.test_detections_per_img' box_features corresponding to the
+                #    'self.test_detections_per_img' pred_instances kept
+                return pred_instances, box_features[inds], inds
+            else:
+                return pred_instances, None, None
 
 
 @ROI_HEADS_REGISTRY.register()
