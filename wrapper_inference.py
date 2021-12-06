@@ -31,7 +31,10 @@ def main():
     unfreeze = False  # False: freeze feature extractor while fine-tuning
     # Modify test config options (e.g. for quick test hyperparameter tuning).
     #  Note: these configs are not saved into a config file, the change is just temporary for this certain run!
-    opts = []
+    opts = [
+        'INPUT.MIN_SIZE_TEST', 800,
+        'INPUT.MAX_SIZE_TEST', 1333,
+    ]
     # Test-Time Augmentation (TTA) options
     tta_min_sizes = [700, 800, 900]  # [400, 500, 600, 700, 800, 900, 1000, 1100, 1200]
     opts.extend([
