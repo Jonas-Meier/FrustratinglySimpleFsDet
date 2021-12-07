@@ -468,7 +468,7 @@ CLASS_SPLITS["isaid"] = {
         "base": _ISAID_FAIRSAID_EXPERIMENT1_BASE,
         "novel": _ISAID_FAIRSAID_EXPERIMENT1_NOVEL
     },
-    "isaid_gsd_norm_experiment1": {
+    "gsd_norm_experiment1": {
         "base": _ISAID_GSD_NORM_EXPERIMENT1_BASE,
         "novel": _ISAID_GSD_NORM_EXPERIMENT1_NOVEL
     }
