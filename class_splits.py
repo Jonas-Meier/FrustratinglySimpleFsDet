@@ -269,14 +269,23 @@ _ISAID_PLANE_ROUNDABOUT_NOVEL = ['Roundabout']
 _ISAID_LV_ROUNDABOUT_BASE = ['Large_Vehicle']
 _ISAID_LV_ROUNDABOUT_NOVEL = ['Roundabout']
 
+
 _ISAID_GSD_NONE_ALL_BASE = ["Small_Vehicle", "Large_Vehicle", "plane", "Ground_Track_Field", "Soccer_ball_field",
                             "baseball_diamond"]
 _ISAID_GSD_NONE_ALL_NOVEL = []  # finetuning is not intended!
+
 
 _ISAID_FAIRSAID_NONE_ALL_BASE = ["Small_Vehicle", "Large_Vehicle", "plane", "ship", "tennis_court", "Soccer_ball_field",
                                  "baseball_diamond", "Bridge", "basketball_court", "Roundabout"]
 _ISAID_FAIRSAID_NONE_ALL_NOVEL = []  # finetuning is not intended!
 
+_ISAID_FAIRSAID_EXPERIMENT1_NOVEL = ["ship", "basketball_court"]
+_ISAID_FAIRSAID_EXPERIMENT1_BASE = [i for i in _ISAID_FAIRSAID_NONE_ALL_BASE if i not in _ISAID_FAIRSAID_EXPERIMENT1_NOVEL]
+
+
+_ISAID_GSD_NORM_EXPERIMENT1_NOVEL = ["Soccer_ball_field", "baseball_diamond", "basketball_court", "Roundabout",
+                                     "Helicopter", "ship"]
+_ISAID_GSD_NORM_EXPERIMENT1_BASE = [i for i in ISAID_CATS_ID_TO_NAME.values() if i not in _ISAID_GSD_NORM_EXPERIMENT1_NOVEL]
 
 #######################
 # FAIR1M class splits #
@@ -297,6 +306,9 @@ _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_BASE = ["Small Vehicle", "Large Vehicle", "A
                                             "Roundabout"]
 _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_NOVEL = []  # finetuning is not intended!
 
+_FAIR1M_GROUPCATS_FAIRSAID_EXPERIMENT1_NOVEL = ["Ship", "Basketball Court"]
+_FAIR1M_GROUPCATS_FAIRSAID_EXPERIMENT1_BASE = [i for i in _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_BASE if i not in _FAIR1M_GROUPCATS_FAIRSAID_EXPERIMENT1_NOVEL]
+
 
 _FAIR1M_PARTLYGROUPCATS1_NO_NAMES = []
 _FAIR1M_PARTLYGROUPCATS1_ALL_NAMES = [i for i in FAIR1M_PARTLYGROUPCATS1_ID_TO_NAME.values() if i not in _FAIR1M_PARTLYGROUPCATS1_NO_NAMES]
@@ -311,6 +323,9 @@ _FAIR1M_PARTLYGROUPCATS1_EXPERIMENT1_BASE = [i for i in FAIR1M_PARTLYGROUPCATS1_
 
 _FAIRSAID_NO_NAMES = []
 _FAIRSAID_ALL_NAMES = [i for i in FAIRSAID_ID_TO_NAME.values() if i not in _FAIRSAID_NO_NAMES]
+
+_FAIRSAID_EXPERIMENT1_NOVEL = ["Ship", "Basketball Court"]
+_FAIRSAID_EXPERIMENT1_BASE = [i for i in FAIRSAID_ID_TO_NAME.values() if i not in _FAIRSAID_EXPERIMENT1_NOVEL]
 
 ALL_CLASSES = {
     "coco": _COCO_ALL_NAMES,
@@ -448,6 +463,14 @@ CLASS_SPLITS["isaid"] = {
     "fairsaid_none_all": {
         "base": _ISAID_FAIRSAID_NONE_ALL_BASE,
         "novel": _ISAID_FAIRSAID_NONE_ALL_NOVEL
+    },
+    "fairsaid_experiment1": {
+        "base": _ISAID_FAIRSAID_EXPERIMENT1_BASE,
+        "novel": _ISAID_FAIRSAID_EXPERIMENT1_NOVEL
+    },
+    "isaid_gsd_norm_experiment1": {
+        "base": _ISAID_GSD_NORM_EXPERIMENT1_BASE,
+        "novel": _ISAID_GSD_NORM_EXPERIMENT1_NOVEL
     }
 }
 
@@ -483,6 +506,10 @@ CLASS_SPLITS["fair1m_groupcats"] = {
     "fairsaid_none_all": {
         "base": _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_BASE,
         "novel": _FAIR1M_GROUPCATS_FAIRSAID_NONE_ALL_NOVEL
+    },
+    "fairsaid_experiment1": {
+        "base": _FAIR1M_GROUPCATS_FAIRSAID_EXPERIMENT1_BASE,
+        "novel": _FAIR1M_GROUPCATS_FAIRSAID_EXPERIMENT1_NOVEL
     }
 }
 
@@ -501,6 +528,10 @@ CLASS_SPLITS["fairsaid"] = {
     "none_all": {
         "base": _FAIRSAID_ALL_NAMES,
         "novel": _FAIRSAID_NO_NAMES
+    },
+    "experiment1": {
+        "base": _FAIRSAID_EXPERIMENT1_BASE,
+        "novel": _FAIRSAID_EXPERIMENT1_NOVEL
     }
 }
 
