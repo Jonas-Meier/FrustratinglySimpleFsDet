@@ -118,6 +118,7 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def export_t_sne_features(cls, cfg, model):
+        # TODO: to support multi-gpu, make all data collection, figure creation, etc. inside 'if comm.is_main' or similar!
         debug = False
         ##########
         dataset_name = cfg.DATASETS.TEST[0]  # ugly but should be ok for first experiments with t-sne
@@ -169,16 +170,19 @@ class Trainer(DefaultTrainer):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for ind, label in enumerate(class_names):  # add a separate scatter plot for each class
-            indices = np.where(labels == ind)
+            indices = np.where(labels == ind)[0]
             if debug:
-                print("label: {}, #indices: {}".format(label, len(indices[0])))
+                print("label: {}, #indices: {}".format(label, len(indices)))
+            if 0 < cfg.TEST.TSNE.MAX_DOTS_PER_CLASS < len(indices):
+                indices = np.random.choice(len(indices), size=cfg.TEST.TSNE.MAX_DOTS_PER_CLASS, replace=False)
             current_tx = np.take(tx, indices)
             current_ty = np.take(ty, indices)
             color = np.array(colors[ind])  # should already be in correct format...
-            ax.scatter(current_tx, current_ty, color=color, label=label)
+            ax.scatter(current_tx, current_ty, color=color, label=label, s=cfg.TEST.TSNE.DOT_AREA)
         # ncol/nrow useful for datasets with many classes (as coco)
         # loc=best
-        ax.legend(bbox_to_anchor=(1.04, 0), loc="lower left", borderaxespad=0, ncol=3)  # place right of the figure, start on lower left
+        # place right of the figure, start on lower left
+        ax.legend(bbox_to_anchor=(1.04, 0), loc="lower left", borderaxespad=0, ncol=cfg.TEST.TSNE.LEGEND_NCOLS)
         if cfg.TEST.TSNE.SAVE:
             save_path = cfg.TEST.TSNE.SAVE_PATH
             if not save_path:
@@ -189,6 +193,7 @@ class Trainer(DefaultTrainer):
         if cfg.TEST.TSNE.SHOW:
             plt.subplots_adjust(right=0.7)  # leave space on the right side of the figure for the legend
             plt.show()
+        plt.close(fig)
 
 
 class Tester:
