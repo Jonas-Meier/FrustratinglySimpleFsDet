@@ -176,10 +176,10 @@ def generate_seeds(args):
                 #  different annotation files but with the same content)
                 if args.sort_imgs == "natural":
                     print("Sorting images naturally prior to shuffling...")
-                    img_ids = natsorted(img_ids)
+                    img_ids = natsorted(img_ids, key=lambda img_id: id2img[img_id]["file_name"])
                 elif args.sort_imgs == "id":
                     print("Sorting images by increasing id prior to shuffling...")
-                    img_ids = sorted(img_ids, key=lambda img: img["id"])
+                    img_ids = sorted(img_ids)
                 else:
                     assert args.sort_imgs == "not"
                 # probably sort the annotations of all images prior to sampling
