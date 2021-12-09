@@ -14,6 +14,7 @@ def main():
     # same, but the implementation requires this class split to be existent in CLASS_SPLITS[alternative_inference_dataset]!
     alternative_inference_dataset = ""
     alternative_inference_class_split = ""
+    ft_mode = "all"  # equivalent to 'ft_subset' in 'wrapper_fine_tuning'
     gpu_ids = [0]
     num_threads = 2
     phase = 2  # phase 1: base-training, phase 2: fine-tuning
@@ -102,7 +103,7 @@ def main():
                             cfg.CONFIG_DIR_PATTERN[dataset].format(class_split),
                             'seed{}'.format(seed),
                             'ft_only_novel' if mode == 'novel' else 'ft' + classifier_str + unfreeze_str,  # sub dir
-                            pattern.format(layers, classifier_str, mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
+                            pattern.format(layers, classifier_str, ft_mode, '_{}shot'.format(shot), unfreeze_str, tfa_str, '')
                         )
                         run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
 

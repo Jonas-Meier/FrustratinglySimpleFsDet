@@ -29,7 +29,12 @@ def parse_args():
     parser.add_argument('--classifier', default='fc', choices=['fc', 'cosine'],
                         help='Use regular fc classifier or cosine classifier')
     parser.add_argument('--tfa', action='store_true',
-                        help='Two-stage fine-tuning')
+                        help='Two-stage fine-tuning: Will first run a fine-tuning on only novel classes to produce'
+                             ' predictor weight initializations for a subsequent fine-tuning on all classes. If not '
+                             'set, will directly execute a fine-tuning on all classes.')
+    parser.add_argument('--target-class-set', type=str, default='all', choices=['all', 'novel'],
+                        dest='target_class_set', help='If --tfa is not set, choose the target classes, either all '
+                                                      'classes (base and novel) or only the novel classes.')
     parser.add_argument('--discard-base-weights', action='store_false', dest='keep_base_weights', default=True,
                         help='Specify to discard the base class predictor weights, obtained from base training.')
     parser.add_argument('--discard-bg-weights', action='store_false', dest='keep_background_weights', default=True,
@@ -261,7 +266,7 @@ def run_test(config_file, config):
 
 
 def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
-                     double_head=False, keep_base_weights=True, keep_bg_weights=True,
+                     double_head=False, keep_base_weights=True, keep_bg_weights=True, target_class_set="all",
                      alt_dataset="", alt_class_split=""):
     assert method in ['randinit', 'remove', 'combine'], 'Wrong method: {}'.format(method)
     if double_head:
@@ -278,10 +283,10 @@ def run_ckpt_surgery(dataset, class_split, src1, method, save_dir, src2=None,
         src2_str = ' --src2 {}'.format(src2)
     base_command = 'python3 -m tools.ckpt_surgery'  # 'python tools/ckpt_surgery.py' or 'python3 -m tools.ckpt_surgery'
     command = 'OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} ' \
-              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {}{}{}{}{}{}'\
+              '--dataset {} --class-split {} --method {} --src1 {} --save-dir {} --target-class-set {}{}{}{}{}{}'\
         .format(args.num_threads, separate(args.gpu_ids, ','), base_command,
-                dataset, class_split, method, src1, save_dir, src2_str, double_head_str, keep_weights_str,
-                alt_dataset_str, alt_class_split_str)
+                dataset, class_split, method, src1, save_dir, target_class_set, src2_str, double_head_str,
+                keep_weights_str, alt_dataset_str, alt_class_split_str)
     run_cmd(command)
 
 
@@ -363,6 +368,9 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         - '_TFA':   Non-TFA(===Fine-tuning on 'model_reset_combine.pth' weights)
     """
     assert surgery_method in ['randinit', 'remove', 'combine'], 'Wrong surgery method: {}'.format(surgery_method)
+    assert not (args.target_class_set == "novel" and surgery_method in ['remove', 'combine']), \
+        "Fine-Tuning on only novel classes is just supported for randinit surgery, remove + combine surgery always " \
+        "perfrom on all clases!"
     # Probably, we want to use an alternative dataset and class split to fine-tune our model on.
     assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
     tar_dataset = args.alt_dataset if args.alt_dataset else args.dataset
@@ -430,9 +438,9 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
             assert args.classifier != 'fc' and not args.unfreeze
         else:  # either combine only-novel fine-tuning with base training or directly fine-tune entire classifier
             ITERS = ALL_ITERS
-            mode = 'all'
+            mode = args.target_class_set
         split = temp_split = ''
-        temp_mode = mode
+        temp_mode = mode  # deprecated and thus not important!
         # use train and test splits from the target dataset (either args.dataset or, if set, args.alt_dataset)
         train_split = cfg.TRAIN_SPLIT[tar_dataset]
         test_split = cfg.TEST_SPLIT[tar_dataset]
@@ -460,7 +468,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     if surgery_method == 'randinit':
         surgery_ckpt_name = 'model_reset_surgery.pth'
         novel_ft_ckpt = None
-        surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_all'.format(args.layers))
+        surgery_ckpt_save_dir = os.path.join(ckpt_dir, 'faster_rcnn_R_{}_FPN_{}'.format(args.layers, mode))
         training_identifier = get_training_id(layers=args.layers, mode=mode, shots=shot, classifier=args.classifier,
                                               unfreeze=args.unfreeze, tfa=False, suffix=args.suffix)
     elif surgery_method == 'remove':
@@ -510,7 +518,8 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
         run_ckpt_surgery(dataset=args.dataset, class_split=args.class_split, alt_dataset=args.alt_dataset,
                          alt_class_split=args.alt_class_split, method=surgery_method, src1=base_ckpt,
                          src2=novel_ft_ckpt, save_dir=surgery_ckpt_save_dir, double_head=args.double_head,
-                         keep_base_weights=args.keep_base_weights, keep_bg_weights=args.keep_background_weights)
+                         keep_base_weights=args.keep_base_weights, keep_bg_weights=args.keep_background_weights,
+                         target_class_set=args.target_class_set)
         assert os.path.exists(surgery_ckpt)
         print("Finished creating surgery checkpoint {}".format(surgery_ckpt))
     else:
@@ -557,7 +566,7 @@ def get_config(seed, shot, surgery_method, override_if_exists=False, rerun_surge
     num_novel_classes = len(CLASS_SPLITS[tar_dataset][tar_class_split]['novel'])
     num_all_classes = num_base_classes + num_novel_classes
     new_config['MODEL']['ROI_HEADS']['NUM_CLASSES'] = \
-        num_novel_classes if surgery_method == 'remove' else num_all_classes
+        num_novel_classes if (surgery_method == 'remove' or mode == 'novel') else num_all_classes
     if args.double_head:
         new_config['MODEL']['ROI_HEADS']['MULTIHEAD_NUM_CLASSES'] = str([num_base_classes, num_novel_classes])
     else:

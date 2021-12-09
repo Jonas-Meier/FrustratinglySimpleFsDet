@@ -27,6 +27,9 @@ def parse_args():
                              'novel dataset, remove the final layer of the '
                              'base detector. randinit = randomly initialize '
                              'novel weights.')
+    parser.add_argument('--target-class-set', type=str, default='all', choices=['all', 'novel'],
+                        dest='target_class_set', help='Only for surgery method randinit: Define the target class set, '
+                                                      'either all classes (default) or only novel classes.')
     parser.add_argument('--discard-base-weights', action='store_false', dest='keep_base_weights', default=True,
                         help='Specify to discard the base class predictor weights, obtained from base training.')
     parser.add_argument('--discard-bg-weights', action='store_false', dest='keep_background_weights', default=True,
@@ -133,7 +136,12 @@ def ckpt_surgery(args):
             novel_weights = torch.zeros(novel_tar_size)
         assert args.dataset not in ['voc', 'lvis'], \
             "Double-Head predictor currently not supported for dataset {}".format(args.dataset)
-        ckpt['model'][weight_name.replace("box_predictor", "box_predictor1")] = pretrained_weight  # copy old base weights to new base predictor weights
+        # copy old base weights to new base predictor weights
+        new_base_weight = torch.zeros_like(pretrained_weight)
+        for i, _ in enumerate(BASE_CLASS_IDS):
+            src_ind = tar_to_src_base_class_ind[i]
+            new_base_weight[i] = pretrained_weight[src_ind]
+        ckpt['model'][weight_name.replace("box_predictor", "box_predictor1")] = new_base_weight
         ckpt['model'][weight_name.replace("box_predictor", "box_predictor2")] = novel_weights  # add new weights for novel class predictor
         del ckpt['model'][weight_name]  # delete old base predictor weights
 
@@ -271,6 +279,8 @@ if __name__ == '__main__':
     #  - sorting of novel class ids not necessary (or just necessary for 'combine' surgery), but sorting of base class
     #      ids and all class ids is important!
     assert (args.alt_dataset and args.alt_class_split) or (not args.alt_dataset and not args.alt_class_split)
+    # Fine-Tuning on only novel classes (without a subsequent combine-surgery) is only allowed for randinit surgery
+    assert not (args.target_class_set == 'novel' and args.method in ['combine', 'remove'])
     if args.alt_dataset:
         # We do not allow 'combine' surgery. (Problematic code parts: access to NOVEL_CLASS_IDS in method combine_ckpt)
         assert args.method != 'combine', "alternative dataset is currently not supported for combine surgeries. " \
@@ -315,7 +325,14 @@ if __name__ == '__main__':
         NOVEL_CLASS_IDS = sorted(get_ids_from_names(args.dataset, CLASS_SPLITS[args.dataset][args.class_split]['novel']))
 
         tar_to_src_base_class_ind = {i: i for i in range(len(BASE_CLASS_IDS))}  # dummy-identity-map (since tar==src)
-    ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+    if args.target_class_set == 'all':
+        ALL_CLASS_IDS = sorted(BASE_CLASS_IDS + NOVEL_CLASS_IDS)
+    else:
+        assert args.target_class_set == 'novel'
+        ALL_CLASS_IDS = sorted(NOVEL_CLASS_IDS)
+        args.keep_base_weights = False  # just to be sure we won't iterate over base class indices, if set nonetheless
+        # TODO: probably force BASE_CLASS_IDS to be an empty list (e.g. if they are available but the fine-tuning is
+        #  forced to be executed on only novel classes...)?
     ALL_CLASS_ID_TO_IND = {v: i for i, v in enumerate(ALL_CLASS_IDS)}
     TAR_SIZE = len(ALL_CLASS_IDS)
     if TAR_SIZE != TOTAL_CLASSES:

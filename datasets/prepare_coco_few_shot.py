@@ -17,6 +17,9 @@ def parse_args():
                         help="Dataset name")
     parser.add_argument("--class-split", type=str, required=True, dest="class_split",
                         help="Split of classes into base classes and novel classes")
+    parser.add_argument("--class-subset", type=str, default="all", choices=["all", "novel", "base"],
+                        dest="class_subset", help="Generate fine-tuning data for only base, novel classes or all "
+                                                  "classes.")
     parser.add_argument("--shots", type=int, nargs="+", default=[1, 2, 3, 5, 10, 30],
                         help="Amount of annotations per class for fine tuning")
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 9],
@@ -65,7 +68,13 @@ def generate_seeds(args):
     # TODO: base- and novel classes do not matter when sampling few-shot data, but may be important when saving them!
     base_classes = tuple(CLASS_SPLITS[args.dataset][args.class_split]['base'])
     novel_classes = tuple(CLASS_SPLITS[args.dataset][args.class_split]['novel'])
-    all_classes = tuple(base_classes + novel_classes)
+    if args.class_subset == "base":
+        all_classes = base_classes
+    elif args.class_subset == "novel":
+        all_classes = novel_classes
+    else:
+        assert args.class_subset == "all"
+        all_classes = tuple(base_classes + novel_classes)
 
     coco_cat_id_to_name = {c['id']: c['name'] for c in new_all_cats}
     # Need make sure, 'all_classes' are all contained in 'coco_cat_id_to_name'
