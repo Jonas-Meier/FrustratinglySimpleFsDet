@@ -17,6 +17,7 @@ def main():
     #  at least discard the base class predictor weights (keep_base_weights = False) or, if the classes are the same,
     #  except for the name and id, set a bijective mapping between those classes in 'class_splits:CLASS_NAME_TRANSFORMS'
     alternative_dataset, alternative_class_split = "", ""
+    ft_subset = "all"  # default: fine-tuning on "all" classes. Set to "novel" if base classes are available but only novel class fine-tuning is intended.
     gpu_ids = [0]
     num_threads = 2  # two threads seem to be a bit faster than just one, but four threads are as fast as two threads!
     bs = 16
@@ -115,19 +116,21 @@ def main():
            (not alternative_dataset and not alternative_class_split)
     opts.extend(get_augmentation_opts_list(augmentations, augmentation_params))
     run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, augmentations, bs, lr,
-                    alternative_dataset, alternative_class_split, max_iter, lr_decay_steps, ckpt_interval,
-                    explicit_seeds, double_head, keep_base_weights, keep_bg_weights, tfa,
-                    unfreeze, unfreeze_backbone, unfreeze_proposal_generator,
-                    unfreeze_roi_box_head_convs, unfreeze_roi_box_head_fcs, classifier,
-                    override_config, override_surgery, resume, force_retrain, opts)
+                    alternative_dataset, alternative_class_split, ft_subset, max_iter, lr_decay_steps,
+                    ckpt_interval, explicit_seeds, double_head, keep_base_weights,
+                    keep_bg_weights, tfa, unfreeze, unfreeze_backbone,
+                    unfreeze_proposal_generator, unfreeze_roi_box_head_convs, unfreeze_roi_box_head_fcs,
+                    classifier, override_config, override_surgery, resume, force_retrain,
+                    opts)
 
 
 def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, layers, augmentations, bs, lr=-1.0,
-                    alt_dataset="", alt_class_split="", max_iter=-1, lr_decay_steps=[-1], ckpt_interval=-1,
-                    explicit_seeds=False, double_head=False, keep_base_weights=True, keep_bg_weights=True, tfa=False,
-                    unfreeze=False, unfreeze_backbone=False, unfreeze_proposal_generator=False,
-                    unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[], classifier='fc',
-                    override_config=False, override_surgery=False, resume=False, force_retrain=False, opts=None):
+                    alt_dataset="", alt_class_split="", ft_subset="all", max_iter=-1, lr_decay_steps=[-1],
+                    ckpt_interval=-1, explicit_seeds=False, double_head=False, keep_base_weights=True,
+                    keep_bg_weights=True, tfa=False, unfreeze=False, unfreeze_backbone=False,
+                    unfreeze_proposal_generator=False, unfreeze_roi_box_head_convs=[], unfreeze_roi_box_head_fcs=[],
+                    classifier='fc', override_config=False, override_surgery=False, resume=False, force_retrain=False,
+                    opts=None):
     base_cmd = "python3 -m tools.run_experiments"
     explicit_seeds_str = ' --explicit-seeds' if explicit_seeds else ''
     surgery_str = ''  # combine different surgery settings to spare some space
@@ -154,10 +157,10 @@ def run_fine_tuning(dataset, class_split, shots, seeds, gpu_ids, num_threads, la
     opts_str = '' if not opts else ' --opts ' + separate(opts, ' ')
     cmd = "{} --dataset {} --class-split {} --shots {} --seeds {}  --gpu-ids {} " \
           "--num-threads {} --layers {} --augmentations {} --bs {} --lr {} --max-iter {} --lr-decay-steps {}  " \
-          "--ckpt-interval {} --classifier {}{}{}{}{}{}{}{}{}{}{}"\
+          "--ckpt-interval {} --classifier {} --target-class-set {}{}{}{}{}{}{}{}{}{}{}"\
         .format(base_cmd, dataset, class_split, separate(shots, ' '), separate(seeds, ' '), separate(gpu_ids, ' '),
                 num_threads, layers, separate(augmentations, ' '), bs, lr, max_iter, separate(lr_decay_steps, ' '),
-                ckpt_interval, classifier, surgery_str, keep_weights_str, unfreeze_str, override_config_str,
+                ckpt_interval, classifier, ft_subset, surgery_str, keep_weights_str, unfreeze_str, override_config_str,
                 override_surgery_str, explicit_seeds_str, alt_dataset_class_split_str, resume_str, force_retrain_str,
                 opts_str)
     os.system(cmd)

@@ -371,6 +371,9 @@ _CC.TEST.TSNE = CN({
     "ENABLED": False,
     "WITH_BG": True,  # embed FP background features as well
     "MAX_NUM_IMGS": 100,  # set to prevent using the whole testing dataset
+    "MAX_DOTS_PER_CLASS": -1,  # -1: all dots
+    "DOT_AREA": 20,  # default: 20
+    "LEGEND_NCOLS": 2,  # no. of columns for the legend
     "SHOW": True,
     "SAVE": False,
     "SAVE_PATH": '.',
