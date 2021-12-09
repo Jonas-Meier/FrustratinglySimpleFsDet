@@ -4,6 +4,7 @@ import os
 import random
 import shutil
 import time
+from natsort import natsorted
 
 from class_splits import CLASS_SPLITS
 from fsdet.config import get_cfg
@@ -21,6 +22,18 @@ def parse_args():
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 9],
                         help="Range of seeds to run. Just a single seed or two seeds representing a range with 2nd "
                              "argument being inclusive as well!")
+    parser.add_argument("--sort-imgs", type=str, default="not", choices=["not", "natural", "id"], dest="sort_imgs",
+                        help="Sort the images prior to deterministic shuffling (for maximum deterministic results). "
+                             "Either 'not' sorting, results in images being the same order as read from the "
+                             "annotations file, 'natural' sorts images using natsort package which results in images "
+                             "being in the same order as presented by a file manager, or sorting the images by "
+                             "increasing 'id'.")
+    parser.add_argument("--sort-anns", type=str, default="not", choices=["not", "id"], dest="sort_anns",
+                        help="Sort the annotations of each image prior to annotation sampling. Either 'not' sort the "
+                             "annotations of an image, results in annotations being in the same order as in the "
+                             "annotations file, or sorting them by increasing 'id'. "
+                             "Note: For the current annotation sampling technique, sampling all annotations of an "
+                             "image or none, this option makes no difference.")
     parser.add_argument("--no-shuffle", action="store_false", default=True, dest="shuffle",
                         help="Shuffle images prior to sampling of annotations.")
     parser.add_argument("--override", action="store_true", default=False, dest="override",
@@ -85,6 +98,9 @@ def generate_seeds(args):
         )
 
         if os.path.exists(save_dir):
+            # TODO: probably move this check one hierarchy up, s.t. we can check all seeds at once. Otherwise, valid
+            #  seeds would be executed properly before an invalid seed has been found. But normally one would assume
+            #  that all passed seeds should be valid for this program to run correctly
             if args.override:
                 print("Cleaning save path directory '{}'".format(save_dir))
                 shutil.rmtree(save_dir)
@@ -105,7 +121,7 @@ def generate_seeds(args):
                           "Set '--override' to delete this directory!".format(incomp_anno_pattern, shots))
                     abort = True
                 if any(os.path.exists(cls_anno_pattern.format(shot, cat, train_split)) for shot in shots for cat in all_classes):
-                    print("Error: Some data matching the file name '{}' would be overridden by this call for the"
+                    print("Error: Some data matching the file name '{}' would be overridden by this call for the "
                           "given shots {} and categories {}. Adjust the arguments or set '--override' to delete this "
                           "directory!".format(cls_anno_pattern, shots, all_classes))
                     abort = True
@@ -146,6 +162,24 @@ def generate_seeds(args):
                     print("Generating {} shot data for novel class {}"
                           .format(shot, cat_name))
                 img_ids = list(img_id_to_annos.keys())
+                # probably sort the images prior to shuffling for even more deterministic results (e.g. two datasets
+                #  which contain the same images and annotations but are processed in different ways, leading to
+                #  different annotation files but with the same content)
+                if args.sort_imgs == "natural":
+                    print("Sorting images naturally prior to shuffling...")
+                    img_ids = natsorted(img_ids)
+                elif args.sort_imgs == "id":
+                    print("Sorting images by increasing id prior to shuffling...")
+                    img_ids = sorted(img_ids, key=lambda img: img["id"])
+                else:
+                    assert args.sort_imgs == "not"
+                # probably sort the annotations of all images prior to sampling
+                if args.sort_anns == "id":
+                    print("Sorting all image's annotations by increasing id prior to sampling...")
+                    for img_id, anns in img_id_to_annos.items():
+                        img_id_to_annos[img_id] = sorted(anns, key=lambda ann: ann["id"])
+                else:
+                    assert args.sort_anns == "not"
                 # while True:
                     # img_ids = random.sample(list(img_id_to_annos.keys()), shot)
                 # TODO: probably use random.sample(img_ids, 1) in a 'while True'-loop?
