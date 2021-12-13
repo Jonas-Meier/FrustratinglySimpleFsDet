@@ -356,7 +356,7 @@ _CC.MODEL.ROI_HEADS.OUTPUT_LAYER = "FastRCNNOutputLayers"
 # scale of cosine similarity (set to -1 for learnable scale)
 _CC.MODEL.ROI_HEADS.COSINE_SCALE = 20.0
 
-_CC.TEST.FILTER_EMPTY_ANNOTATIONS = True  # pendant to DATALOADER.FILTER_EMPTY_ANNOTATIONS but for inference
+_CC.TEST.FILTER_EMPTY_ANNOTATIONS = False  # pendant to DATALOADER.FILTER_EMPTY_ANNOTATIONS but for inference
 
 # Metrics to evaluate, default: ["AP", "AP50", "AP75", "APs", "APm", "APl"]
 # Supports AP (=AP@0.5:0.95:0.05), AP5, AP10, ..., AP95, APs, APm and APl
