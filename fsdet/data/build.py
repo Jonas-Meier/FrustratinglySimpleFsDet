@@ -372,7 +372,7 @@ def build_detection_test_loader(cfg, dataset_name, mapper=None):
     """
     dataset_dicts = get_detection_dataset_dicts(
         [dataset_name],
-        filter_empty=False,
+        filter_empty=cfg.TEST.FILTER_EMPTY_ANNOTATIONS,
         proposal_files=[
             cfg.DATASETS.PROPOSAL_FILES_TEST[list(cfg.DATASETS.TEST).index(dataset_name)]
         ]
