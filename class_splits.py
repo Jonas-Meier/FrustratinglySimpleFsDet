@@ -632,6 +632,12 @@ CLASS_NAME_TRANSFORMS = {  # TODO: need to differ base classes and novel classes
         "Roundabout": "Roundabout",
     },
 }
+CLASS_NAME_TRANSFORMS[(("isaid", "fairsaid_experiment1"), ("fair1m_groupcats", "fairsaid_experiment1"))] = \
+    CLASS_NAME_TRANSFORMS[(("isaid", "fairsaid_none_all"), ("fair1m_groupcats", "fairsaid_none_all"))]
+CLASS_NAME_TRANSFORMS[(("fair1m_groupcats", "fairsaid_experiment1"), ("fairsaid", "experiment1"))] = \
+    CLASS_NAME_TRANSFORMS[(("fair1m_groupcats", "fairsaid_none_all"), ("fairsaid", "none_all"))]
+CLASS_NAME_TRANSFORMS[(("fairsaid", "experiment1"), ("isaid", "fairsaid_experiment1"))] = \
+    CLASS_NAME_TRANSFORMS[(("fairsaid", "none_all"), ("isaid", "fairsaid_none_all"))]
 
 tmp_dict = {}
 for ((src_dset, src_cls_split), (tar_dset, tar_cls_split)), class_name_map in CLASS_NAME_TRANSFORMS.items():
