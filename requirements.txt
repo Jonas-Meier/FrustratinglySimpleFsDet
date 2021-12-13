@@ -11,3 +11,5 @@ imagesize
 tensorboard
 opencv-python
 lvis
+albumentations
+natsort
