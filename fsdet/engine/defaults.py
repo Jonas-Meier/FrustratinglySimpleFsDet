@@ -15,6 +15,13 @@ from fvcore.common.file_io import PathManager
 from fvcore.nn.precise_bn import get_bn_modules
 from torch.nn.parallel import DistributedDataParallel
 
+# Note: if we wouldn't import those packages from fsdet.data (but from detectron2.data), we would still have to import
+#  fsdet.data (from fsdet.data import *), because this will trigger fsdet.data.__init__.py which initiates dataset
+#  registration at fsdet.data.builtin.py
+from fsdet.data import (
+    build_detection_test_loader,
+    build_detection_train_loader,
+)
 from fsdet.checkpoint import DetectionCheckpointer
 from fsdet.engine.hooks import EvalHookFsdet
 from fsdet.evaluation import (
@@ -28,8 +35,6 @@ from fsdet.modeling import build_model
 import detectron2.data.transforms as T
 from detectron2.data import (
     MetadataCatalog,
-    build_detection_test_loader,
-    build_detection_train_loader,
     DatasetMapper,
 )
 from detectron2.engine import hooks, SimpleTrainer
@@ -44,8 +49,6 @@ from detectron2.utils.events import (
 )
 from detectron2.utils.logger import setup_logger
 
-# triggers fsdet.data.__init__.py which initiates dataset registration at fsdet.data.builtin.py
-from fsdet.data import *
 
 __all__ = [
     "default_argument_parser",
