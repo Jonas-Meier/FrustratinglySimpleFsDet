@@ -102,7 +102,9 @@ For iSAID, the expected structure of the `dataset` directory is:
 
 ### Generate Few-Shot Data
 
-To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
+Note:
+* This script uses deterministic shuffling (using the current seed value as seed for shuffling).
+* To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
 
 Create few-shot data, e.g. for coco voc_nonvoc split with 10 shots and five seed groups:
 ``` bash
@@ -113,6 +115,11 @@ Following arguments are accepted by `prepare_coco_few_shot.py`:
 * --class-split: class split into base classes and novel classes (e.g. `voc_nonvoc` for dataset coco)
 * --shots: list of shots
 * --seeds: Single seed or a range of seeds with both, start and end being inclusive!
+* --override: By default, the script won't override already existing datasets. Specify `--override` to force the program to override those datasets.
+* Experimental and unusal settings:
+  * --class-subset: By default, the script will create few-shot data for `all` classes. Specify `novel` or `base`, to generate few-shot data for only novel classes or base classes, respectively.
+  * --sort-imgs, --sort-anns: Before (deterministic) shuffling, sort images and/or annotations to increase the degree of determinism (e.g. when different datasets are used which originated from the same dataset and the image processing order was not deterministic). Sort images `not` (default), `natural` (the same order as images have when displayed by a file manager) or by `id`. Sort annotations `not` (default) or by `id`.
+  * --no-shuffle: Force the script to not shuffle the images prior to sampling
 
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
