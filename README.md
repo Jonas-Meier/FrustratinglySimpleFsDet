@@ -153,11 +153,13 @@ Note: You can also download the ImageNet pretrained backbones [ResNet-50](https:
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
 
 Note: 
-* The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+* The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For this purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
 
 ### Augmentations
 
 This repository fully integrates [Albumentations](https://albumentations.ai/) into Detectron2. To this end, the behaviour of Detectron2's augmentation pipeline had to be adjusted in order for both types of augmentations (Albumentations and Detectron2) to work side by side. Among others, Detectron2's default augmentations (ResizeShortestEdge and RandomFlip) are re-implemented (still triggering the same Transformation underneath) and most of Detectron2's augmentation configs (INPUT.\*) are deleted to not cause confusion between new and old configs.
+
+NOTE: Currently, it is not possible to use Albumentations augmentations inheriting from DualTransform. The issue is with the bbox representation, Detectron2 and Albumentations use: While Detectron2 uses absolute XYXY bbox coordinates at bbox transformation, Albumentations uses relative XYXY bbox coordinates. This is problematic, since our Augmentation Pipeline allows to use an arbitrary amount of Detectron2 augmentations and Albumentations augmentations in an arbitraty order: The bboxes would have to be transformed before/after executing an Detectron2 augmentation after an Albumentation augmentation (just if both kinds of augmentations transform the bboxes as well!), and vice versa. Another possibility would be to restrict the usage of augmentations to only Albumentations transforms.
 
 #### New Augmentation Pipeline
 
