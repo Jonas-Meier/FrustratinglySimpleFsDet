@@ -33,6 +33,7 @@ def main():
     opts = [
         'INPUT.AUG.AUGS.RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE.MIN_SIZE_TEST', 800,
         'INPUT.AUG.AUGS.RESIZE_SHORTEST_EDGE_LIMIT_LONGEST_EDGE.MAX_SIZE_TEST', 1333,
+        'TEST.FILTER_EMPTY_ANNOTATIONS', False,
     ]
     # Test-Time Augmentation (TTA) options
     tta_min_sizes = [700, 800, 900]  # [400, 500, 600, 700, 800, 900, 1000, 1100, 1200]

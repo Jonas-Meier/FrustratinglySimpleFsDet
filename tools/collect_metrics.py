@@ -63,6 +63,7 @@ classifier = 'fc'  # fc, cosine
 unfreeze = False
 ft_mode = "all"  # equivalent to 'ft_subset' in 'wrapper_fine_tuning'
 tta = False
+filter_nonempty_imgs = False
 
 
 def main():
@@ -106,13 +107,16 @@ def _file_names(phase=2):
         mode = 'base'  # Similar to 'run_base_training.py' and 'wrapper_inference.py' we hard-code the mode
         training_id = 'faster_rcnn_R_{}_FPN_{}'  # same as 'training_identifier' variable of 'run_base_training' script
         # build path, similar to 'ckpt_dir' variable in method 'get_cfg' of script 'run_base_training'
-        yield os.path.join(
+        file_path = os.path.join(
             cfg.CKPT_DIR_PATTERN[dataset].format(class_split),
             'faster_rcnn',
             training_id.format(layers, mode),
-            'inference' if not tta else 'inference_TTA',
-            metrics_file_pattern.format(base_iteration - 1)
+            'inference' if not tta else 'inference_TTA'
         )
+        if filter_nonempty_imgs:
+            file_path = os.path.join(file_path, "only_nonempty_imgs")
+        file_path = os.path.join(file_path, metrics_file_pattern.format(base_iteration - 1))
+        yield file_path
     else:
         assert phase == 2
         #mode = 'all'  # # Similar to 'run_experiments.py' and 'wrapper_inference.py' we hard-code the mode
@@ -125,14 +129,17 @@ def _file_names(phase=2):
         for seed in seeds:
             # build path, similar to 'train_ckpt_save_dir' variable in 'get_cfg' method of script 'run_experiments.py'
             # Note: similar to 'wrapper_inference.py', we hard-code the suffix to be ''
-            yield os.path.join(
+            file_path = os.path.join(
                 cfg.CKPT_DIR_PATTERN[dataset].format(class_split),
                 'faster_rcnn',
                 'seed{}'.format(seed),
                 training_id.format(layers, classifier_str, ft_mode, shot_str, unfreeze_str, tfa_str, ''),
-                'inference' if not tta else 'inference_TTA',
-                metrics_file_pattern.format(fine_iteration - 1)
+                'inference' if not tta else 'inference_TTA'
             )
+            if filter_nonempty_imgs:
+                file_path = os.path.join(file_path, "only_nonempty_imgs")
+            file_path = os.path.join(file_path, metrics_file_pattern.format(fine_iteration - 1))
+            yield file_path
 
 
 def get_statistics():
