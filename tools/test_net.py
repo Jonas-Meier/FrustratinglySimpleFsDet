@@ -57,6 +57,8 @@ class Trainer(DefaultTrainer):
         """
         if output_folder is None:
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
+        if cfg.TEST.FILTER_EMPTY_ANNOTATIONS:
+            output_folder = os.path.join(output_folder, "only_nonempty_imgs")
         evaluator_list = []
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
         if evaluator_type in cfg.DATASETS.COCOLIKE_DATASETS:
@@ -286,6 +288,8 @@ def main(args):
         else:  # "regular" inference
             res = Trainer.test(cfg, model, file_suffix=iter_str)
             save_path = os.path.join(cfg.OUTPUT_DIR, "inference")
+        if cfg.TEST.FILTER_EMPTY_ANNOTATIONS:
+            save_path = os.path.join(save_path, "only_nonempty_imgs")
         if comm.is_main_process():
             verify_results(cfg, res)
             # save evaluation results in json
