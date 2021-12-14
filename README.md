@@ -201,7 +201,10 @@ Following arguments are supported:
 * --lr: learning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on the batch size
 * --augmentations: data augmentations to be used during training. Choose from `ResizeShortestEdgeLimitLongestEdge`, `RandomHFlip`, `RandomVFlip` and `RandomFourAngleRotation`. (Default: `ResizeShortestEdgeLimitLongestEdge`, `RandomHFlip`)
 * --override-config: force overriding of already existant configs
-* --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
+* --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`)
+* --resume: Try to resume to the altest checkpoint. Do not set together with --force-retrain argument!
+* --force-retrain: By default, this script won't override already existing checkpoints. Set --force-retrain to delete those checkpoints and start a fresh training. Do no set together with the --resume argument!
+* --opts: Override configs for this very call (e.g. used by the wrapper script to set augmentations ond override the default configs for them)
 
 ### Fine-Tuning
 Before you start the fine-tuning, make sure the configs in `fsdet/config/defaults.py` are set as you want:
@@ -212,7 +215,7 @@ Before you start the fine-tuning, make sure the configs in `fsdet/config/default
 * `NOVEL_OVERSAMPLING_FACTOR`: Use this factor (NOF) to re-balance the dataset for fine-tuning (e.g. if a `BASE_SHOT_MULTIPLIER` larger than 1 was used.
 
 Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting fine-tunings. The most important arguments are:
-* --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs, --augmentations and --override-config work the same way as for the base-training
+* --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs, --augmentations, --override-config, --resume, --force-retrain and --opts work the same way as for the base-training
 * --classfier: use regular `fc` or `cosine` classifier 
 * --tfa: use two-stage fine-tuning approach (Trains a net on only novel classes to obtain novel class initialization for regular fine-tuning), turned off by default. When turned off, this equals the `randinit` surgery type.
 * --discard-base-weights and --discard-bg-weights: When set, discards the base class predictor weights and background class predictor weights, obtained from the base training, at the surgery, for fine-tuning. On default, both is disabled which will keep those parameters for fine-tuning.
@@ -229,6 +232,9 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
 * --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 * The maximum iteration, the learning rate decay steps and the checkpoint interval may be overridden using the arguments --max-iter, --lr-decay-steps and --ckpt-interval, respectively. If not specified, hard-coded values depending on dataset and shot are used.
+* Experimental and unusal arguments:
+  * --alt-dataset, --alt-class-split: Perform a fine-tuning on a different dataset (and class split) than the base training was trained on. Note that the checkpoints are saved at the same place, the base training comes from (--dataset + --class-split) but the data is taken from --alt-dataset + --alt-class-split. Watch out, that the datasets are compatible (e.g. both are in the same equivalence class inside class_splits.py:COMPATIBLE_DATASETS or a mapping between both class splits has to be existent inside class_splits.py:CLASS_NAME_TRANSFORMS!
+  * --target-class-set: By default, a fine-tuning is performed on `all` classes. Set to `novel` to force the fine-tuning to target only novel classes of the class split.
 
 ## Inference
 Inference can either be run directly in the command line via:
