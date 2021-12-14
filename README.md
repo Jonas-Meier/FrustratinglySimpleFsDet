@@ -233,7 +233,7 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 * The maximum iteration, the learning rate decay steps and the checkpoint interval may be overridden using the arguments --max-iter, --lr-decay-steps and --ckpt-interval, respectively. If not specified, hard-coded values depending on dataset and shot are used.
 * Experimental and unusal arguments:
-  * --alt-dataset, --alt-class-split: Perform a fine-tuning on a different dataset (and class split) than the base training was trained on. Note that the checkpoints are saved at the same place, the base training comes from (--dataset + --class-split) but the data is taken from --alt-dataset + --alt-class-split. Watch out, that the datasets are compatible (e.g. both are in the same equivalence class inside class_splits.py:COMPATIBLE_DATASETS or a mapping between both class splits has to be existent inside class_splits.py:CLASS_NAME_TRANSFORMS!
+  * --alt-dataset, --alt-class-split: Perform a fine-tuning on a different dataset (and class split) than the base training was trained on. Note that the checkpoints are saved at the same place, the base training comes from (--dataset + --class-split) but the data is taken from --alt-dataset + --alt-class-split. Watch out, that the datasets are compatible (e.g. both are in the same equivalence class inside class_splits.py:COMPATIBLE_DATASETS or a mapping between both class splits has to be existent inside class_splits.py:CLASS_NAME_TRANSFORMS!)
   * --target-class-set: By default, a fine-tuning is performed on `all` classes. Set to `novel` to force the fine-tuning to target only novel classes of the class split.
 
 ## Inference
@@ -243,9 +243,16 @@ python3 -m tools.test_net --num-gpus 8 --config-file configs/<path-to-config>/<c
 ```
 or by using the corresponding wrapper `wrapper_inference.py` for easy parametrization.
 
-Note: 
+General notes for tools/test_net.py: 
 * --eval-only evaluates just the last checkpoint. Add --eval-iter to evaluate a certain checkpoint iteration. Use --eval-all to evaluate all saved checkpoints.
 * --opts can be used to override some test-specific configs without having to modify the config file directly
+
+Notes for the wrapper script wrapper_inference.py:
+* alternative_inference_dataset + alternative_inference_class_split: The same feature as for fine-tuning on a different dataset: Run inference on a different dataset (and class split). Note that the same requirements have to be fulfilled as for fine-tuning on a different dataset: The datasets have to be either compatible (COMPATIBLE_DATASETS) or a mapping between the classes has to be existent (CLASS_NAME_TRANSFORMS).
+* The config `TEST.AUG.ENABLED` activates test-time augmentations (TTA)
+* The config `TEST.FILTER_EMPTY_ANNOTATIONS` filters empty images prior to inference (which can heavily influence the detection performance, handle with care!)
+* The config `TEST.TSNE.ENABLED` activates the creation of a t-SNE visualization.
+* By modifying the config `TEST.METRICS.PRECISION`, different precision metrics can be obtained (different than AP, AP50 and AP75).
 
 ## Aggregate Results of many Seeds
 Due to the heavily modified repository workflow (including file and directory names as well as the directory hierarchy), it's unclear if the script `tools/aggregate_seeds.py` still works. Thus, we recommend using the script `tools/collect_metrics.py` which is directly adapted to the actual repository workflow. Adjust the variables to match your training's configuration and run:
