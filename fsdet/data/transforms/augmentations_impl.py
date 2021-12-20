@@ -109,7 +109,20 @@ class AlbumentationsDualTransformAdapter(FvcoreTransformAdapter):
 
     def apply_box(self, box: np.ndarray) -> np.ndarray:
         # Note: the return type from albumentations seems to be a tuple, but detectron2 wants np.ndarray...
-        return np.asarray(self.transform.apply_to_bboxes(box, **self.params))
+        # TODO: albumentations probably expects normalized coords, so we might have to normalize them
+        #  (probably switch for Detectron2' BoxType, then use
+        #  albumentations:augmentations:box_utils:convert_bbox_to_albumentations?)
+        #  (see albumentations:core:Composition:__call__:preprocess)
+        #  (Detectron2 uses coords[:,0] *= scale_w, coords[:,1] *= scale_h with coords =  [x0,y0][x0,y1][x0,y1][x1,y1])
+        #  -> Note: we probably need to store/get the current bbox format (~mode) that is passed to this method,
+        #     because we don't know which augmentation was executed before (if we executed an albumentation augmentation
+        #     before, there is nothing to do, but if we executed a detectron2 augmentation, we should adjust the bboxes
+        #     from absolute xyxy to normalized xyxy.
+        #  --> this could be a problem, since we could have a pipeline with alternating detectron2 and albumentations
+        #      augmentations where we would have to convert the bboxes before (or after) each augmentation we applied!
+        raise NotImplementedError("Error, need to take care of different bbox modes, e.g. Detectron2 uses absolute "
+                                  "XYXY bbox coordinates, whereas Albumentations uses relative XYXY coordinates!")
+        # return np.asarray(self.transform.apply_to_bboxes(box, **self.params))
 
     def apply_polygons(self, polygons: list) -> list:
         # TODO: unsure, if the return type from albumentations is correct...
