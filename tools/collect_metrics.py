@@ -273,7 +273,7 @@ def _parse_per_class_metrics(open_file, current_line, per_class_metrics, summary
         assert all(split not in current_line for split in ['all', 'base'])
         split = 'novel'
     assert current_line.startswith('Per-category')  # shall be true for every call of this method
-    if split != 'all':
+    if split == 'all':
         # per-category scores of base classes and novel classes are yet contained in the per-category scores for all
         #  classes!
         current_line = open_file.readline()  # move to next line, otherwise, we would directly come back to this method!

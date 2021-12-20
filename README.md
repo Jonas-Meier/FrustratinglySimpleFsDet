@@ -102,7 +102,9 @@ For iSAID, the expected structure of the `dataset` directory is:
 
 ### Generate Few-Shot Data
 
-To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
+Note:
+* This script uses deterministic shuffling (using the current seed value as seed for shuffling).
+* To use more than K annotations for base classes (Base Shot Multiplier (BSM)), set the `BASE_SHOT_MULTIPLIER` in the file `fsdet/config/defaults.py` prior to creating few-shot data.
 
 Create few-shot data, e.g. for coco voc_nonvoc split with 10 shots and five seed groups:
 ``` bash
@@ -113,6 +115,11 @@ Following arguments are accepted by `prepare_coco_few_shot.py`:
 * --class-split: class split into base classes and novel classes (e.g. `voc_nonvoc` for dataset coco)
 * --shots: list of shots
 * --seeds: Single seed or a range of seeds with both, start and end being inclusive!
+* --override: By default, the script won't override already existing datasets. Specify `--override` to force the program to override those datasets.
+* Experimental and unusal settings:
+  * --class-subset: By default, the script will create few-shot data for `all` classes. Specify `novel` or `base`, to generate few-shot data for only novel classes or base classes, respectively.
+  * --sort-imgs, --sort-anns: Before (deterministic) shuffling, sort images and/or annotations to increase the degree of determinism (e.g. when different datasets are used which originated from the same dataset and the image processing order was not deterministic). Sort images `not` (default), `natural` (the same order as images have when displayed by a file manager) or by `id`. Sort annotations `not` (default) or by `id`.
+  * --no-shuffle: Force the script to not shuffle the images prior to sampling
 
 You may also download existing seeds [here](http://dl.yf.io/fs-det/datasets/cocosplit/)
 
@@ -146,11 +153,13 @@ Note: You can also download the ImageNet pretrained backbones [ResNet-50](https:
 See the original documentation on the [TFA training procedure](docs/TRAIN_INST.md) for more detailed information.
 
 Note: 
-* The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For those purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
+* The original workflow was to modify previously created dummy-configs. Instead, we now create fresh configs every time a new training is started, no config is read in and then modified. For this purpose, we refactored the existing script `tools/run_experiments.py` to parametrize fine-tunings and created a new script `tools/base_training.py` for easy parametrization of base-trainings. Further information on both scripts can be found in the sections [Base-Training](#base-training) and [Fine-Tuning](#fine-tuning)
 
 ### Augmentations
 
 This repository fully integrates [Albumentations](https://albumentations.ai/) into Detectron2. To this end, the behaviour of Detectron2's augmentation pipeline had to be adjusted in order for both types of augmentations (Albumentations and Detectron2) to work side by side. Among others, Detectron2's default augmentations (ResizeShortestEdge and RandomFlip) are re-implemented (still triggering the same Transformation underneath) and most of Detectron2's augmentation configs (INPUT.\*) are deleted to not cause confusion between new and old configs.
+
+NOTE: Currently, it is not possible to use Albumentations augmentations inheriting from DualTransform. The issue is with the bbox representation, Detectron2 and Albumentations use: While Detectron2 uses absolute XYXY bbox coordinates at bbox transformation, Albumentations uses relative XYXY bbox coordinates. This is problematic, since our Augmentation Pipeline allows to use an arbitrary amount of Detectron2 augmentations and Albumentations augmentations in an arbitraty order: The bboxes would have to be transformed before/after executing an Detectron2 augmentation after an Albumentation augmentation (just if both kinds of augmentations transform the bboxes as well!), and vice versa. Another possibility would be to restrict the usage of augmentations to only Albumentations transforms.
 
 #### New Augmentation Pipeline
 
@@ -192,7 +201,10 @@ Following arguments are supported:
 * --lr: learning rate (default: `0.02` for batch size 16). Set to `-1` for automatically linear scaling depending on the batch size
 * --augmentations: data augmentations to be used during training. Choose from `ResizeShortestEdgeLimitLongestEdge`, `RandomHFlip`, `RandomVFlip` and `RandomFourAngleRotation`. (Default: `ResizeShortestEdgeLimitLongestEdge`, `RandomHFlip`)
 * --override-config: force overriding of already existant configs
-* --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`) 
+* --num-threads: limit the amount of threads using `OMP_NUM_THREADS` environment variable. (Default: `1`)
+* --resume: Try to resume to the altest checkpoint. Do not set together with --force-retrain argument!
+* --force-retrain: By default, this script won't override already existing checkpoints. Set --force-retrain to delete those checkpoints and start a fresh training. Do no set together with the --resume argument!
+* --opts: Override configs for this very call (e.g. used by the wrapper script to set augmentations ond override the default configs for them)
 
 ### Fine-Tuning
 Before you start the fine-tuning, make sure the configs in `fsdet/config/defaults.py` are set as you want:
@@ -203,7 +215,7 @@ Before you start the fine-tuning, make sure the configs in `fsdet/config/default
 * `NOVEL_OVERSAMPLING_FACTOR`: Use this factor (NOF) to re-balance the dataset for fine-tuning (e.g. if a `BASE_SHOT_MULTIPLIER` larger than 1 was used.
 
 Similar to the base-trainings, fine-tunings are best run with the appropriate script, `tools/run_experiments.py`. We modified the original script to create a fresh config for each training and to not read in existing configs and modifying them, which required the existance of an example config for every possible configuration. This way, we are more flexible and the config/-directory is more clean since we just store configs we really need. Since the amount of possible arguments is very large, we recommend using the corresponding wrapper `wrapper_fine_tuning.py` for starting fine-tunings. The most important arguments are:
-* --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs, --augmentations and --override-config work the same way as for the base-training
+* --dataset, --class-split, --gpu-ids, --num-threads, --layers, --bs, --augmentations, --override-config, --resume, --force-retrain and --opts work the same way as for the base-training
 * --classfier: use regular `fc` or `cosine` classifier 
 * --tfa: use two-stage fine-tuning approach (Trains a net on only novel classes to obtain novel class initialization for regular fine-tuning), turned off by default. When turned off, this equals the `randinit` surgery type.
 * --discard-base-weights and --discard-bg-weights: When set, discards the base class predictor weights and background class predictor weights, obtained from the base training, at the surgery, for fine-tuning. On default, both is disabled which will keep those parameters for fine-tuning.
@@ -220,6 +232,9 @@ Similar to the base-trainings, fine-tunings are best run with the appropriate sc
 * --lr: learning rate (Default: `0.001` for batch size 16). Set to -1 for automatic linear scaling dependent on batch size.
 * --override-surgery: rerun surgery even if surgery model already exists (e.g. necessary when using same settings but different `double_head` setting)
 * The maximum iteration, the learning rate decay steps and the checkpoint interval may be overridden using the arguments --max-iter, --lr-decay-steps and --ckpt-interval, respectively. If not specified, hard-coded values depending on dataset and shot are used.
+* Experimental and unusal arguments:
+  * --alt-dataset, --alt-class-split: Perform a fine-tuning on a different dataset (and class split) than the base training was trained on. Note that the checkpoints are saved at the same place, the base training comes from (--dataset + --class-split) but the data is taken from --alt-dataset + --alt-class-split. Watch out, that the datasets are compatible (e.g. both are in the same equivalence class inside class_splits.py:COMPATIBLE_DATASETS or a mapping between both class splits has to be existent inside class_splits.py:CLASS_NAME_TRANSFORMS!)
+  * --target-class-set: By default, a fine-tuning is performed on `all` classes. Set to `novel` to force the fine-tuning to target only novel classes of the class split.
 
 ## Inference
 Inference can either be run directly in the command line via:
@@ -228,9 +243,16 @@ python3 -m tools.test_net --num-gpus 8 --config-file configs/<path-to-config>/<c
 ```
 or by using the corresponding wrapper `wrapper_inference.py` for easy parametrization.
 
-Note: 
+General notes for tools/test_net.py: 
 * --eval-only evaluates just the last checkpoint. Add --eval-iter to evaluate a certain checkpoint iteration. Use --eval-all to evaluate all saved checkpoints.
 * --opts can be used to override some test-specific configs without having to modify the config file directly
+
+Notes for the wrapper script wrapper_inference.py:
+* alternative_inference_dataset + alternative_inference_class_split: The same feature as for fine-tuning on a different dataset: Run inference on a different dataset (and class split). Note that the same requirements have to be fulfilled as for fine-tuning on a different dataset: The datasets have to be either compatible (COMPATIBLE_DATASETS) or a mapping between the classes has to be existent (CLASS_NAME_TRANSFORMS).
+* The config `TEST.AUG.ENABLED` activates test-time augmentations (TTA)
+* The config `TEST.FILTER_EMPTY_ANNOTATIONS` filters empty images prior to inference (which can heavily influence the detection performance, handle with care!)
+* The config `TEST.TSNE.ENABLED` activates the creation of a t-SNE visualization.
+* By modifying the config `TEST.METRICS.PRECISION`, different precision metrics can be obtained (different than AP, AP50 and AP75).
 
 ## Aggregate Results of many Seeds
 Due to the heavily modified repository workflow (including file and directory names as well as the directory hierarchy), it's unclear if the script `tools/aggregate_seeds.py` still works. Thus, we recommend using the script `tools/collect_metrics.py` which is directly adapted to the actual repository workflow. Adjust the variables to match your training's configuration and run:
