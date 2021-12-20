@@ -4,6 +4,7 @@ from fsdet.config.config import get_cfg
 
 def main():
     cfg = get_cfg()
+    # TODO: add a loop over all datasets (will iterate over all datasets, and will run, for each dataset, inference over all class splits of that dataset
     dataset = "coco"  # coco, isaid
     coco_class_splits = ["voc_nonvoc"]  # voc_nonvoc, none_all
     isaid_class_splits = ["vehicle_nonvehicle"]  # vehicle_nonvehicle, none_all, experiment1, experiment2, experiment3
@@ -63,6 +64,7 @@ def main():
     else:
         raise ValueError("Unknown dataset: {}".format(dataset))
     # ---------------------------------------------------------------------------------------------------------------- #
+    assert ft_mode in ["all", "novel"]
     if alternative_inference_dataset:
         assert alternative_inference_class_split
         # same pattern as in 'run_base_training.py' and 'run_experiments.py'
@@ -70,7 +72,7 @@ def main():
             alternative_inference_dataset,
             alternative_inference_class_split,
             cfg.TEST_SPLIT[alternative_inference_dataset],
-            "all" if phase == 2 else "base"
+            "base" if phase == 1 else ft_mode  # phase 1 evaluates on only base classes, phase 2 on all or only novel classes
         )
         opts.extend(['DATASETS.TEST', '\\(\\"{}\\",\\)'.format(test_dataset_name)])
     if eval_mode != 'single':  # to prevent multiple execution of inference on all or the last checkpoint!
@@ -119,7 +121,7 @@ def run_inference(gpu_ids, num_threads, config_file, eval_mode, iteration, opts)
         eval_mode_str = "--eval-only"
     opts_str = '' if not opts else '--opts ' + separate(opts, ' ')
     base_cmd = "python3 -m tools.test_net"
-    cmd = "OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} --config-file {} --num-gpus {} {} {}"\
+    cmd = "OMP_NUM_THREADS={} CUDA_VISIBLE_DEVICES={} {} --dist-url auto --config-file {} --num-gpus {} {} {}"\
         .format(num_threads, separate(gpu_ids, ','), base_cmd, config_file, len(gpu_ids), eval_mode_str, opts_str)
     os.system(cmd)
 
