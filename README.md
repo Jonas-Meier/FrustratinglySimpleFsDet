@@ -13,12 +13,13 @@ Base Training | Fine-Tuning
 If you find this repository useful for your publications, please consider citing our paper.
 
 ```angular2html
-@inproceedings{wolf2021double,
-  title={Double Head Predictor based Few-Shot Object Detection for Aerial Imagery},
-  author={Wolf, Stefan and Meier, Jonas and Sommer, Lars and Beyerer, J{\"u}rgen},
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages={721--731},
-  year={2021}
+@InProceedings{Wolf_2021_ICCV,
+    author    = {Wolf, Stefan and Meier, Jonas and Sommer, Lars and Beyerer, J\"urgen},
+    title     = {Double Head Predictor Based Few-Shot Object Detection for Aerial Imagery},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
+    month     = {October},
+    year      = {2021},
+    pages     = {721-731}
 }
 
 ```
