@@ -1,12 +1,27 @@
 [//]: # (This may be the most platform independent comment)
 
-# Few-Shot Object Detection (FsDet)
+# Double Head Few-Shot Detection (DH-FSDet)
 
-FsDet contains the official few-shot object detection implementation of the ICML 2020 paper [Frustratingly Simple Few-Shot Object Detection](https://arxiv.org/abs/2003.06957).
+This is the official implementation of the ICCV 2021 paper [Double Head Predictor Based Few-Shot Object Detection for Aerial Imagery](https://openaccess.thecvf.com/content/ICCV2021W/LUAI/html/Wolf_Double_Head_Predictor_Based_Few-Shot_Object_Detection_for_Aerial_Imagery_ICCVW_2021_paper.html). It is built on top of the [TFA approach](https://github.com/ucbdrive/few-shot-object-detection).
 
-[Original Repository](https://github.com/ucbdrive/few-shot-object-detection).
+Base Training | Fine-Tuning
+--- | ---
+![base](https://user-images.githubusercontent.com/19251666/146904155-7bc91e61-9d47-4ce0-a669-a92dd32c4b75.png) | ![novel](https://user-images.githubusercontent.com/19251666/146904264-7cbecd95-9fd7-4946-bb97-1152b5dc196c.png)
 
-![TFA Figure](https://user-images.githubusercontent.com/7898443/76520006-698cc200-6438-11ea-864f-fd30b3d50cea.png)
+
+
+If you find this repository useful for your publications, please consider citing our paper.
+
+```angular2html
+@inproceedings{wolf2021double,
+  title={Double Head Predictor based Few-Shot Object Detection for Aerial Imagery},
+  author={Wolf, Stefan and Meier, Jonas and Sommer, Lars and Beyerer, J{\"u}rgen},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={721--731},
+  year={2021}
+}
+
+```
 
 ## Setup
 This repository has been successfully tested with following configuration:
@@ -188,20 +203,3 @@ Due to the heavily modified repository workflow (including file and directory na
 ```bash
 python3 -m tools.collect_metrics
 ```
-
-## Legacy Notes
-We sample multiple groups of few-shot training examples for multiple runs of the experiments and report evaluation results on both the base classes and the novel classes.
-
-We also provide benchmark results and pre-trained models for our two-stage fine-tuning approach (TFA). In TFA, we first train the entire object detector on the data-abundant base classes, and then only fine-tune the last layers of the detector on a small balanced training set.
-
-The code has been upgraded to detectron2 v0.2.1.  If you need the original released code, please checkout the release [v0.1](https://github.com/ucbdrive/few-shot-object-detection/tags) in the tag.
-
-If you find this repository useful for your publications, please consider citing our paper.
-```angular2html
-@article{wang2020few,
-    title={Frustratingly Simple Few-Shot Object Detection},
-    author={Wang, Xin and Huang, Thomas E. and  Darrell, Trevor and Gonzalez, Joseph E and Yu, Fisher}
-    booktitle = {International Conference on Machine Learning (ICML)},
-    month = {July},
-    year = {2020}
-}
